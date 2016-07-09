@@ -3,7 +3,7 @@ Install
 =======
 
 This section covers the basics of how to download and install 
-`wavePy <https://github.com/decarlof/wavepy>`_.
+`wavePy <https://github.com/wavepy/wavepy>`_.
 
 .. contents:: Contents:
    :local:
@@ -12,10 +12,10 @@ This section covers the basics of how to download and install
 Installing from source
 ======================
   
-Clone the `wavePy <https://github.com/decarlof/wavepy>`_  
+Clone the `wavePy <https://github.com/wavepy/wavepy>`_  
 from `GitHub <https://github.com>`_ repository::
 
-    git clone https://github.com/decarlof/wavepy.git wavepy
+    git clone https://github.com/wavepy/wavepy.git wavepy
 
 then::
 

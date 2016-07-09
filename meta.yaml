@@ -3,7 +3,7 @@ package:
   version: '0.1.1'
 
 source:
-  git_url: https://github.com/decarlof/wavepy.git
+  git_url: https://github.com/wavepy/wavepy.git
   
 build:
   number: 0
