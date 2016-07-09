@@ -1,7 +1,9 @@
 API reference
 =============
 
-.. rubric:: **wavepy Modules:**
+If the functions are derived from a publication add here the referenced citation as :cite:`ref:01`.
+
+.. rubric:: **wavePy Modules:**
 
 .. toctree::
 

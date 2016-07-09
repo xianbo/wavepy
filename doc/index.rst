@@ -2,15 +2,17 @@
 wavePy
 ======
 
-`wavePy <https://github.com/decarlof/wavepy>`_ provides a template doc.
+`wavePy <https://github.com/decarlof/wavepy>`_ is a python toolbox that provides ...
+
 Here is how to add a link to your documentation
-`Docs <http://wavepy.readthedocs.org/>`_ and here is how to add a reference :cite:`cite:01`
+`Docs <http://wavepy.readthedocs.org/>`_ and here is how to add a reference :cite:`cite:01`.
 
 
 Features
 --------
 
-* Example of how to write documentation 
+* List here 
+* the wavePy package features
 
 
 Contribute
