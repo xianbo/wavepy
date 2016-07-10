@@ -18,6 +18,6 @@ Contribute
 ----------
 
 * Documentation: https://github.com/wavepy/wavepy/tree/master/doc
-* Issue Tracker: https://github.com/wavepy/wavepy/docs/issues
-* Source Code: https://github.com/wavepy/wavepy/wavepy
+* Issue Tracker: https://github.com/wavepy/wavepy/issues
+* Source Code: https://github.com/wavepy/wavepy
 
