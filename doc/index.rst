@@ -56,6 +56,7 @@ Content
 
    source/about
    source/install
+   source/devguide
    source/api
    source/demo
    source/credits
