@@ -14,11 +14,8 @@ Here is how to add a link to your documentation
 
 You can include equations like:
 
-.. math::  V(x) = \left(\frac{1-\eta}{\sigma\sqrt{2\pi}}\right) \cdot exp\left({\frac{x^2}{2\sigma^2}}\right) + \eta \cdot \frac{\sigma}{2\pi} \cdot \frac{1}{x^2 + \left(\frac{\sigma}{2}\right)^2}
+.. math::  V(x) = \int_{E_{1}}^{E_{2}} I(\theta,E) \cdot F(E)\,dE \cdot \left(\frac{1-\eta}{\sigma\sqrt{2\pi}}\right) \cdot exp\left({\frac{x^2}{2\sigma^2}}\right) + \eta \cdot \frac{\sigma}{2\pi} \cdot \frac{1}{x^2 + \left(\frac{\sigma}{2}\right)^2}
 
-or 
-
-.. math::  I_{white} = \int_{E_{1}}^{E_{2}} I(\theta,E) \cdot F(E)\,dE.
 
 and tables:
 
