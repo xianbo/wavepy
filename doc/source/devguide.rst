@@ -27,7 +27,7 @@ GitHub space.
 Clone the repository
 ====================
 
-The next thing you want to do is to clone the repository you just created in
+The next thing you want to do is to clone the repository you just created
 in your personal GitHub space to your local machine. 
 
 You can do this by clicking the **Clone in Desktop**  button in the bottom of 
@@ -103,8 +103,8 @@ Contributing back
 =================
 
 Once you feel that the functionality you added would benefit the community, 
-then you should consider contributing back to the waveTPy project. For this, 
-go to your online GitHub repository of the project and click on the *green*
+then you should consider contributing back to the wavePy project. For this, 
+go to your online GitHub repository of the project and click on the *compare*
 button to compare, review and create a pull request.
 
 .. image:: img/create-revision.png
