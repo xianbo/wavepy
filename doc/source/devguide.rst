@@ -3,7 +3,10 @@ Development
 ===========
 
 This section explains the basics for developers who wish to contribute 
-to the wavePy project.
+to the wavePy project. WavePy is mantained on GitHub and uses the
+`fork <https://help.github.com/articles/fork-a-repo/>`_ /
+`pull request <https://help.github.com/articles/using-pull-requests/>`_
+mechanism for accepting developer contributions.
 
 .. contents:: Contents:
    :local:
@@ -14,8 +17,9 @@ Fork the repository
 
 The project is maintained on GitHub, which is a version control and a 
 collaboration platform for software developers. To start first register 
-on `GitHub <https://github.com>`_ and fork the 
-`wavePy repository <https://github.com/wavepy/wavepy>`_ 
+on `GitHub <https://github.com>`_ and 
+`fork <https://help.github.com/articles/fork-a-repo/>`_ 
+the `wavePy repository <https://github.com/wavepy/wavepy>`_ 
 by clicking the **Fork** button in the header of the 
 `wavePy repository <https://github.com/wavepy/wavepy>`_: 
 
@@ -112,8 +116,9 @@ button to compare, review and create a pull request.
 After clicking on this button, you are presented with a review page 
 where you can get a high-level overview of what exactly has changed
 between your forked branch and the original wavePy repository. 
-When you're ready to submit your pull request, click 
-**Create pull request**:
+When you're ready to submit your 
+`pull request <https://help.github.com/articles/using-pull-requests/>`_, 
+click **Create pull request**:
 
 .. image:: img/create-pr.png
 
