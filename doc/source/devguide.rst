@@ -123,6 +123,8 @@ provide as much useful information and a rationale for why you’re making
 this Pull Request in the first place.
 
 When you’re ready typing out your heartfelt argument, click on **Send 
-pull request**. You’re done!
+pull request**. 
+
+You’re done!
 
 .. This text is partially adopted from GitHub guides and Wikipedia.
