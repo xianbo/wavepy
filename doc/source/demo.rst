@@ -1,0 +1,1 @@
+Examples========Here we describe what the examples are doing... toctree::   demo/doc.demo.example_01   demo/doc.demo.example_02.. automodule:: wavepy   :members:   :undoc-members:   :show-inheritance: 
