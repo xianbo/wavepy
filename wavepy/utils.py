@@ -370,6 +370,13 @@ def ls_files(pattern='*', n_levels=1):
 
 
 def _choose_one_of_this_options(header=None, list_of_options=None):
+    """
+    Plot contourf in the main graph plus profiles over vertical and horizontal line defined by mouse.
+
+    Parameters
+    ----------
+
+    """
     for whatToPrint in header:
         print(whatToPrint)
 
