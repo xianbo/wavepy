@@ -59,29 +59,23 @@ from skimage.feature import register_translation
 
 from multiprocessing import Pool, cpu_count
 
-import wavepy.utils as utils
+import wavepy.utils as wpu
+from wavepy._my_debug_tools import *
+
+from wavepy.cfg import *
 
 __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
-__all__ = ['speckleDisplacement',
-           'speckleDisplacementMulticore',
-           'function_03']
+__all__ = ['speckleDisplacement']
+
+# TODO: Remove debug library
+from wavepy._my_debug_tools import *
 
 
-
-
-
-def speckleDisplacement(image, image_ref, halfsubwidth=10,
-                        stride=1, npoints=None, subpixelResolution = 1):
-
-
-
-    if npoints is not None:
-        stride = int(image.shape[0] / npoints) - 1
-        if stride <= 0: stride = 1  # note that this is not very precise
-
+def _speckleDisplacementSingleCore(image, image_ref, halfsubwidth=10,
+                                   stride=1, subpixelResolution=1):
     irange = np.arange(halfsubwidth,
                        image.shape[0] - halfsubwidth + 1,
                        stride)
@@ -91,18 +85,17 @@ def speckleDisplacement(image, image_ref, halfsubwidth=10,
 
     pbar = tqdm(total=np.size(irange))  # progress bar
 
-    sx = np.ones(image.shape)*NAN
-    sy = np.ones(image.shape)*NAN
-    error = np.ones(image.shape)*NAN
-
+    sx = np.ones(image.shape) * NAN
+    sy = np.ones(image.shape) * NAN
+    error = np.ones(image.shape) * NAN
 
     for (i, j) in itertools.product(irange, jrange):
 
         interrogation_window = image_ref[i - halfsubwidth:i + halfsubwidth + 1,
-                                         j - halfsubwidth:j + halfsubwidth + 1]
+                               j - halfsubwidth:j + halfsubwidth + 1]
 
         sub_image = image[i - halfsubwidth:i + halfsubwidth + 1,
-                          j - halfsubwidth:j + halfsubwidth + 1]
+                    j - halfsubwidth:j + halfsubwidth + 1]
 
         shift, error_ij, _ = register_translation(sub_image,
                                                   interrogation_window,
@@ -117,25 +110,23 @@ def speckleDisplacement(image, image_ref, halfsubwidth=10,
     print(" ")
 
     return (sx[halfsubwidth:-halfsubwidth:stride,
-               halfsubwidth:-halfsubwidth:stride],
+            halfsubwidth:-halfsubwidth:stride],
             sy[halfsubwidth:-halfsubwidth:stride,
-               halfsubwidth:-halfsubwidth:stride],
+            halfsubwidth:-halfsubwidth:stride],
             error[halfsubwidth:-halfsubwidth:stride,
-                  halfsubwidth:-halfsubwidth:stride],
+            halfsubwidth:-halfsubwidth:stride],
             stride)
 
 
-#==============================================================================
-# %% Data Analysis Multicore Loop
-#==============================================================================
+# ==============================================================================
+# %% Data Analysis Multicore
+# ==============================================================================
 
 
 
-def _func(args1 ,parList):
-#    time.sleep(0.5)
-
-    i = args1[0]
-    j = args1[1]
+def _func_4_starmap_async(args, parList):
+    i = args[0]
+    j = args[1]
     image = parList[0]
     image_ref = parList[1]
     halfsubwidth = parList[2]
@@ -144,29 +135,27 @@ def _func(args1 ,parList):
     #    print(i, j ,halfsubwidth, subpixelResolution)
 
     interrogation_window = image_ref[i - halfsubwidth:i + halfsubwidth + 1,
-                                     j - halfsubwidth:j + halfsubwidth + 1]
+                           j - halfsubwidth:j + halfsubwidth + 1]
 
     sub_image = image[i - halfsubwidth:i + halfsubwidth + 1,
-                      j - halfsubwidth:j + halfsubwidth + 1]
+                j - halfsubwidth:j + halfsubwidth + 1]
 
     shift, error_ij, _ = register_translation(sub_image,
                                               interrogation_window,
-                                                  subpixelResolution)
+                                              subpixelResolution)
 
-#    for _ in range(100000000): pass
-#    print('i,j : {0}, {1}'.format(i,j))
+    #    for _ in range(100000000): pass
+    #    print('i,j : {0}, {1}'.format(i,j))
     return shift[1], shift[0], error_ij
 
 
-def speckleDisplacementMulticore(image, image_ref, halfsubwidth=10,
-                        stride=1, npoints=None, subpixelResolution = 1,
-                        ncores=1/2):
+def _speckleDisplacementMulticore(image, image_ref, halfsubwidth=10,
+                                  stride=1, subpixelResolution=1,
+                                  ncores=1.0/2, taskPerCore=100):
 
-
-
-    if npoints is not None:
-        stride = int(image.shape[0] / npoints) - 1
-        if stride <= 0: stride = 1  # note that this is not very precise
+    print("%d cpu's available" % cpu_count())
+    p = Pool(processes=int(cpu_count() * ncores))
+    print("Using %d cpu's" % p._processes)
 
     irange = np.arange(halfsubwidth,
                        image.shape[0] - halfsubwidth + 1,
@@ -175,32 +164,55 @@ def speckleDisplacementMulticore(image, image_ref, halfsubwidth=10,
                        image.shape[1] - halfsubwidth + 1,
                        stride)
 
-    print(stride)
-    print(npoints)
-
-    print("%d cpu's available" % cpu_count())
-    p = Pool(processes=int(cpu_count()*ncores))
-    print("Using %d cpu's" % p._processes)
-
-
     parList = [image, image_ref, halfsubwidth,
                subpixelResolution]
 
+    ntasks = np.size(irange) * np.size(jrange)
 
-    res = p.starmap_async(_func,
+    chunksize = int(ntasks / p._processes / taskPerCore + 1)
+
+    print("ntasks =  %d" % ntasks)
+    print("chunksize =  %d" % chunksize)
+
+    res = p.starmap_async(_func_4_starmap_async,
                           zip(itertools.product(irange, jrange),
                               itertools.repeat(parList)),
-                          chunksize=1)
+                          chunksize=chunksize)
+
+    p.close()  # No more work
+
+    wpu.progress_bar4pmap2(res)  # Holds program in a loop waiting starmap_async to finish
+
+    sx = np.array(res.get())[:, 0].reshape(len(irange), len(jrange))
+    sy = np.array(res.get())[:, 1].reshape(len(irange), len(jrange))
+    error = np.array(res.get())[:, 2].reshape(len(irange), len(jrange))
+
+    return (sx, sy, error, stride)
 
 
-    p.close() # No more work
+def speckleDisplacement(image, image_ref, halfsubwidth=10,
+                        stride=1, npoints=None, subpixelResolution=1,
+                        ncores=1 / 2, taskPerCore=100, verbose=False):
+    if npoints is not None:
+        stride = int(image.shape[0] / npoints) - 1
+        if stride <= 0: stride = 1  # note that this is not very precise
 
+    if verbose:
+        print('speckleDisplacement')
+        print("stride =  %d" % stride)
+        DEBUG_print_var('npoints', npoints)
 
-    utils.progressBar4pmap2(res)
-    #    print(np.array(res.get()))
+    if int(cpu_count() * ncores) <= 1:
 
-    return np.array(res.get())[:,0].reshape(len(irange),len(jrange))
+        res = _speckleDisplacementSingleCore(image, image_ref,
+                                             halfsubwidth=halfsubwidth,
+                                             stride=1, subpixelResolution=1)
 
+    else:
 
+        res = _speckleDisplacementMulticore(image, image_ref,
+                                            halfsubwidth=halfsubwidth,
+                                            stride=1, subpixelResolution=1,
+                                            ncores=ncores, taskPerCore=taskPerCore)
 
-
+    return res

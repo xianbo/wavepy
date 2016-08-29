@@ -58,8 +58,8 @@ __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
-__all__ = ['function_01',
-           'function_02']
+__all__ = ['color_print',
+           'color_print_red']
 
 
 def color_print(message, color='red',
@@ -301,9 +301,11 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
 # files manipulation
 # %%%%%%%%%%%%%%%%%%%%
 
-def select_file(pattern='*', n_levels=5, message_to_print=None):
+def select_file(pattern='*', message_to_print=None):
 
-    list_files = ls_files(pattern, n_levels)
+    import glob
+
+    list_files = glob.glob(pattern, recursive=True)
 
     if len(list_files) == 1:
         color_print("Only one option. Loading " + list_files[0])
@@ -341,32 +343,6 @@ def select_dir(n_levels=5, message_to_print=None):
 
     return select_file(pattern='', n_levels=n_levels, message_to_print='')
 
-
-def ls_files(pattern='*', n_levels=1):
-    """
-    emulates Unix ls function
-
-    Parameters
-    ----------
-    pattern : string
-        pattern for ls
-    n_levels : integer
-        number of sub directories to run ls
-
-    Returns
-    -------
-    list
-        list of files inside the directories
-    """
-    import glob
-
-    files_list = []
-
-    for i in range(n_levels):
-        files_list = files_list + glob.glob(pattern)
-        pattern = '*/' + pattern
-
-    return files_list.sort()
 
 
 def _choose_one_of_this_options(header=None, list_of_options=None):
@@ -851,33 +827,35 @@ if __name__ == '__main__':
 
 # Progress bar
 
-def progress_bar4pmap(res):
+def progress_bar4pmap(res,sleep_time=1.0):
     while (True):
 
-        print(len(res._value))
+        # print(len(res._value))
 
         remaining = res._number_left/len(res._value)
         pbar = str('int {0:2} of {1} '.format(len(res._value) - res._number_left,
                                               len(res._value)))
 
         pbar += '['+'*'*(30-int(remaining*30)) + ' '*int(remaining*30) + '] '
-        pbar += '{0:5.2f}% tasks completed...\r'.format(100 - remaining*100)
-        print(pbar, end='')
+        pbar += '{0:5.2f}% tasks completed...'.format(100 - remaining*100)
+        print(pbar)
+        # print(pbar, end='')
 
         if (res.ready()):
             print('')
             break
-        time.sleep(0.5)
+        time.sleep(sleep_time)
+        # print('Oi')
 
 def progress_bar4pmap2(res,sleep_time=1.0):
 
     res_size = len(res._value)
 
-    print()
+    print(res._number_left)
 
-    pbar = tqdm(total=res_size)
-
-    old_res_n_left = res_size
+    # old_res_n_left = res_size
+    old_res_n_left = res._number_left
+    pbar = tqdm(total= old_res_n_left )
 
     while res._number_left > 0:
         if old_res_n_left != res._number_left:
