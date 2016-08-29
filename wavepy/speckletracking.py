@@ -65,7 +65,9 @@ __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
-
+__all__ = ['speckleDisplacement',
+           'speckleDisplacementMulticore',
+           'function_03']
 
 
 

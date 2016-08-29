@@ -12,3 +12,4 @@
    
       function_01
       function_02
+      function_03
