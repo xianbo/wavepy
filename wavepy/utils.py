@@ -58,11 +58,11 @@ __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
-__all__ = ['color_print',
-           'color_print_red']
+__all__ = ['print_color',
+           'print_red']
 
 
-def color_print(message, color='red',
+def print_color(message, color='red',
                 highlights='on_white', attrs=''):
     """
         Print with colored characters. It is only a alias for colored print in the package termcolor
@@ -79,7 +79,7 @@ def color_print(message, color='red',
     print((termcolor.colored(message, color, highlights, attrs=attrs)))
 
 
-def color_print_red(message):
+def print_red(message):
     """
         Print with red characters. It is only a alias for colored print in the package termcolor
 
@@ -92,7 +92,7 @@ def color_print_red(message):
     print((termcolor.colored(message, color='red')))
 
 
-def color_print_blue(message):
+def print_blue(message):
     """
         Print with red characters. It is only a alias for colored print in the package termcolor
 
@@ -233,8 +233,8 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
         main_subplot.axhline(_yo, ls='--', lw=2, color=last_color)
         main_subplot.axvline(_xo, ls='--', lw=2, color=last_color)
 
-        message = r'$x_o = %.4g %s$' % (xo, xunit)
-        message = message + '\n' + r'$y_o = %.4g %s$' % (yo, yunit)
+        message = r'$x_o = %.4g %s$' % (_xo, xunit)
+        message = message + '\n' + r'$y_o = %.4g %s$' % (_yo, yunit)
 
         main_subplot_x_min, main_subplot_x_max = main_subplot.get_xlim()
         main_subplot_y_min, main_subplot_y_max = main_subplot.get_ylim()
@@ -308,11 +308,11 @@ def select_file(pattern='*', message_to_print=None):
     list_files = glob.glob(pattern, recursive=True)
 
     if len(list_files) == 1:
-        color_print("Only one option. Loading " + list_files[0])
+        print_color("Only one option. Loading " + list_files[0])
         return list_files[0]
     elif len(list_files) == 0:
-        color_print("\n\n\n#WG: ================== ERROR ==========================#")
-        color_print("No files with pattern '" + pattern + "'")
+        print_color("\n\n\n#WG: ================== ERROR ==========================#")
+        print_color("No files with pattern '" + pattern + "'")
     else:
 
         if message_to_print is None:
@@ -821,39 +821,12 @@ def h5_list_of_groups(h5file):
 
 
 if __name__ == '__main__':
-    color_print_blue('Oi')
-    color_print('Oi', 'white', 'on_green', ['bold'])
-
+    pass
 
 # Progress bar
 
 def progress_bar4pmap(res,sleep_time=1.0):
-    while (True):
 
-        # print(len(res._value))
-
-        remaining = res._number_left/len(res._value)
-        pbar = str('int {0:2} of {1} '.format(len(res._value) - res._number_left,
-                                              len(res._value)))
-
-        pbar += '['+'*'*(30-int(remaining*30)) + ' '*int(remaining*30) + '] '
-        pbar += '{0:5.2f}% tasks completed...'.format(100 - remaining*100)
-        print(pbar)
-        # print(pbar, end='')
-
-        if (res.ready()):
-            print('')
-            break
-        time.sleep(sleep_time)
-        # print('Oi')
-
-def progress_bar4pmap2(res,sleep_time=1.0):
-
-    res_size = len(res._value)
-
-    print(res._number_left)
-
-    # old_res_n_left = res_size
     old_res_n_left = res._number_left
     pbar = tqdm(total= old_res_n_left )
 

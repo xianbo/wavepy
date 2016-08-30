@@ -60,7 +60,6 @@ from skimage.feature import register_translation
 from multiprocessing import Pool, cpu_count
 
 import wavepy.utils as wpu
-from wavepy._my_debug_tools import *
 
 from wavepy.cfg import *
 
@@ -74,8 +73,9 @@ __all__ = ['speckleDisplacement']
 from wavepy._my_debug_tools import *
 
 
-def _speckleDisplacementSingleCore(image, image_ref, halfsubwidth=10,
-                                   stride=1, subpixelResolution=1):
+def _speckleDisplacementSingleCore(image, image_ref, halfsubwidth,
+                                   stride, subpixelResolution,):
+
     irange = np.arange(halfsubwidth,
                        image.shape[0] - halfsubwidth + 1,
                        stride)
@@ -132,7 +132,6 @@ def _func_4_starmap_async(args, parList):
     halfsubwidth = parList[2]
     subpixelResolution = parList[3]
 
-    #    print(i, j ,halfsubwidth, subpixelResolution)
 
     interrogation_window = image_ref[i - halfsubwidth:i + halfsubwidth + 1,
                            j - halfsubwidth:j + halfsubwidth + 1]
@@ -144,18 +143,17 @@ def _func_4_starmap_async(args, parList):
                                               interrogation_window,
                                               subpixelResolution)
 
-    #    for _ in range(100000000): pass
-    #    print('i,j : {0}, {1}'.format(i,j))
     return shift[1], shift[0], error_ij
 
 
-def _speckleDisplacementMulticore(image, image_ref, halfsubwidth=10,
-                                  stride=1, subpixelResolution=1,
-                                  ncores=1.0/2, taskPerCore=100):
+def _speckleDisplacementMulticore(image, image_ref, halfsubwidth,
+                                  stride, subpixelResolution,
+                                  ncores, taskPerCore):
 
-    print("%d cpu's available" % cpu_count())
+    print('MESSAGE: _speckleDisplacementMulticore:')
+    print("MESSAGE: %d cpu's available" % cpu_count())
     p = Pool(processes=int(cpu_count() * ncores))
-    print("Using %d cpu's" % p._processes)
+    print("MESSAGE: Using %d cpu's" % p._processes)
 
     irange = np.arange(halfsubwidth,
                        image.shape[0] - halfsubwidth + 1,
@@ -171,8 +169,11 @@ def _speckleDisplacementMulticore(image, image_ref, halfsubwidth=10,
 
     chunksize = int(ntasks / p._processes / taskPerCore + 1)
 
-    print("ntasks =  %d" % ntasks)
-    print("chunksize =  %d" % chunksize)
+    # DEBUG_print_var("chunksize", chunksize)
+    # DEBUG_print_var("ntasks", ntasks)
+    # DEBUG_print_var("np.size(irange)", np.size(irange))
+
+    # DEBUG_print_var("np.size(jrange)", np.size(jrange))
 
     res = p.starmap_async(_func_4_starmap_async,
                           zip(itertools.product(irange, jrange),
@@ -181,7 +182,8 @@ def _speckleDisplacementMulticore(image, image_ref, halfsubwidth=10,
 
     p.close()  # No more work
 
-    wpu.progress_bar4pmap2(res)  # Holds program in a loop waiting starmap_async to finish
+    wpu.progress_bar4pmap(res)  # Holds the program in a loop waiting
+                                 # starmap_async to finish
 
     sx = np.array(res.get())[:, 0].reshape(len(irange), len(jrange))
     sy = np.array(res.get())[:, 1].reshape(len(irange), len(jrange))
@@ -191,28 +193,37 @@ def _speckleDisplacementMulticore(image, image_ref, halfsubwidth=10,
 
 
 def speckleDisplacement(image, image_ref, halfsubwidth=10,
-                        stride=1, npoints=None, subpixelResolution=1,
-                        ncores=1 / 2, taskPerCore=100, verbose=False):
-    if npoints is not None:
-        stride = int(image.shape[0] / npoints) - 1
+                        stride=1, npointsmax=None, subpixelResolution=1,
+                        ncores=1/2, taskPerCore=100, verbose=False):
+
+
+    if npointsmax is not None:
+        npoints = int((image.shape[0] - 2 * halfsubwidth) / stride)
+        # DEBUG_print_var("npoints", npoints)
+        if npoints > npointsmax:
+            stride = int((image.shape[0] - 2 * halfsubwidth) / npointsmax)
+            # DEBUG_print_var("stride", stride)
         if stride <= 0: stride = 1  # note that this is not very precise
 
     if verbose:
-        print('speckleDisplacement')
-        print("stride =  %d" % stride)
-        DEBUG_print_var('npoints', npoints)
+        print('MESSAGE: speckleDisplacement:')
+        print("MESSAGE: stride =  %d" % stride)
+        print("MESSAGE: npoints =  %d" %
+                int((image.shape[0] - 2 * halfsubwidth) / stride))
+
+    if ncores < 0 or ncores > 1: ncores = 1
 
     if int(cpu_count() * ncores) <= 1:
 
         res = _speckleDisplacementSingleCore(image, image_ref,
                                              halfsubwidth=halfsubwidth,
-                                             stride=1, subpixelResolution=1)
+                                             stride=stride, subpixelResolution=1)
 
     else:
 
         res = _speckleDisplacementMulticore(image, image_ref,
                                             halfsubwidth=halfsubwidth,
-                                            stride=1, subpixelResolution=1,
+                                            stride=stride, subpixelResolution=1,
                                             ncores=ncores, taskPerCore=taskPerCore)
 
     return res
