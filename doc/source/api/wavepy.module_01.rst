@@ -11,5 +11,4 @@
    .. autosummary::
    
       function_01
-      function_02
-      function_03
+      function_02      

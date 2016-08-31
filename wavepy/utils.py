@@ -58,51 +58,158 @@ __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
-__all__ = ['print_color',
-           'print_red']
+__all__ = ['dummy', 'print_color', 'print_red', 'print_blue', 'plot_profile',
+           'select_file', 'select_dir', 'nan_mask_threshold',
+           'index_square_mask_threshold', 'nan_square_mask_at_threshold',
+           'crop_matrix_at_indexes', 'crop_matrix_at_thresholds',
+           'find_nearest_value', 'find_nearest_value_index',
+           'find_nearest_value_matrix', 'find_nearest_value_matrix_index',
+           'dummy_images', 'graphical_roi_idx', 'choose_unit', 'datetime_now_str',
+           'time_now_str', 'date_now_str',
+           'realcoordvec', 'realcoordmatrix_fromvec', 'realcoordmatrix',
+           'fouriercoordvec', 'fouriercoordmatrix',
+           'h5_list_of_groups',
+           'progress_bar4pmap']
+
+
+def dummy(par1, par2, *args, **kwargs):
+    """
+    This is an example of a module level function.
+
+    Ref.:
+    http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html#example-numpy
+
+    Function parameters should be documented in the ``Parameters`` section.
+    The name of each parameter is required. The type and description of each
+    parameter is optional, but should be included if not obvious.
+
+    If \*args or \*\*kwargs are accepted,
+    they should be listed as ``*args`` and ``**kwargs``.
+
+    The format for a parameter is::
+
+        name : type
+            description
+
+            The description may span multiple lines. Following lines
+            should be indented to match the first line of the description.
+            The ": type" is optional.
+
+            Multiple paragraphs are supported in parameter
+            descriptions.
+
+    Parameters
+    ----------
+    parameter_01 : int
+        The first parameter.
+    parameter_02 : :obj:`str`, optional
+        The second parameter.
+    parameter_03 : :obj:`str`, optional
+        The second parameter.
+    *args
+        Variable length argument list.
+    **kwargs
+        Arbitrary keyword arguments.
+
+    Returns
+    -------
+    bool
+        True if successful, False otherwise.
+
+        The return type is not optional. The ``Returns`` section may span
+        multiple lines and paragraphs. Following lines should be indented to
+        match the first line of the description.
+
+        The ``Returns`` section supports any reStructuredText formatting,
+        including literal blocks::
+
+            {
+                'param1': param1,
+                'param2': param2
+            }
+
+    Raises
+    ------
+    AttributeError
+        The ``Raises`` section is a list of all exceptions
+        that are relevant to the interface.
+    ValueError
+        If `param2` is equal to `param1`.
+
+
+
+    Examples
+    --------
+    Examples should be written in doctest format, and should illustrate how
+    to use the function.
+
+    >>> print([i for i in example_generator(4)])
+    [0, 1, 2, 3]
+
+    More Reference:
+
+    http://www.sphinx-doc.org/en/stable/domains.html#python-roles
+
+
+    """
+
+    return True
 
 
 def print_color(message, color='red',
                 highlights='on_white', attrs=''):
     """
-        Print with colored characters. It is only a alias for colored print in the package termcolor
+    Print with colored characters. It is only a alias for colored print using
+    the package :py:mod:`termcolor` and equals to::
 
-        Parameters
-        ----------
-        message : str
-            Message to print.
-        color, highlights: str
-            see options at https://pypi.python.org/pypi/termcolor
-        attrs: list
+        print(termcolor.colored(message, color, highlights, attrs=attrs))
+
+
+    See options at https://pypi.python.org/pypi/termcolor
+
+    Parameters
+    ----------
+    message : str
+        Message to print.
+    color, highlights: str
+
+    attrs: list
+
     """
     import termcolor
-    print((termcolor.colored(message, color, highlights, attrs=attrs)))
+    print(termcolor.colored(message, color, highlights, attrs=attrs))
 
 
 def print_red(message):
     """
-        Print with red characters. It is only a alias for colored print in the package termcolor
+    Print with colored characters. It is only a alias for colored print using
+    the package :py:mod:`termcolor` and equals to::
 
-        Parameters
-        ----------
-        message : str
-            Message to print.
+            print(termcolor.colored(message, color='red'))
+
+    Parameters
+    ----------
+    message : str
+        Message to print.
     """
     import termcolor
-    print((termcolor.colored(message, color='red')))
+    print(termcolor.colored(message, color='red'))
 
 
 def print_blue(message):
     """
-        Print with red characters. It is only a alias for colored print in the package termcolor
+    Print with colored characters. It is only a alias for colored print using
+    the package :py:mod:`termcolor` and equals to::
 
-        Parameters
-        ----------
-        message : str
-            Message to print.
+            print(termcolor.colored(message, color='blue'))
+
+    Parameters
+    ----------
+    message : str
+        Message to print.
     """
     import termcolor
-    print((termcolor.colored(message, 'blue')))
+    print(termcolor.colored(message, 'blue'))
 
 
 ############
@@ -141,16 +248,63 @@ def _fwhm_xy(xvalues, yvalues):
 
 
 def plot_profile(xmatrix, ymatrix, zmatrix,
-                 xlabel='x', ylabel='y', zlabel='z', title='Title', xo=None, yo=None,
+                 xlabel='x', ylabel='y', zlabel='z', title='Title',
+                 xo=None, yo=None,
                  xunit='', yunit='', do_fwhm=True,
                  arg4main=None, arg4top=None, arg4side=None):
-    """
-        Plot contourf in the main graph plus profiles over vertical and horizontal line defined by mouse.
+    '''
+    Plot contourf in the main graph plus profiles over vertical and horizontal
+    lines defined with mouse.
 
-        Parameters
-        ----------
+    .. image:: img/graph_11.png
 
-    """
+    Parameters
+    ----------
+    xmatrix, ymatrix: ndarray
+        `x` and `y` matrix coordinates generated with :py:func:`numpy.meshgrid`
+
+    zmatrix: ndarray
+        Matrix with the data. Note that ``xmatrix``, ``ymatrix`` and ``zmatrix``
+        must have the same shape
+
+    xlabel, ylabel, zlabel: str, optional
+
+    title: str, optional
+        title for the main graph #BUG: sometimes this title disappear
+
+    xo, yo: float, optional
+        if equal to ``None``, it allows to use the mouse to choose the vertical and
+        horizontal lines for the profile. If not ``None``, the profiles lines are
+        are centered at ``(xo,yo)``
+
+    xunit, yunit: str, optional
+        String to be shown after the values in the small text box
+
+    do_fwhm: Boolean, optional
+        Calculate and print the FWHM in the figure. The script to calculate the
+        FWHM is not very robust, it works well if only one well defined peak is
+        present. Turn this off by setting this var to ``False``
+
+    *arg4main:
+        `*args` for the main graph
+
+    *arg4top:
+        `*args` for the top graph
+
+    *arg4side:
+        `*args` for the side graph
+
+    Returns
+    -------
+
+    ax_main, ax_top, ax_side: matplotlib.axes
+        return the axes in case one wants to modify them.
+
+    delta_x, delta_y: float
+
+    '''
+
+
 
     if arg4side is None:
         arg4side = {}
@@ -584,7 +738,7 @@ def dummy_images(imagetype='None', size=(100, 100), **kwargs):
 def graphical_roi_idx(zmatrix, arg4graph=None, verbose=False):
     if arg4graph is None:
         arg4graph = {}
-    import matplotlib.pyplot as plt
+    
     from matplotlib.widgets import RectangleSelector
 
     mutable_object_ROI = {'ROI_j_lim': [0, -1],
