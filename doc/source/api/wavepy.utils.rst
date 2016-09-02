@@ -10,7 +10,6 @@
 
    .. autosummary::
     
-      dummy
       print_color
       print_red
       print_blue

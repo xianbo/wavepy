@@ -46,7 +46,7 @@
 # #########################################################################
 
 """
-Module for describing .....
+Template for new modules. Also see a template for documentation
 """
 
 from __future__ import (absolute_import, division, print_function,
@@ -61,62 +61,12 @@ __all__ = ['function_01',
            'function_02',
            'function_03']
 
-def function_01(parameter_01, parameter_02, parameter_03):
-    """
-    Function description.
-
-    Parameters
-    ----------
-    parameter_01 : type
-        Description.
-
-    parameter_02 : type
-        Description.
-
-    parameter_03 : type
-        Description.
-
-    Returns
-    -------
-    return_01
-        Description.
-    """
-
-    return_01 = parameter_01 + parameter_02 + parameter_03
-    
-    return return_01
-
-
-def function_02(parameter_01, parameter_02, parameter_03):
-    """
-    Function description.
-
-    Parameters
-    ----------
-    parameter_01 : type
-        Description.
-
-    parameter_02 : type
-        Description.
-
-    parameter_03 : type
-        Description.
-
-    Returns
-    -------
-    return_01
-        Description.
-    """
-
-    return_01 = parameter_01 + parameter_02 + parameter_03
-    
-    return return_01
-
-
-
-def function_03(parameter_01, parameter_02, parameter_03, *args, **kargs):
+def function_01(parameter_01, parameter_02, parameter_03, *args, **kargs):
     """
     This is an example of a module level function.
+
+    Ref.:
+    http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html#example-numpy
 
     Function parameters should be documented in the ``Parameters`` section.
     The name of each parameter is required. The type and description of each
@@ -185,8 +135,64 @@ def function_03(parameter_01, parameter_02, parameter_03, *args, **kargs):
     >>> print([i for i in example_generator(4)])
     [0, 1, 2, 3]
 
+    More Reference:
+
+    http://www.sphinx-doc.org/en/stable/domains.html#python-roles
 
 
+    """
+
+    return_01 = parameter_01 + parameter_02 + parameter_03
+    
+    return return_01
+
+
+def function_02(parameter_01, parameter_02, parameter_03):
+    """
+    Function description.
+
+    Parameters
+    ----------
+    parameter_01 : type
+        Description.
+
+    parameter_02 : type
+        Description.
+
+    parameter_03 : type
+        Description.
+
+    Returns
+    -------
+    return_01
+        Description.
+    """
+
+    return_01 = parameter_01 + parameter_02 + parameter_03
+    
+    return return_01
+
+
+
+def function_03(parameter_01, parameter_02, parameter_03, *args, **kargs):
+    """
+    Function description.
+
+    Parameters
+    ----------
+    parameter_01 : type
+        Description.
+
+    parameter_02 : type
+        Description.
+
+    parameter_03 : type
+        Description.
+
+    Returns
+    -------
+    return_01
+        Description.
     """
 
     return_01 = parameter_01 + parameter_02 + parameter_03

@@ -58,7 +58,7 @@ __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
-__all__ = ['dummy', 'print_color', 'print_red', 'print_blue', 'plot_profile',
+__all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'select_file', 'select_dir', 'nan_mask_threshold',
            'index_square_mask_threshold', 'nan_square_mask_at_threshold',
            'crop_matrix_at_indexes', 'crop_matrix_at_thresholds',
@@ -71,89 +71,6 @@ __all__ = ['dummy', 'print_color', 'print_red', 'print_blue', 'plot_profile',
            'h5_list_of_groups',
            'progress_bar4pmap']
 
-
-def dummy(par1, par2, *args, **kwargs):
-    """
-    This is an example of a module level function.
-
-    Ref.:
-    http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html#example-numpy
-
-    Function parameters should be documented in the ``Parameters`` section.
-    The name of each parameter is required. The type and description of each
-    parameter is optional, but should be included if not obvious.
-
-    If \*args or \*\*kwargs are accepted,
-    they should be listed as ``*args`` and ``**kwargs``.
-
-    The format for a parameter is::
-
-        name : type
-            description
-
-            The description may span multiple lines. Following lines
-            should be indented to match the first line of the description.
-            The ": type" is optional.
-
-            Multiple paragraphs are supported in parameter
-            descriptions.
-
-    Parameters
-    ----------
-    parameter_01 : int
-        The first parameter.
-    parameter_02 : :obj:`str`, optional
-        The second parameter.
-    parameter_03 : :obj:`str`, optional
-        The second parameter.
-    *args
-        Variable length argument list.
-    **kwargs
-        Arbitrary keyword arguments.
-
-    Returns
-    -------
-    bool
-        True if successful, False otherwise.
-
-        The return type is not optional. The ``Returns`` section may span
-        multiple lines and paragraphs. Following lines should be indented to
-        match the first line of the description.
-
-        The ``Returns`` section supports any reStructuredText formatting,
-        including literal blocks::
-
-            {
-                'param1': param1,
-                'param2': param2
-            }
-
-    Raises
-    ------
-    AttributeError
-        The ``Raises`` section is a list of all exceptions
-        that are relevant to the interface.
-    ValueError
-        If `param2` is equal to `param1`.
-
-
-
-    Examples
-    --------
-    Examples should be written in doctest format, and should illustrate how
-    to use the function.
-
-    >>> print([i for i in example_generator(4)])
-    [0, 1, 2, 3]
-
-    More Reference:
-
-    http://www.sphinx-doc.org/en/stable/domains.html#python-roles
-
-
-    """
-
-    return True
 
 
 def print_color(message, color='red',
@@ -256,7 +173,8 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
     Plot contourf in the main graph plus profiles over vertical and horizontal
     lines defined with mouse.
 
-    .. image:: img/graph_11.png
+
+
 
     Parameters
     ----------
@@ -301,6 +219,18 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
         return the axes in case one wants to modify them.
 
     delta_x, delta_y: float
+
+    Example
+    -------
+
+    >>> import numpy as np
+    >>> import wavepy.utils as wpu
+    >>> xx, yy = np.meshgrid(np.linspace(-1, 1, 101), np.linspace(-1, 1, 101))
+    >>> wpu.plot_profile(xx, yy, np.exp(-(xx**2+yy**2)/.2))
+
+    Animation of the example above:
+
+    .. image:: img/output.gif
 
     '''
 
@@ -442,7 +372,7 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
     [delta_x, delta_y] = [None, None]
     if xo is None and yo is None:
         # cursor on the main graph
-        Cursor(ax_main, useblit=True, color='red', linewidth=2)
+        cursor = Cursor(ax_main, useblit=True, color='red', linewidth=2)
         fig.canvas.mpl_connect('button_press_event', onclick)
         plt.show(block=True)
     else:
@@ -456,6 +386,27 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
 # %%%%%%%%%%%%%%%%%%%%
 
 def select_file(pattern='*', message_to_print=None):
+    '''
+    List files under the subdirectories of the current working directory, and expected the user to choose one of them.
+
+    The list of files is of the form ``number: filename``. The user choose the file by typing the number of the desired filename.
+
+
+    Parameters
+    ----------
+
+    :param pattern: str
+        list only files with this patter. Similar to pattern in the linux comands ls, grep, etc
+    :param message_to_print: str, optional
+    :return: filename: str
+        path and name of the file
+
+    Example
+    -------
+
+    >>>  select_file('*.dat')
+
+    '''
 
     import glob
 
@@ -465,7 +416,7 @@ def select_file(pattern='*', message_to_print=None):
         print_color("Only one option. Loading " + list_files[0])
         return list_files[0]
     elif len(list_files) == 0:
-        print_color("\n\n\n#WG: ================== ERROR ==========================#")
+        print_color("\n\n\n# ================== ERROR ==========================#")
         print_color("No files with pattern '" + pattern + "'")
     else:
 
@@ -481,14 +432,15 @@ def select_file(pattern='*', message_to_print=None):
         print('Any value different of the above raises GeneratorExit\n')
 
         try:
+            print('Selected file ' + list_files[int(input())])
             return list_files[int(input())]
         except ValueError:
             print('\nSelected value does not correspond to any option.')
-            print('WG: raise GeneratorExit!\n')
+            print('raise GeneratorExit!\n')
             raise GeneratorExit
 
 
-def select_dir(n_levels=5, message_to_print=None):
+def select_dir(nmessage_to_print=None):
     if message_to_print is None:
         print("\n\n\n#===================================================#")
         print('Enter the number of the directory to be loaded:\n')
@@ -734,11 +686,31 @@ def dummy_images(imagetype='None', size=(100, 100), **kwargs):
         return array
 
 
+    elif imagetype == 'NormalDist':
+
+        FWHM_x, FWHM_y = 1.0, 1.0
+
+        if 'FWHM_x' in kwargs:
+            FWHM_x = kwargs['FWHM_x']
+        if 'FWHM_y' in kwargs:
+            FWHM_y = kwargs['FWHM_y']
+
+        x, y = np.mgrid[-1:1:1j * size[0], -1:1:1j * size[1]]
+
+        return np.exp(-((x/FWHM_x*2.3548200)**2 +
+                        (y/FWHM_y*2.3548200)**2)/2)  # sigma for FWHM = 1
+
+    else:
+        print_color("ERROR: image type invalid: " + str(imagetype))
+
+        return np.random.random(size)
+
+
 # noinspection PyClassHasNoInit,PyShadowingNames
 def graphical_roi_idx(zmatrix, arg4graph=None, verbose=False):
     if arg4graph is None:
         arg4graph = {}
-    
+
     from matplotlib.widgets import RectangleSelector
 
     mutable_object_ROI = {'ROI_j_lim': [0, -1],
@@ -980,6 +952,25 @@ if __name__ == '__main__':
 # Progress bar
 
 def progress_bar4pmap(res,sleep_time=1.0):
+    '''
+    Progress bar from :py:mod:`tqdm` to be used with the function
+
+    Holds the program in a loop waiting :py:func:`multiprocessing.starmap_async` to finish
+
+    res: result object of the :py:class:`multiprocessing.Pool` class
+    sleep_time:
+
+
+    Example
+    -------
+
+    >>> from multiprocessing import Pool
+    >>> p = Pool()
+    >>> res = p.starmap_async(...)
+    >>> p.close()  # No more work
+    >>> wpu.progress_bar4pmap(res)
+
+    '''
 
     old_res_n_left = res._number_left
     pbar = tqdm(total= old_res_n_left )
