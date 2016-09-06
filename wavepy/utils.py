@@ -60,8 +60,7 @@ __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
 __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'select_file', 'select_dir', 'nan_mask_threshold',
-           'index_square_mask_threshold', 'nan_square_mask_at_threshold',
-           'crop_matrix_at_indexes', 'crop_matrix_at_thresholds',
+           'crop_matrix_at_indexes',
            'find_nearest_value', 'find_nearest_value_index',
            'find_nearest_value_matrix', 'find_nearest_value_matrix_index',
            'dummy_images', 'graphical_roi_idx', 'choose_unit', 'datetime_now_str',
@@ -395,10 +394,14 @@ def select_file(pattern='*', message_to_print=None):
     Parameters
     ----------
 
-    :param pattern: str
+    pattern: str
         list only files with this patter. Similar to pattern in the linux comands ls, grep, etc
-    :param message_to_print: str, optional
-    :return: filename: str
+    message_to_print: str, optional
+
+    Returns
+    -------
+
+    filename: str
         path and name of the file
 
     Example
@@ -440,14 +443,38 @@ def select_file(pattern='*', message_to_print=None):
             raise GeneratorExit
 
 
-def select_dir(nmessage_to_print=None):
+def select_dir(message_to_print=None):
+    '''
+
+    List subdirectories of the current working directory, and expected the user to choose one of them.
+
+    The list of files is of the form ``number: filename``. The user choose the file by typing the number of the desired filename.
+
+    Similar to :py:func:`wavepy.utils.select_file`
+
+    Parameters
+    ----------
+
+    message_to_print:str, optional
+
+    Returns
+    -------
+
+    str
+        directory path
+
+    See also
+    --------
+    :py:func:`wavepy.utils.select_file`
+
+    '''
     if message_to_print is None:
         print("\n\n\n#===================================================#")
         print('Enter the number of the directory to be loaded:\n')
     else:
         print(message_to_print)
 
-    return select_file(pattern='', n_levels=n_levels, message_to_print='')
+    return select_file(pattern='', message_to_print='')
 
 
 
@@ -475,142 +502,127 @@ def _choose_one_of_this_options(header=None, list_of_options=None):
 
 # Tools for masking/croping
 
-def nan_mask_threshold(array, threshold=0.0):
+def nan_mask_threshold(input_matrix, threshold=0.0):
     """
     Calculate a square mask for array above OR below a threshold
 
 
     Parameters
     ----------
-    array : ndarray
-        vector with the values of x
+    input_matrix : ndarray
+        2 dimensional (or n-dimensional?) numpy.array to be masked
     threshold: float
         threshold for masking. If real (imaginary) value, values below(above) the threshold are set to NAN
 
     Returns
     -------
     ndarray
-        array with values either equal to 1 or NAN. To use as a mask for array use:
-        mask = nan_mask_threshold(array, threshold)
-        masked_array = array*mask
+        array with values either equal to 1 or NAN.
 
-        (note that array[mask] will return only the values where mask == 1)
+
+    Example
+    -------
+
+        To use as a mask for array use:
+
+        >>> mask = nan_mask_threshold(input_array, threshold)
+        >>> masked_array = input_array*mask
+
+    Notes
+    -----
+
+        * Note that ``array[mask]`` will return only the values where ``mask == 1``.
+
+        * Also note that this is NOT the same as :py:mod:`numpy.ma`, the `masked arrays <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in numpy.
+
     """
 
-    mask_intensity = np.ones(array.shape)
+    mask_intensity = np.ones(input_matrix.shape)
 
     if np.isreal(threshold):
-        mask_intensity[array <= threshold] = float('nan')
+        mask_intensity[input_matrix <= threshold] = float('nan')
     else:
-        mask_intensity[array >= threshold] = float('nan')
+        mask_intensity[input_matrix >= threshold] = float('nan')
 
     return mask_intensity
 
 
-def index_square_mask_threshold(array, threshold=0.0):
-    """
-    Calculate the corner indexes i_min, i_max, j_min and j_max] for a square mask
-
-    Parameters
-    ----------
-    array : ndarray
-        vector with the values of x
-    threshold : float
-        see TODO: how do I link?
-
-    Returns
-    -------
-    list
-        list of indexes [i_min, i_max, j_min, j_max]
-    """
-
-    i_min, i_max, j_min, j_max = None, None, None, None
-    mask_intensity = nan_mask_threshold(array, threshold)
-
-    for i in range(mask_intensity.shape[0]):
-        if any(~np.isnan(val) for val in mask_intensity[i, :]):
-            i_min = i
-            break
-
-    for i in range(mask_intensity.shape[0] - 1, 0, -1):
-        if any(~np.isnan(val) for val in mask_intensity[i, :]):
-            i_max = i
-            break
-
-    for i in range(mask_intensity.shape[1]):
-        if any(~np.isnan(val) for val in mask_intensity[:, i]):
-            j_min = i
-            break
-
-    for i in range(mask_intensity.shape[1] - 1, 0, -1):
-        if any(~np.isnan(val) for val in mask_intensity[:, i]):
-            j_max = i
-            break
-
-    return [i_min, i_max, j_min, j_max]
-
-
-def nan_square_mask_at_threshold(input_matrix, threshold=0.0):
-
-    [i_min, i_max, j_min, j_max] = index_square_mask_threshold(input_matrix, threshold)
-
-    square_mask = np.ones(input_matrix.shape)
-
-    square_mask[:, :j_min] = float('NaN')
-    square_mask[:, j_max:] = float('NaN')
-    square_mask[:i_min, :] = float('NaN')
-    square_mask[i_max:, :] = float('NaN')
-
-    return square_mask
-
-
 def crop_matrix_at_indexes(input_matrix, list_of_indexes):
     """
-    Returns a copy of inputMatrix[i_min:i_max, j_min:j_max]
+    Alias for ``np.copy(inputMatrix[i_min:i_max, j_min:j_max])``
 
     Parameters
     ----------
     input_matrix : ndarray
-        vector with the values of x
+        2 dimensional array
     list_of_indexes: list
-        list in the format [i_min, i_max, j_min, j_max]
+        list in the format ``[i_min, i_max, j_min, j_max]``
 
     Returns
     -------
     ndarray
-        copy of subregion of the inputMatrix. ATTENTION: Note the difference of copy and view in Numpy
-        inputMatrix[i_min:i_max, j_min:j_max]
+        copy of the sub-region ``inputMatrix[i_min:i_max, j_min:j_max]`` of the inputMatrix.
+
+    Note
+    ----
+        ATTENTION: Note the `difference of copy and view in Numpy <http://scipy-cookbook.readthedocs.io/items/ViewsVsCopies.html>`_.
     """
 
     return np.copy(input_matrix[list_of_indexes[0]:list_of_indexes[1],
                    list_of_indexes[2]:list_of_indexes[3]])
 
 
-def crop_matrix_at_thresholds(input_matrix, threshold=0.0):
-    """ listOfIndexes = [i_min, i_max, j_min, j_max]  """
+def find_nearest_value(input_array, value):
+    '''
 
-    list_of_indexes = index_square_mask_threshold(input_matrix, threshold)
+    Alias for ``input_array[np.argmin(np.abs(input_array - value))]``
 
-    return np.copy(input_matrix[list_of_indexes[0]:list_of_indexes[1],
-                   list_of_indexes[2]:list_of_indexes[3]])
+    In a array of float numbers, due to the precision, it is impossible to find exact values. For instance something like ``array1[array2==0.0]`` might fail because the zero values in the float array ``array2`` are actually something like 0.0004324235 (fictious value).
+
+    This function will return the value in the array that is the nearest to the parameter ``value``.
+
+    Parameters
+    ----------
+
+    input_array: ndarray
+    value: float
+
+    Returns
+    -------
+    ndarray
+
+    '''
+    return input_array[np.argmin(np.abs(input_array - value))]
 
 
-def find_nearest_value(array, value):
-    return array[np.argmin(np.abs(array - value))]
+def find_nearest_value_index(input_array, value):
+    '''
+
+    Similar to :py:func:`wavepy.utils.find_nearest_value`, but returns the index of the nearest value (instead of the value itself)
+
+    Parameters
+    ----------
+
+    input_array : ndarray
+    value : float
+
+    Returns
+    -------
+
+        int : index
+
+    '''
+
+    return np.int(np.where(input_array == find_nearest_value(input_array, value))[0])
 
 
-def find_nearest_value_index(localarray, value):
-
-    return np.int(np.where(localarray == find_nearest_value(localarray, value))[0])
-
-
-def find_nearest_value_matrix(localarray, value):
-    return find_nearest_value(find_nearest_value(localarray, value), value)
+def find_nearest_value_matrix(input_array, value):
+    return find_nearest_value(find_nearest_value(input_array, value), value)
 
 
-def find_nearest_value_matrix_index(localarray, value):
+def find_nearest_value_matrix_index(input_array, value):
 
-    return np.int(np.where(localarray == find_nearest_value_matrix(localarray, value)))
+    return np.int(np.where(input_array == find_nearest_value_matrix(input_array, value)))
 
 
 def dummy_images(imagetype='None', size=(100, 100), **kwargs):

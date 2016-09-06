@@ -17,10 +17,7 @@
       select_file
       select_dir
       nan_mask_threshold
-      index_square_mask_threshold
-      nan_square_mask_at_threshold
       crop_matrix_at_indexes
-      crop_matrix_at_thresholds
       find_nearest_value
       find_nearest_value_index
       find_nearest_value_matrix
