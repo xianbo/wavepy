@@ -20,10 +20,9 @@
       crop_matrix_at_indexes
       find_nearest_value
       find_nearest_value_index
-      find_nearest_value_matrix
-      find_nearest_value_matrix_index
       dummy_images
       graphical_roi_idx
+      crop_graphic
       choose_unit
       datetime_now_str
       time_now_str

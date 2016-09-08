@@ -62,9 +62,8 @@ __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'select_file', 'select_dir', 'nan_mask_threshold',
            'crop_matrix_at_indexes',
            'find_nearest_value', 'find_nearest_value_index',
-           'find_nearest_value_matrix', 'find_nearest_value_matrix_index',
-           'dummy_images', 'graphical_roi_idx', 'choose_unit', 'datetime_now_str',
-           'time_now_str', 'date_now_str',
+           'dummy_images', 'graphical_roi_idx', 'crop_graphic', 'choose_unit',
+           'datetime_now_str', 'time_now_str', 'date_now_str',
            'realcoordvec', 'realcoordmatrix_fromvec', 'realcoordmatrix',
            'fouriercoordvec', 'fouriercoordmatrix',
            'h5_list_of_groups',
@@ -229,7 +228,7 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
 
     Animation of the example above:
 
-    .. image:: img/output.gif
+    .. image:: img/plot_profile_animation.gif
 
     '''
 
@@ -463,7 +462,7 @@ def select_dir(message_to_print=None):
     str
         directory path
 
-    See also
+    See Also
     --------
     :py:func:`wavepy.utils.select_file`
 
@@ -563,19 +562,40 @@ def crop_matrix_at_indexes(input_matrix, list_of_indexes):
     ndarray
         copy of the sub-region ``inputMatrix[i_min:i_max, j_min:j_max]`` of the inputMatrix.
 
-    Note
-    ----
-        ATTENTION: Note the `difference of copy and view in Numpy <http://scipy-cookbook.readthedocs.io/items/ViewsVsCopies.html>`_.
+    Warning
+    -------
+        Note the `difference of copy and view in Numpy <http://scipy-cookbook.readthedocs.io/items/ViewsVsCopies.html>`_.
     """
 
     return np.copy(input_matrix[list_of_indexes[0]:list_of_indexes[1],
                    list_of_indexes[2]:list_of_indexes[3]])
 
 
+# def find_nearest_value_index(input_array, value):
+#     '''
+#
+#     Similar to :py:func:`wavepy.utils.find_nearest_value`, but returns the index of the nearest value (instead of the value itself)
+#
+#     Parameters
+#     ----------
+#
+#     input_array : ndarray
+#     value : float
+#
+#     Returns
+#     -------
+#
+#         int
+#
+#     '''
+#
+#     return np.int(np.where(input_array == find_nearest_value(input_array, value))[0])
+
+
 def find_nearest_value(input_array, value):
     '''
 
-    Alias for ``input_array[np.argmin(np.abs(input_array - value))]``
+    Alias for ``input_array.flatten()[np.argmin(np.abs(input_array.flatten() - value))]``
 
     In a array of float numbers, due to the precision, it is impossible to find exact values. For instance something like ``array1[array2==0.0]`` might fail because the zero values in the float array ``array2`` are actually something like 0.0004324235 (fictious value).
 
@@ -591,8 +611,21 @@ def find_nearest_value(input_array, value):
     -------
     ndarray
 
+    Example
+    -------
+
+    >>> foo = dummy_images('NormalDist')
+    >>> find_nearest_value(foo, 0.5000)
+    0.50003537554879007
+
+    See Also
+    --------
+
+    :py:func:`wavepy:utils:find_nearest_value_index`
+
     '''
-    return input_array[np.argmin(np.abs(input_array - value))]
+
+    return input_array.flatten()[np.argmin(np.abs(input_array.flatten() - value))]
 
 
 def find_nearest_value_index(input_array, value):
@@ -609,41 +642,144 @@ def find_nearest_value_index(input_array, value):
     Returns
     -------
 
-        int : index
+    tuple of ndarray:
+        each array have the index of the nearest value in each dimension
+
+    Note
+    ----
+    In principle it has no limit of the number of dimensions.
+
+
+    Example
+    -------
+
+    >>> foo = dummy_images('NormalDist')
+    >>> find_nearest_value(foo, 0.5000)
+    0.50003537554879007
+    >>> (i_index, j_index) = find_nearest_value_index(foo, 0.500)
+    >>> foo[i_index[:], j_index[:]]
+    array([ 0.50003538,  0.50003538,  0.50003538,  0.50003538])
+
+    See Also
+    --------
+    :py:func:`wavepy:utils:find_nearest_value`
+
 
     '''
 
-    return np.int(np.where(input_array == find_nearest_value(input_array, value))[0])
 
 
-def find_nearest_value_matrix(input_array, value):
-    return find_nearest_value(find_nearest_value(input_array, value), value)
+    return np.where(input_array == find_nearest_value(input_array, value))
 
 
-def find_nearest_value_matrix_index(input_array, value):
+def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
+    '''
 
-    return np.int(np.where(input_array == find_nearest_value_matrix(input_array, value)))
+    Dummy images for simple tests.
 
 
-def dummy_images(imagetype='None', size=(100, 100), **kwargs):
+    Parameters
+    ----------
+
+    imagetype: str
+        See options Below
+    shape: tuple
+        Shape of the image. Similar to :py:mod:`numpy.shape`
+    kwargs:
+        keyword arguments depending on the image type.
+
+
+    Image types
+        * Noise (default):    alias for ``np.random.random(shape)``
+
+        * Stripes:            ``kwargs: nLinesH, nLinesV``
+
+        * SumOfHarmonics: image is defined by:
+         .. math:: \sum_{ij} Amp_{ij} \cos (2 \pi i y) \cos (2 \pi j x).
+
+         The keyword ``kwargs: harmAmpl`` is a 2D list that can be used to set the values for Amp_ij, see **Examples**
+
+        * Shapes: see **Examples**. ``kwargs=noise``, amplitude of noise to be \
+          added to the image
+
+        * NormalDist: Normal distribution where it is assumed that ``x`` and ``y`` are in the interval `[-1,1]`.
+          ``keywords: FWHM_x, FWHM_y``
+
+
+    Returns
+    -------
+        2D ndarray
+
+
+    Examples
+    --------
+
+    >>> import matplotlib.pyplot as plt
+    >>> plt.imshow(dummy_images())
+
+    is the same than
+
+    >>> plt.imshow(dummy_images('Noise'))
+
+
+    .. image:: img/dummy_image_Noise.png
+       :width: 350px
+
+
+    >>> plt.imshow(dummy_images('Stripes', nLinesV=5))
+
+    .. image:: img/dummy_image_stripe_V5.png
+       :width: 350px
+
+
+    >>> plt.imshow(dummy_images('Stripes', nLinesH=8))
+
+    .. image:: img/dummy_image_stripe_H8.png
+       :width: 350px
+
+
+    >>> plt.imshow(dummy_images('Checked', nLinesH=8, nLinesV=5))
+
+    .. image:: img/dummy_image_checked_v5_h8.png
+       :width: 350px
+
+
+    >>> plt.imshow(dummy_images('SumOfHarmonics', harmAmpl=[[1,0,1],[0,1,0]]))
+
+    .. image:: img/dummy_image_harmonics_101_010.png
+       :width: 350px
+
+    >>> plt.imshow(dummy_images('Shapes', noise = 1))
+
+    .. image:: img/dummy_image_shapes_noise_1.png
+       :width: 350px
+
+    >>> plt.imshow(dummy_images('NormalDist', FWHM_x = .5, FWHM_y=1.0))
+
+    .. image:: img/dummy_image_NormalDist.png
+       :width: 350px
+
+
+
+    '''
 
     if imagetype is None:
         imagetype = 'Noise'
 
     if imagetype == 'Noise':
-        return np.random.random(size)
+        return np.random.random(shape)
 
     elif imagetype == 'Stripes':
         if 'nLinesH' in kwargs:
             nLinesH = kwargs['nLinesH']
             return np.kron([[1, 0] * nLinesH],
-                           np.ones((size[0], size[1] / 2 / nLinesH)))
+                           np.ones((shape[0], shape[1] / 2 / nLinesH)))
         elif 'nLinesV':
             nLinesV = kwargs['nLinesV']
             return np.kron([[1], [0]] * nLinesV,
-                           np.ones((size[0] / 2 / nLinesV, size[1])))
+                           np.ones((shape[0] / 2 / nLinesV, shape[1])))
         else:
-            return np.kron([[1], [0]] * 10, np.ones((size[0] / 2 / 10, size[1])))
+            return np.kron([[1], [0]] * 10, np.ones((shape[0] / 2 / 10, shape[1])))
 
     elif imagetype == 'Checked':
 
@@ -659,8 +795,8 @@ def dummy_images(imagetype='None', size=(100, 100), **kwargs):
             nLinesV = 1
 
         return np.kron([[1, 0] * nLinesH, [0, 1] * nLinesH] * nLinesV,
-                       np.ones((size[0] / 2 / nLinesV, size[1] / 2 / nLinesH)))
-        # Note that the new dimension is int(size/p)*p !!!
+                       np.ones((shape[0] / 2 / nLinesV, shape[1] / 2 / nLinesH)))
+        # Note that the new dimension is int(shape/p)*p !!!
 
     elif imagetype == 'SumOfHarmonics':
 
@@ -669,8 +805,8 @@ def dummy_images(imagetype='None', size=(100, 100), **kwargs):
         else:
             harmAmpl = [[1, 1, 1, 1, 1], [1, 1, 1, 1, 1]]
 
-        sumArray = np.zeros(size)
-        iGrid, jGrid = np.mgrid[-1:1:1j * size[0], -1:1:1j * size[1]]
+        sumArray = np.zeros(shape)
+        iGrid, jGrid = np.mgrid[-1:1:1j * shape[0], -1:1:1j * shape[1]]
 
         for i in range(len(harmAmpl)):
             for j in range(len(harmAmpl[0])):
@@ -681,11 +817,16 @@ def dummy_images(imagetype='None', size=(100, 100), **kwargs):
 
     elif imagetype == 'Shapes':
 
-        dx, dy = int(size[0] / 10), int(size[1] / 10)
+        if 'noise' in kwargs:
+            noiseAmp = kwargs['noise']
+        else:
+            noiseAmp = 0.0
+
+        dx, dy = int(shape[0] / 10), int(shape[1] / 10)
         square = np.ones((dx * 2, dy * 2))
         triangle = np.tril(square)
 
-        array = np.random.rand(size[0], size[1]) * .5
+        array = np.random.rand(shape[0], shape[1]) * noiseAmp
 
         array[1 * dx:3 * dx, 2 * dy:4 * dy] += triangle
         array[5 * dx:7 * dx, 1 * dy:3 * dy] += triangle * -1
@@ -707,7 +848,7 @@ def dummy_images(imagetype='None', size=(100, 100), **kwargs):
         if 'FWHM_y' in kwargs:
             FWHM_y = kwargs['FWHM_y']
 
-        x, y = np.mgrid[-1:1:1j * size[0], -1:1:1j * size[1]]
+        x, y = np.mgrid[-1:1:1j * shape[0], -1:1:1j * shape[1]]
 
         return np.exp(-((x/FWHM_x*2.3548200)**2 +
                         (y/FWHM_y*2.3548200)**2)/2)  # sigma for FWHM = 1
@@ -715,13 +856,49 @@ def dummy_images(imagetype='None', size=(100, 100), **kwargs):
     else:
         print_color("ERROR: image type invalid: " + str(imagetype))
 
-        return np.random.random(size)
+        return np.random.random(shape)
 
 
 # noinspection PyClassHasNoInit,PyShadowingNames
-def graphical_roi_idx(zmatrix, arg4graph=None, verbose=False):
-    if arg4graph is None:
-        arg4graph = {}
+def graphical_roi_idx(zmatrix, verbose=False, **kargs4graph):
+    '''
+    Function to define a rectangular region of interest (ROI) in an image.
+
+    The image is plotted and, using the mouse, the user select the region of interest (ROI). The ROI is ploted as an transparent rectangular region. When the image is closed the function returns the indexes ``[i_min, i_max, j_min,_j_max]`` of the ROI.
+
+    Parameters
+    ----------
+
+    input_array : ndarray
+    verbose : Boolean
+        In the verbose mode it is printed some additional infomations, like the ROI indexes, as the user select different ROI's
+    **kargs4graph : float
+        Options for the main graph. **WARNING:** not tested very well
+
+    Returns
+    -------
+
+    list:
+        indexes of the crop ``[i_min, i_max, j_min,_j_max]``. Useful when the same crop must be applies to other images
+
+    Note
+    ----
+    In principle it has no limit of the number of dimensions.
+
+
+    Example
+    -------
+    See example at :py:func:`wavepy:utils:crop_graphic`
+
+
+    See Also
+    --------
+    :py:func:`wavepy:utils:crop_graphic`
+    '''
+
+
+    if kargs4graph is None:
+        kargs4graph = {}
 
     from matplotlib.widgets import RectangleSelector
 
@@ -736,7 +913,7 @@ def graphical_roi_idx(zmatrix, arg4graph=None, verbose=False):
         # this round method has
         # an error of +-1pixel
 
-        # if verbose: print(type(eclick.xdata))
+        # if verbose: print(type(ecFunction to crop an image. First the image is plotted. Second the user select the region of interest (ROI). Finally the function return the croped version of the matrix, the cropped coordinate vectors ``x`` and  ``y``, and the indexes ``[i_min, i_max, j_min,_j_max]``lick.xdata))
 
         mutable_object_ROI['ROI_j_lim'] = [ROI_j_lim[0], ROI_j_lim[1]]
         mutable_object_ROI['ROI_i_lim'] = [ROI_i_lim[0], ROI_i_lim[1]]
@@ -791,7 +968,7 @@ def graphical_roi_idx(zmatrix, arg4graph=None, verbose=False):
                      figsize=(10, 8))
 
     surface = plt.imshow(zmatrix,  # origin='lower',
-                         cmap='spectral', **arg4graph)
+                         cmap='spectral', **kargs4graph)
 
     plt.xlabel('Pixels')
     plt.ylabel('Pixels')
@@ -820,6 +997,47 @@ def graphical_roi_idx(zmatrix, arg4graph=None, verbose=False):
 
 
 def crop_graphic(xvec, yvec, zmatrix, verbose=False):
+    '''
+
+    Function to crop an image to the ROI selected using the mouse.
+
+    :py:func:`wavepy.utils.graphical_roi_idx` is first used to plot and select the ROI. The function then returns the croped version of the matrix, the cropped coordinate vectors ``x`` and  ``y``, and the indexes ``[i_min, i_max, j_min,_j_max]``
+
+    Parameters
+    ----------
+    xvec, yvec: 1D ndarray
+        vector with the coordinates ``x`` and ``y``
+    zmatrix: 2D numpy array
+        image to be croped, as an 2D ndarray
+
+    Returns
+    -------
+    1D ndarray, 1D ndarray:
+        cropped coordinate vectors ``x`` and  ``y``
+    2D ndarray:
+        cropped image
+    list:
+        indexes of the crop ``[i_min, i_max, j_min,_j_max]``. Useful when the same crop must be applies to other images
+
+    Examples
+    --------
+
+    >>> import numpy as np
+    >>> import matplotlib as plt
+    >>> xVec = np.arange(0.,101)
+    >>> yVec = np.arange(0.,101)
+    >>> img = dummy_images('Shapes', size=(101,101), FWHM_x = .5, FWHM_y=1.0)
+    >>> (xVecCroped, yVecCroped, imgCroped, idx4crop) = crop_graphic(xVec, yVec, img)
+    >>> plt.imshow(imgCroped, cmap='Spectral')
+
+
+    .. image:: img/graphical_roi_idx_in_action.gif
+       :width: 350px
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.graphical_roi_idx`
+    '''
     idx = graphical_roi_idx(zmatrix, verbose=verbose)
 
     return xvec[idx[2]:idx[3]], \
@@ -828,6 +1046,58 @@ def crop_graphic(xvec, yvec, zmatrix, verbose=False):
 
 
 def choose_unit(array):
+    '''
+
+    Script to choose good(best) units in engineering notation for a ``ndarray``.
+
+    For a given input array, the function returns ``factor`` and ``unit`` according to
+
+    .. math:: 10^{n} < \max(array) < 10^{n + 3}
+
+    +------------+----------------------+------------------------+
+    |     n      |    factor (float)    |        unit(str)       |
+    +============+======================+========================+
+    |     0      |    1.0               |   ``''`` empty string  |
+    +------------+----------------------+------------------------+
+    |     -9     |    10^-9             |        ``n``           |
+    +------------+----------------------+------------------------+
+    |     -6     |    10^-6             |     ``r'\mu'``         |
+    +------------+----------------------+------------------------+
+    |     -3     |    10^-9             |        ``m``           |
+    +------------+----------------------+------------------------+
+    |     +3     |    10^-6             |        ``k``           |
+    +------------+----------------------+------------------------+
+    |     +6     |    10^-9             |        ``M``           |
+    +------------+----------------------+------------------------+
+    |     +9     |    10^-6             |        ``G``           |
+    +------------+----------------------+------------------------+
+
+    ``n=-6`` returns ``\mu`` since this is the latex syntax for micro. See Example.
+
+
+    Parameters
+    ----------
+    array : ndarray
+
+    Returns
+    -------
+    float :
+    unit :
+
+    Example
+    -------
+
+    >>> array1 = np.linspace(0,100e-6,101)
+    >>> array2 = array1*1e10
+    >>> factor1, unit1 = choose_unit(array1)
+    >>> factor2, unit2 = choose_unit(array2)
+    >>> plt.plot(array1*factor1,array2*factor2)
+    >>> plt.xlabel(r'${0} m$'.format(unit1))
+    >>> plt.ylabel(r'${0} m$'.format(unit2))
+
+    The syntax ``r'$ string $ '`` is necessary to use latex commands in the :py:mod:`matplotlib` labels.
+
+    '''
 
 
     max_abs = np.max(np.abs(array))
@@ -846,10 +1116,13 @@ def choose_unit(array):
         unit = 'm'
     elif 2e3 < max_abs <= 2e6:
         factor = 1.0e-3
-        unit = 'K'
+        unit = 'k'
     elif 2e6 < max_abs <= 2e9:
         factor = 1.0e-6
         unit = 'M'
+    elif 2e9 < max_abs <= 2e12:
+        factor = 1.0e-6
+        unit = 'G'
     else:
         factor = 1.0
         unit = ''
@@ -860,18 +1133,43 @@ def choose_unit(array):
 ### time functions
 
 def datetime_now_str():
+    '''
+    Returns the current date and time as a string in the format YYmmDD_HHMMSS. Alias for ``time.strftime("%Y%m%d_%H%M%S")``.
+
+    Return
+    ------
+    str
+
+    '''
+
     from time import strftime
 
     return strftime("%Y%m%d_%H%M%S")
 
 
 def time_now_str():
+    '''
+    Returns the current time as a string in the format HHMMSS. Alias for ``time.strftime("%H%M%S")``.
+
+    Return
+    ------
+    str
+
+    '''
     from time import strftime
 
     return strftime("%H%M%S")
 
 
 def date_now_str():
+    '''
+    Returns the current date as a string in the format YYmmDD. Alias for ``time.strftime("%Y%m%d")``.
+
+    Return
+    ------
+    str
+
+    '''
     from time import strftime
 
     return strftime("%Y%m%d")
@@ -880,29 +1178,40 @@ def date_now_str():
 # coordinates in real and kspace.
 
 def realcoordvec(npoints, delta):
-    """
+    '''
     Build a vector with real space coordinates based on the number of points and bin (pixels) size.
 
-    Alias for np.mgrid[-npoints/2*delta:npoints/2*delta-delta:npoints*1j]
+    Alias for ``np.mgrid[-npoints/2*delta:npoints/2*delta-delta:npoints*1j]``
 
     Parameters
     ----------
     npoints : int
-        vector with the values of x
+        number of points
     delta : float
         vector with the values of x
 
     Returns
     -------
     ndarray
-        2 vectors (1D array) with real coordinates
-    """
+        vector (1D array) with real coordinates
+
+    Example
+    -------
+    >>> realcoordvec(10,1)
+    array([-5., -4., -3., -2., -1.,  0.,  1.,  2.,  3.,  4.])
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.realcoordmatrix_fromvec`
+    :py:func:`wavepy.utils.realcoordmatrix`
+
+    '''
     return np.mgrid[-npoints/2*delta:npoints/2*delta-delta:npoints*1j]
 
 
 def realcoordmatrix_fromvec(xvec, yvec):
-    """
-    Alias for np.meshgrid(xvec, yvec)
+    '''
+    Alias for ``np.meshgrid(xvec, yvec)``
 
     Parameters
     ----------
@@ -913,38 +1222,136 @@ def realcoordmatrix_fromvec(xvec, yvec):
     -------
     ndarray
         2 matrices (1D array) with real coordinates
-    """
+
+    Example
+    -------
+
+    >>> vecx = realcoordvec(3,1)
+    >>> vecy = realcoordvec(4,1)
+    >>> realcoordmatrix_fromvec(vecx, vecy)
+    [array([[-1.5, -0.5,  0.5], [-1.5, -0.5,  0.5], [-1.5, -0.5,  0.5],
+    [-1.5, -0.5,  0.5]]), array([[-2., -2., -2.], [-1., -1., -1.],
+    [ 0.,  0.,  0.], [ 1.,  1.,  1.]])]
+
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.realcoordvec`
+    :py:func:`wavepy.utils.realcoordmatrix`
+
+    '''
     return np.meshgrid(xvec, yvec)
 
 def realcoordmatrix(npointsx, deltax, npointsy, deltay):
-    """
+    '''
     Build a matrix (2D array) with real space coordinates based on the number of points and bin (pixels) size.
 
-    Alias for realcoordmatrix_fromvec(realcoordvec(nx, delx), realcoordvec(ny, dely))
+    Alias for ``realcoordmatrix_fromvec(realcoordvec(nx, delx), realcoordvec(ny, dely))``
 
     Parameters
     ----------
     npointsx, npointsy : int
-        vector with the values of x
+        number of points in the x and y directions
     deltax, deltay : float
-        vector with the values of x
+        step size in the x and y directions
 
     Returns
     -------
-    ndarray
-        2 matrices (1D array) with real coordinates
-    """
+    ndarray, ndarray
+        2 matrices (2D array) with real coordinates
+
+    Example
+    -------
+
+    >>> realcoordmatrix(3,1,4,1)
+    [array([[-1.5, -0.5,  0.5], [-1.5, -0.5,  0.5], [-1.5, -0.5,  0.5],
+    [-1.5, -0.5,  0.5]]), array([[-2., -2., -2.], [-1., -1., -1.],
+    [ 0.,  0.,  0.], [ 1.,  1.,  1.]])]
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.realcoordvec`
+    :py:func:`wavepy.utils.realcoordmatrix_fromvec`
+
+    '''
     return realcoordmatrix_fromvec(realcoordvec(npointsx, deltax),
                                    realcoordvec(npointsy, deltay))
 
 def fouriercoordvec(npoints, delta):
+    r'''
+
+    Create coordinates in the (spatial) frequency domain based on the number of points ``n`` and the step (binning) ``\Delta x`` in the **REAL SPACE**. It returns a vector of frequencies with values in the interval
+
+
+    .. math:: f = \left[ \frac{-1}{2 \Delta x} : \frac{1}{2 \Delta x} - \frac{1}{n \Delta x} \right]
+
+    with the same number of points
+
+    Parameters
+    ----------
+    npoints : int
+        number of points
+    delta : float
+        step size in the **REAL SPACE**
+
+    Returns
+    -------
+    ndarray
+
+
+    Example
+    -------
+
+    >>> fouriercoordvec(10,1e-3)
+    array([-500., -400., -300., -200., -100.,    0.,  100.,  200.,  300.,  400.])
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.realcoordvec`
+    :py:func:`wavepy.utils.fouriercoordmatrix`
+
+    '''
 
     return np.mgrid[-1/2/delta:1/2/delta-1/npoints/delta:npoints*1j]
 
 
-def fouriercoordmatrix(nx, delx, ny, dely):
-    return np.meshgrid(fouriercoordvec(nx, delx),
-                       fouriercoordvec(ny, dely))
+def fouriercoordmatrix(npointsx, deltax, npointsy, deltay):
+    '''
+
+    Similar to :py:func:`wavepy.utils.fouriercoordvec`, but for matrices (2D arrays).
+
+    Parameters
+    ----------
+    npointsx, npointsy : int
+        number of points in the x and y directions
+    deltax, deltay : float
+        step size in the x and y directions
+
+    Returns
+    -------
+    ndarray, ndarray
+        2 matrices (2D array) with coordinates in the frequencies domain
+
+    Example
+    -------
+
+    >>> fouriercoordmatrix(5, 1e-3, 4, 1e-3)
+    [array([[-500., -300., -100.,  100.,  300.],
+    [-500., -300., -100.,  100.,  300.],
+    [-500., -300., -100.,  100.,  300.],
+    [-500., -300., -100.,  100.,  300.]]),
+    array([[-500., -500., -500., -500., -500.],
+    [-250., -250., -250., -250., -250.],
+    [   0.,    0.,    0.,    0.,    0.],
+    [ 250.,  250.,  250.,  250.,  250.]])]
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.realcoordmatrix`
+    :py:func:`wavepy.utils.fouriercoordvec`
+    '''
+    return np.meshgrid(fouriercoordvec(npointsx, deltax),
+                       fouriercoordvec(npointsy, deltay))
 
 
 
@@ -952,6 +1359,30 @@ def fouriercoordmatrix(nx, delx, ny, dely):
 ### h5 tools
 
 def h5_list_of_groups(h5file):
+    '''
+
+    Get the names of all groups and subgroups in a hdf5 file.
+
+    Parameters
+    ----------
+    h5file : h5py file
+
+
+    Return
+    ------
+    list
+        list of strings with group names
+
+    Example
+    -------
+
+
+    >>> fh5 = h5py.File(filename,'r')
+    >>> listOfGoups = h5_list_of_groups(fh5)
+    >>> for group in listOfGoups: print(group)
+
+    '''
+
     list_of_goups = []
     h5file.visit(list_of_goups.append)
 
@@ -965,9 +1396,9 @@ if __name__ == '__main__':
 
 def progress_bar4pmap(res,sleep_time=1.0):
     '''
-    Progress bar from :py:mod:`tqdm` to be used with the function
+    Progress bar from :py:mod:`tqdm` to be used with the function :py:func:`multiprocessing.starmap_async`.
 
-    Holds the program in a loop waiting :py:func:`multiprocessing.starmap_async` to finish
+    It holds the program in a loop waiting :py:func:`multiprocessing.starmap_async` to finish
 
     res: result object of the :py:class:`multiprocessing.Pool` class
     sleep_time:
@@ -978,9 +1409,9 @@ def progress_bar4pmap(res,sleep_time=1.0):
 
     >>> from multiprocessing import Pool
     >>> p = Pool()
-    >>> res = p.starmap_async(...)
+    >>> res = p.starmap_async(...)  # use your function inside brackets
     >>> p.close()  # No more work
-    >>> wpu.progress_bar4pmap(res)
+    >>> progress_bar4pmap(res)
 
     '''
 

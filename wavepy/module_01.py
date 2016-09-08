@@ -140,6 +140,15 @@ def function_01(parameter_01, parameter_02, parameter_03, *args, **kargs):
     http://www.sphinx-doc.org/en/stable/domains.html#python-roles
 
 
+    More examples:
+
+    .. math:: X(e^{j\omega } ) = x(n)e^{ - j\omega n}
+
+    .. warning:: Warning text.
+
+    .. note:: Note text.
+
+
     """
 
     return_01 = parameter_01 + parameter_02 + parameter_03
