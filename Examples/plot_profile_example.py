@@ -55,14 +55,31 @@ import numpy as np
 import wavepy.utils as wpu
 
 
+# %% data to plot
 
+xx, yy = np.meshgrid(np.linspace(-1e-6, 1e-6, 101), np.linspace(-1e-6, 1e-6, 101))
 
-xx, yy = np.meshgrid(np.linspace(-1, 1, 101), np.linspace(-1, 1, 101))
-
-zz = wpu.dummy_images('NormalDist', size = xx.shape,
+zz = wpu.dummy_images('NormalDist', shape = xx.shape,
                       **{'FWHM_x':.5, 'FWHM_x':.3})
 
-wpu.plot_profile(xx, yy, np.exp(-(xx**2/.2+yy**2/.1)))
+# %% Simplest example
+
+wpu.plot_profile(xx, yy, zz)
+
+
+
+# %% Example 2 using more options
+
+factorx, unitx = wpu.choose_unit(xx)
+factory, unity = wpu.choose_unit(yy)
+
+
+
+wpu.plot_profile(xx*factorx, yy*factorx, zz,
+                 xunit=unitx + 'm', yunit= unitx + 'm',
+                 xlabel='x [' + unitx + 'm]',
+                 ylabel='x [' + unity + 'm]',
+                 arg4main={'cmap':'Spectral_r'})
 
 
 

@@ -54,6 +54,9 @@ import matplotlib.pyplot as plt
 import time
 from tqdm import tqdm  # progress bar
 
+import configparser
+import os.path
+
 __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
@@ -67,7 +70,7 @@ __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'realcoordvec', 'realcoordmatrix_fromvec', 'realcoordmatrix',
            'fouriercoordvec', 'fouriercoordmatrix',
            'h5_list_of_groups',
-           'progress_bar4pmap']
+           'progress_bar4pmap', 'load_ini_file']
 
 
 
@@ -167,7 +170,7 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
                  xo=None, yo=None,
                  xunit='', yunit='', do_fwhm=True,
                  arg4main=None, arg4top=None, arg4side=None):
-    '''
+    """
     Plot contourf in the main graph plus profiles over vertical and horizontal
     lines defined with mouse.
 
@@ -230,7 +233,7 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
 
     .. image:: img/plot_profile_animation.gif
 
-    '''
+    """
 
 
 
@@ -384,7 +387,7 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
 # %%%%%%%%%%%%%%%%%%%%
 
 def select_file(pattern='*', message_to_print=None):
-    '''
+    """
     List files under the subdirectories of the current working directory, and expected the user to choose one of them.
 
     The list of files is of the form ``number: filename``. The user choose the file by typing the number of the desired filename.
@@ -408,7 +411,7 @@ def select_file(pattern='*', message_to_print=None):
 
     >>>  select_file('*.dat')
 
-    '''
+    """
 
     import glob
 
@@ -434,8 +437,9 @@ def select_file(pattern='*', message_to_print=None):
         print('Any value different of the above raises GeneratorExit\n')
 
         try:
-            print('Selected file ' + list_files[int(input())])
-            return list_files[int(input())]
+            choice = int(input())
+            print('Selected file ' + list_files[choice])
+            return list_files[choice]
         except ValueError:
             print('\nSelected value does not correspond to any option.')
             print('raise GeneratorExit!\n')
@@ -443,7 +447,7 @@ def select_file(pattern='*', message_to_print=None):
 
 
 def select_dir(message_to_print=None):
-    '''
+    """
 
     List subdirectories of the current working directory, and expected the user to choose one of them.
 
@@ -466,7 +470,7 @@ def select_dir(message_to_print=None):
     --------
     :py:func:`wavepy.utils.select_file`
 
-    '''
+    """
     if message_to_print is None:
         print("\n\n\n#===================================================#")
         print('Enter the number of the directory to be loaded:\n')
@@ -572,7 +576,7 @@ def crop_matrix_at_indexes(input_matrix, list_of_indexes):
 
 
 # def find_nearest_value_index(input_array, value):
-#     '''
+#     """
 #
 #     Similar to :py:func:`wavepy.utils.find_nearest_value`, but returns the index of the nearest value (instead of the value itself)
 #
@@ -587,13 +591,13 @@ def crop_matrix_at_indexes(input_matrix, list_of_indexes):
 #
 #         int
 #
-#     '''
+#     """
 #
 #     return np.int(np.where(input_array == find_nearest_value(input_array, value))[0])
 
 
 def find_nearest_value(input_array, value):
-    '''
+    """
 
     Alias for ``input_array.flatten()[np.argmin(np.abs(input_array.flatten() - value))]``
 
@@ -623,13 +627,13 @@ def find_nearest_value(input_array, value):
 
     :py:func:`wavepy:utils:find_nearest_value_index`
 
-    '''
+    """
 
     return input_array.flatten()[np.argmin(np.abs(input_array.flatten() - value))]
 
 
 def find_nearest_value_index(input_array, value):
-    '''
+    """
 
     Similar to :py:func:`wavepy.utils.find_nearest_value`, but returns the index of the nearest value (instead of the value itself)
 
@@ -665,7 +669,7 @@ def find_nearest_value_index(input_array, value):
     :py:func:`wavepy:utils:find_nearest_value`
 
 
-    '''
+    """
 
 
 
@@ -673,7 +677,7 @@ def find_nearest_value_index(input_array, value):
 
 
 def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
-    '''
+    """
 
     Dummy images for simple tests.
 
@@ -761,7 +765,7 @@ def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
 
 
 
-    '''
+    """
 
     if imagetype is None:
         imagetype = 'Noise'
@@ -861,7 +865,7 @@ def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
 
 # noinspection PyClassHasNoInit,PyShadowingNames
 def graphical_roi_idx(zmatrix, verbose=False, **kargs4graph):
-    '''
+    """
     Function to define a rectangular region of interest (ROI) in an image.
 
     The image is plotted and, using the mouse, the user select the region of interest (ROI). The ROI is ploted as an transparent rectangular region. When the image is closed the function returns the indexes ``[i_min, i_max, j_min,_j_max]`` of the ROI.
@@ -894,7 +898,7 @@ def graphical_roi_idx(zmatrix, verbose=False, **kargs4graph):
     See Also
     --------
     :py:func:`wavepy:utils:crop_graphic`
-    '''
+    """
 
 
     if kargs4graph is None:
@@ -913,7 +917,7 @@ def graphical_roi_idx(zmatrix, verbose=False, **kargs4graph):
         # this round method has
         # an error of +-1pixel
 
-        # if verbose: print(type(ecFunction to crop an image. First the image is plotted. Second the user select the region of interest (ROI). Finally the function return the croped version of the matrix, the cropped coordinate vectors ``x`` and  ``y``, and the indexes ``[i_min, i_max, j_min,_j_max]``lick.xdata))
+        # if verbose: print(type(eclick.xdata))
 
         mutable_object_ROI['ROI_j_lim'] = [ROI_j_lim[0], ROI_j_lim[1]]
         mutable_object_ROI['ROI_i_lim'] = [ROI_i_lim[0], ROI_i_lim[1]]
@@ -997,7 +1001,7 @@ def graphical_roi_idx(zmatrix, verbose=False, **kargs4graph):
 
 
 def crop_graphic(xvec, yvec, zmatrix, verbose=False):
-    '''
+    """
 
     Function to crop an image to the ROI selected using the mouse.
 
@@ -1037,7 +1041,7 @@ def crop_graphic(xvec, yvec, zmatrix, verbose=False):
     See Also
     --------
     :py:func:`wavepy.utils.graphical_roi_idx`
-    '''
+    """
     idx = graphical_roi_idx(zmatrix, verbose=verbose)
 
     return xvec[idx[2]:idx[3]], \
@@ -1046,7 +1050,7 @@ def crop_graphic(xvec, yvec, zmatrix, verbose=False):
 
 
 def choose_unit(array):
-    '''
+    """
 
     Script to choose good(best) units in engineering notation for a ``ndarray``.
 
@@ -1097,7 +1101,7 @@ def choose_unit(array):
 
     The syntax ``r'$ string $ '`` is necessary to use latex commands in the :py:mod:`matplotlib` labels.
 
-    '''
+    """
 
 
     max_abs = np.max(np.abs(array))
@@ -1133,14 +1137,14 @@ def choose_unit(array):
 ### time functions
 
 def datetime_now_str():
-    '''
+    """
     Returns the current date and time as a string in the format YYmmDD_HHMMSS. Alias for ``time.strftime("%Y%m%d_%H%M%S")``.
 
     Return
     ------
     str
 
-    '''
+    """
 
     from time import strftime
 
@@ -1148,28 +1152,28 @@ def datetime_now_str():
 
 
 def time_now_str():
-    '''
+    """
     Returns the current time as a string in the format HHMMSS. Alias for ``time.strftime("%H%M%S")``.
 
     Return
     ------
     str
 
-    '''
+    """
     from time import strftime
 
     return strftime("%H%M%S")
 
 
 def date_now_str():
-    '''
+    """
     Returns the current date as a string in the format YYmmDD. Alias for ``time.strftime("%Y%m%d")``.
 
     Return
     ------
     str
 
-    '''
+    """
     from time import strftime
 
     return strftime("%Y%m%d")
@@ -1178,7 +1182,7 @@ def date_now_str():
 # coordinates in real and kspace.
 
 def realcoordvec(npoints, delta):
-    '''
+    """
     Build a vector with real space coordinates based on the number of points and bin (pixels) size.
 
     Alias for ``np.mgrid[-npoints/2*delta:npoints/2*delta-delta:npoints*1j]``
@@ -1205,12 +1209,12 @@ def realcoordvec(npoints, delta):
     :py:func:`wavepy.utils.realcoordmatrix_fromvec`
     :py:func:`wavepy.utils.realcoordmatrix`
 
-    '''
+    """
     return np.mgrid[-npoints/2*delta:npoints/2*delta-delta:npoints*1j]
 
 
 def realcoordmatrix_fromvec(xvec, yvec):
-    '''
+    """
     Alias for ``np.meshgrid(xvec, yvec)``
 
     Parameters
@@ -1239,11 +1243,12 @@ def realcoordmatrix_fromvec(xvec, yvec):
     :py:func:`wavepy.utils.realcoordvec`
     :py:func:`wavepy.utils.realcoordmatrix`
 
-    '''
+    """
     return np.meshgrid(xvec, yvec)
 
+
 def realcoordmatrix(npointsx, deltax, npointsy, deltay):
-    '''
+    """
     Build a matrix (2D array) with real space coordinates based on the number of points and bin (pixels) size.
 
     Alias for ``realcoordmatrix_fromvec(realcoordvec(nx, delx), realcoordvec(ny, dely))``
@@ -1273,14 +1278,17 @@ def realcoordmatrix(npointsx, deltax, npointsy, deltay):
     :py:func:`wavepy.utils.realcoordvec`
     :py:func:`wavepy.utils.realcoordmatrix_fromvec`
 
-    '''
+    """
     return realcoordmatrix_fromvec(realcoordvec(npointsx, deltax),
                                    realcoordvec(npointsy, deltay))
 
-def fouriercoordvec(npoints, delta):
-    r'''
 
-    Create coordinates in the (spatial) frequency domain based on the number of points ``n`` and the step (binning) ``\Delta x`` in the **REAL SPACE**. It returns a vector of frequencies with values in the interval
+def fouriercoordvec(npoints, delta):
+    r"""
+
+    Create coordinates in the (spatial) frequency domain based on the number of
+    points ``n`` and the step (binning) ``\Delta x`` in the **REAL SPACE**. It
+    returns a vector of frequencies with values in the interval
 
 
     .. math:: f = \left[ \frac{-1}{2 \Delta x} : \frac{1}{2 \Delta x} - \frac{1}{n \Delta x} \right]
@@ -1310,13 +1318,13 @@ def fouriercoordvec(npoints, delta):
     :py:func:`wavepy.utils.realcoordvec`
     :py:func:`wavepy.utils.fouriercoordmatrix`
 
-    '''
+    """
 
     return np.mgrid[-1/2/delta:1/2/delta-1/npoints/delta:npoints*1j]
 
 
 def fouriercoordmatrix(npointsx, deltax, npointsy, deltay):
-    '''
+    """
 
     Similar to :py:func:`wavepy.utils.fouriercoordvec`, but for matrices (2D arrays).
 
@@ -1349,17 +1357,15 @@ def fouriercoordmatrix(npointsx, deltax, npointsy, deltay):
     --------
     :py:func:`wavepy.utils.realcoordmatrix`
     :py:func:`wavepy.utils.fouriercoordvec`
-    '''
+    """
     return np.meshgrid(fouriercoordvec(npointsx, deltax),
                        fouriercoordvec(npointsy, deltay))
 
+# h5 tools
 
-
-
-### h5 tools
 
 def h5_list_of_groups(h5file):
-    '''
+    """
 
     Get the names of all groups and subgroups in a hdf5 file.
 
@@ -1381,7 +1387,7 @@ def h5_list_of_groups(h5file):
     >>> listOfGoups = h5_list_of_groups(fh5)
     >>> for group in listOfGoups: print(group)
 
-    '''
+    """
 
     list_of_goups = []
     h5file.visit(list_of_goups.append)
@@ -1392,13 +1398,19 @@ def h5_list_of_groups(h5file):
 if __name__ == '__main__':
     pass
 
+
 # Progress bar
 
-def progress_bar4pmap(res,sleep_time=1.0):
-    '''
-    Progress bar from :py:mod:`tqdm` to be used with the function :py:func:`multiprocessing.starmap_async`.
 
-    It holds the program in a loop waiting :py:func:`multiprocessing.starmap_async` to finish
+def progress_bar4pmap(res, sleep_time=1.0):
+    """
+    Progress bar from :py:mod:`tqdm` to be used with the function      :py:func:`multiprocessing.starmap_async`.
+
+    It holds the program in a loop waiting      :py:func:`multiprocessing.starmap_async` to finish
+
+
+    Parameters
+    ----------
 
     res: result object of the :py:class:`multiprocessing.Pool` class
     sleep_time:
@@ -1413,10 +1425,10 @@ def progress_bar4pmap(res,sleep_time=1.0):
     >>> p.close()  # No more work
     >>> progress_bar4pmap(res)
 
-    '''
+    """
 
     old_res_n_left = res._number_left
-    pbar = tqdm(total= old_res_n_left )
+    pbar = tqdm(total= old_res_n_left)
 
     while res._number_left > 0:
         if old_res_n_left != res._number_left:
@@ -1426,3 +1438,96 @@ def progress_bar4pmap(res,sleep_time=1.0):
 
     pbar.close()
     print('')
+
+def load_ini_file(inifname):
+    """
+
+    This function make use of `configparser
+    <https://docs.python.org/3.5/library/configparser.html>`_ to set default
+    option in a ``*.ini`` file.
+
+    In fact this function only update the ``ini`` file. The way to use is to run
+    ``load_ini_file`` at the begining of the script and then load the
+    parameters from the file. See **Examples**.
+
+    The ``ini`` file must contain two sections: ``Files`` and ``Parameters``.
+    The ``Files`` section list all files to be loaded. If you don't accept the
+    default     value that it is offered, it will run
+    :py:func:`wavepy.utils..select_file` to select other file.
+
+    The section ``Parameters`` can contain anything, in any format, but keep in
+    mind that they are passed as string.
+
+
+    Parameters
+    ----------
+    inifname : str
+        name of the ``*.ini`` file.
+
+
+    Examples
+    --------
+
+    Example of ``ini`` file::
+
+        [Files]
+        image_filename = file1.tif
+        ref_filename = file2.tif
+
+        [Parameters]
+        par1 = 10.5e-5
+        par2 = 10, 100, 500, 600
+        par can have long name = 25
+        par3 = the value can be anything
+
+
+
+    Note that ``load_ini_file`` first set/update the parameters in the file, and
+    we need to load each parameters afterwards:
+
+    >>> ini_pars, ini_file_list = load_ini_file('configfile.ini')
+    >>> par1 = float(ini_pars.get('par1'))
+    >>> par2 = list(map(int, ini_pars.get('par2').split(',')))
+
+    """
+
+    if not os.path.isfile(inifname):
+        raise Exception("ERROR: File " + inifname + " doesn't exist. You must " +
+                         "create your init file first.")
+
+    config = configparser.ConfigParser()
+    config.read(inifname)
+
+    print('\nMESSAGE: All sections and keys:')
+    for sections in config.sections():
+        print_red(sections)
+        for key in config[sections]: print_blue('  ' + key + ':\t ' +
+                                           config[sections].get(key))
+
+
+    ini_pars = config['Parameters']
+    ini_file_list = config['Files']
+
+
+    use_last_value = input('\nUse last values? [Y/n]: ')
+
+    if use_last_value.lower() == 'n':
+
+        for ftype in ini_file_list:
+            kb_input = input('\nUse ' + ini_file_list.get(ftype) + 'as ' \
+                               + ftype + '? [Y/n]')
+            if kb_input.lower() == 'n':
+                _filename = select_file('*/*.tif')
+                ini_file_list[ftype] = os.getcwd() + '/' + _filename
+
+        for key in ini_pars:
+            kb_input = input('\nEnter ' + key + ' value [' \
+                              + ini_pars.get(key) + '] : ')
+            if kb_input != '': ini_pars[key] = kb_input
+
+        with open(inifname, 'w') as configfile:
+          config.write(configfile)
+
+    else: print('MESSAGE: Using values from ' + inifname)
+
+    return config, ini_pars, ini_file_list
