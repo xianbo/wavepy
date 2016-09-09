@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 # #########################################################################
 # Copyright (c) 2015, UChicago Argonne, LLC. All rights reserved.         #
 #                                                                         #
@@ -47,17 +46,38 @@
 # #########################################################################
 
 
-from wavepy.utils import *
-from wavepy.speckletracking import *
-
-try:
-    import pkg_resources
-    __version__ = pkg_resources.working_set.require("wavepy")[0].version
-except:
-    pass
+"""
+Functions to help me debug my scripts
+"""
+import time
+from termcolor import colored
 
 
+def _print_4DEBUG(text):
+    print(colored(text, 'red', attrs=['bold']))
+
+def DEBUG_print_var(varname, var):
+
+    _print_4DEBUG("MYDEBUG: {0} = {1}".format(varname, var))
 
 
+def DEBUG_print(verbose=False):
+
+    if verbose:
+        import os
+        _print_4DEBUG("MYDEBUG: current directory: %s" % os.getcwd())
+
+        import sys
+        _print_4DEBUG("MYDEBUG: sys.path: %s" % sys.path)
+
+    from inspect import currentframe, getframeinfo
+    cf = currentframe().f_back
+    _print_4DEBUG("\nMYDEBUG: line %s in %s\n"
+          % (cf.f_lineno, getframeinfo(cf).filename))
 
 
+def DEBUG_stopwatch_on():
+    return  time.time()
+
+def DEBUG_stopwatch_off(t):
+    _print_4DEBUG('Time spent: {0:.3f} s'.format(time.time() - t))

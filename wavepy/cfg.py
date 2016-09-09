@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 # #########################################################################
 # Copyright (c) 2015, UChicago Argonne, LLC. All rights reserved.         #
 #                                                                         #
@@ -46,18 +45,15 @@
 # POSSIBILITY OF SUCH DAMAGE.                                             #
 # #########################################################################
 
-
-from wavepy.utils import *
-from wavepy.speckletracking import *
-
-try:
-    import pkg_resources
-    __version__ = pkg_resources.working_set.require("wavepy")[0].version
-except:
-    pass
+"""
+Module for describing .....
+"""
 
 
+import numpy as np
 
-
-
-
+rad2deg = np.rad2deg(1)
+deg2rad = np.deg2rad(1)
+NAN = float('Nan')  # not a number alias
+from scipy import constants
+hc = constants.value('inverse meter-electron volt relationship') # hc
