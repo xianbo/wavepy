@@ -1492,22 +1492,21 @@ def load_ini_file(inifname):
     """
 
     if not os.path.isfile(inifname):
-        raise Exception("ERROR: File " + inifname + " doesn't exist. You must " +
+        raise Exception("File " + inifname + " doesn't exist. You must " +
                          "create your init file first.")
 
     config = configparser.ConfigParser()
     config.read(inifname)
 
-    print('\nMESSAGE: All sections and keys:')
-    for sections in config.sections():
-        print_red(sections)
-        for key in config[sections]: print_blue('  ' + key + ':\t ' +
-                                           config[sections].get(key))
-
+    print('\nAll sections:')
+    for sections in config.sections(): print(sections)
 
     ini_pars = config['Parameters']
+
     ini_file_list = config['Files']
 
+    print('\nAll keys:')
+    for key in ini_pars: print(key + ':\t ' +  ini_pars.get(key))
 
     use_last_value = input('\nUse last values? [Y/n]: ')
 
@@ -1525,9 +1524,7 @@ def load_ini_file(inifname):
                               + ini_pars.get(key) + '] : ')
             if kb_input != '': ini_pars[key] = kb_input
 
-        with open(inifname, 'w') as configfile:
-          config.write(configfile)
+    with open(inifname, 'w') as configfile:
+      config.write(configfile)
 
-    else: print('MESSAGE: Using values from ' + inifname)
-
-    return config, ini_pars, ini_file_list
+    return ini_pars, ini_file_list
