@@ -247,7 +247,7 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
 
     z_min, z_max = float(np.nanmin(zmatrix)), float(np.nanmax(zmatrix))
 
-    fig = plt.figure(figsize=(12., 10.))
+    fig = plt.figure(figsize=(11., 8.5))
     fig.suptitle(title, fontsize=14, weight='bold')
 
     # Main contourf plot
@@ -414,6 +414,10 @@ def select_file(pattern='*', message_to_print=None):
     """
 
     import glob
+
+
+
+    pattern = input('File type: [' + pattern + ']: ') or pattern
 
     list_files = glob.glob(pattern, recursive=True)
 
@@ -701,7 +705,8 @@ def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
         * SumOfHarmonics: image is defined by:
          .. math:: \sum_{ij} Amp_{ij} \cos (2 \pi i y) \cos (2 \pi j x).
 
-         The keyword ``kwargs: harmAmpl`` is a 2D list that can be used to set the values for Amp_ij, see **Examples**
+         Note that ``x`` and ``y`` are assumed to in the range [-1, 1]. The keyword
+         ``kwargs: harmAmpl`` is a 2D list that can be used to set the values for Amp_ij, see **Examples**
 
         * Shapes: see **Examples**. ``kwargs=noise``, amplitude of noise to be \
           added to the image
@@ -1210,7 +1215,7 @@ def realcoordvec(npoints, delta):
     :py:func:`wavepy.utils.realcoordmatrix`
 
     """
-    return np.mgrid[-npoints/2*delta:npoints/2*delta-delta:npoints*1j]
+    return np.mgrid[-npoints/2.*delta:npoints/2.*delta:npoints*1j]
 
 
 def realcoordmatrix_fromvec(xvec, yvec):
@@ -1233,9 +1238,14 @@ def realcoordmatrix_fromvec(xvec, yvec):
     >>> vecx = realcoordvec(3,1)
     >>> vecy = realcoordvec(4,1)
     >>> realcoordmatrix_fromvec(vecx, vecy)
-    [array([[-1.5, -0.5,  0.5], [-1.5, -0.5,  0.5], [-1.5, -0.5,  0.5],
-    [-1.5, -0.5,  0.5]]), array([[-2., -2., -2.], [-1., -1., -1.],
-    [ 0.,  0.,  0.], [ 1.,  1.,  1.]])]
+    [array([[-1.5, -0.5,  0.5],
+    [-1.5, -0.5,  0.5],
+    [-1.5, -0.5,  0.5],
+    [-1.5, -0.5,  0.5]]),
+    array([[-2., -2., -2.],
+    [-1., -1., -1.],
+    [ 0.,  0.,  0.],
+    [ 1.,  1.,  1.]])]
 
 
     See Also
@@ -1498,33 +1508,42 @@ def load_ini_file(inifname):
     config = configparser.ConfigParser()
     config.read(inifname)
 
-    print('\nAll sections:')
-    for sections in config.sections(): print(sections)
+    print('\nMESSAGE: All sections and keys:')
+    for sections in config.sections():
+        print_red(sections)
+        for key in config[sections]: print_blue('  ' + key + ':\t ' +
+                                           config[sections].get(key))
+
 
     ini_pars = config['Parameters']
-
     ini_file_list = config['Files']
 
-    print('\nAll keys:')
-    for key in ini_pars: print(key + ':\t ' +  ini_pars.get(key))
 
     use_last_value = input('\nUse last values? [Y/n]: ')
 
     if use_last_value.lower() == 'n':
 
         for ftype in ini_file_list:
-            kb_input = input('\nUse ' + ini_file_list.get(ftype) + 'as ' \
-                               + ftype + '? [Y/n]')
+            kb_input = input('\nUse ' + ini_file_list.get(ftype) + ' as ' \
+                               + ftype + '? [Y/n]: ')
             if kb_input.lower() == 'n':
-                _filename = select_file('*/*.tif')
+                patternForGlob='**/*.' + ini_file_list.get(ftype).split('.')[1]
+#
+#                patternForGlob = input('File type: [' + patternForGlob + ']: ') \
+#                                 or patternForGlob
+#                print('patternForGlob:' + patternForGlob)
+                _filename = select_file(patternForGlob)
                 ini_file_list[ftype] = os.getcwd() + '/' + _filename
 
         for key in ini_pars:
             kb_input = input('\nEnter ' + key + ' value [' \
                               + ini_pars.get(key) + '] : ')
-            if kb_input != '': ini_pars[key] = kb_input
+            ini_pars[key] = kb_input or ini_pars[key]
+#            if kb_input != '': ini_pars[key] = kb_input
 
-    with open(inifname, 'w') as configfile:
-      config.write(configfile)
+        with open(inifname, 'w') as configfile:
+          config.write(configfile)
 
-    return ini_pars, ini_file_list
+    else: print('MESSAGE: Using values from ' + inifname)
+
+    return config, ini_pars, ini_file_list
