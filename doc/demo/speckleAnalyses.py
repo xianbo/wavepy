@@ -46,49 +46,32 @@
 # #########################################################################
 
 
-'''
+"""
 Example of speckle tracking data analyses
-'''
+"""
+
+import numpy as np
+from scipy import constants
+import dxchange
+import h5py as h5
+
+import wavepy.utils as wpu
+import wavepy.speckletracking as wps
+
 
 __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
 
-#==============================================================================
-# %%
-#==============================================================================
 
-import numpy as np
-#import matplotlib.pyplot as plt
-
-import dxchange
-
-import h5py as h5
-#from tqdm import tqdm  # progress bar
-
-# import wgTools.wgTools as wgt
-
-#import itertools  # iterators improved
-
-
-#from multiprocessing import Pool, cpu_count
-#import time
-
-import wavepy as wp
-import wavepy.utils as wpu
-import wavepy.speckletracking as wps
-
-# TODO remove debug
-from wavepy._my_debug_tools import *
-# %%
-#==============================================================================
-# preamble. Load parameters from ini file
-#==============================================================================
+# =============================================================================
+# %% preamble. Load parameters from ini file
+# =============================================================================
 
 
 inifname = '.speckleAnalyses.ini'
 
-config, ini_pars, ini_file_list = wpu.load_ini_file(inifname)
+config, ini_pars, ini_file_list = wpu.load_ini_file(inifname, '**/*tif')
 
 fname = ini_file_list.get('image_filename')
 image = dxchange.read_tiff(fname)
@@ -100,47 +83,37 @@ phenergy = float(ini_pars.get('photon energy'))
 distDet2sample = float(ini_pars.get('distance detector to sample'))
 halfsubwidth = int(ini_pars.get('halfsubwidth'))
 npointsmax = int(ini_pars.get('npointsmax'))
-ncores = float(ini_pars.get('ncores'))/ float(ini_pars.get('ncores of machine'))
+ncores = float(ini_pars.get('ncores')) / float(ini_pars.get('ncores of machine'))
 subpixelResolution = int(ini_pars.get('subpixelResolution'))
 saveH5 = ini_pars.get('save hdf5 files')
 
 
-
-
-
-
-#==============================================================================
+# =============================================================================
 # %% parameters
-#==============================================================================
+# =============================================================================
 
 rad2deg = np.rad2deg(1)
 deg2rad = np.deg2rad(1)
 NAN = float('Nan')  # not a number alias
-from scipy import constants
-hc = constants.value('inverse meter-electron volt relationship') # hc
 
-#pixelsize = .6500e-6
-#distDet2sample = 345e-3
+hc = constants.value('inverse meter-electron volt relationship')  # hc
 
-#phenergy = 8.0e3
 wavelength = hc/phenergy
 kwave = 2*np.pi/wavelength
 
 
-
-
-#==============================================================================
+# =============================================================================
 #  %% coordinates
-#==============================================================================
+# =============================================================================
 
 
 xVec = wpu.realcoordvec(image.shape[1], pixelsize)
 yVec = wpu.realcoordvec(image.shape[0], pixelsize)
 
 
-#==============================================================================
+# =============================================================================
 # %% Crop
-#==============================================================================
+# =============================================================================
 
 kb_input = input('\nGraphic Crop? [N/y] : ')
 
@@ -151,12 +124,12 @@ if kb_input.lower() == 'y':
     print('idx:')
     print(idx)
 
-#idx = [563, 1693, 629, 1705]
-#image = wpu.crop_matrix_at_indexes(image, idx)
-#image_ref = wpu.crop_matrix_at_indexes(image_ref, idx)
+# idx = [563, 1693, 629, 1705]
+# image = wpu.crop_matrix_at_indexes(image, idx)
+# image_ref = wpu.crop_matrix_at_indexes(image_ref, idx)
 
-#idx1 = [x+7 for x in idx[:]]
-#image_ref = wpu.cropMatrixAtIndexes(image_ref, idx1)
+# idx1 = [x+7 for x in idx[:]]
+# image_ref = wpu.cropMatrixAtIndexes(image_ref, idx1)
 
 
 ini_pars['crop'] = str('{0}, {1}, {2}, {3}'.format(idx[0], idx[1], idx[2], idx[3]))
@@ -164,46 +137,29 @@ with open(inifname, 'w') as configfile:
     config.write(configfile)
 
 # %%
-#==============================================================================
+# =============================================================================
 # Displacement
-#==============================================================================
+# =============================================================================
 
-DEBUG_print()
-t = DEBUG_stopwatch_on()
-#do some stuff
-
-#halfsubwidth = 75
-#npointsmax=51
-
-sx, sy, error, step =  wps.speckleDisplacement(image, image_ref,
-                                     halfsubwidth=halfsubwidth,
-                                     npointsmax=npointsmax,
-                                     subpixelResolution = subpixelResolution,
-                                     ncores=ncores, taskPerCore=15,
-                                     verbose=True)
-
-
-DEBUG_stopwatch_off(t)
-
-
-
+sx, sy, \
+error, step = wps.speckleDisplacement(image, image_ref,
+                                      halfsubwidth=halfsubwidth,
+                                      npointsmax=npointsmax,
+                                      subpixelResolution=subpixelResolution,
+                                      ncores=ncores, taskPerCore=15,
+                                      verbose=True)
 
 
 totalS = np.sqrt(sx**2 + sy**2)
-
-
-
-xVec2 = xVec[halfsubwidth:-halfsubwidth:step]
-yVec2 = yVec[halfsubwidth:-halfsubwidth:step]
 
 xVec2 = wpu.realcoordvec(sx.shape[1], pixelsize*step)
 yVec2 = wpu.realcoordvec(sx.shape[0], pixelsize*step)
 
 
 # %%
-#==============================================================================
+# =============================================================================
 # Save data in hdf5 format
-#==============================================================================
+# =============================================================================
 
 
 fname_output = fname[:-4] + "_processed.h5"
@@ -224,8 +180,6 @@ f.create_dataset("displacement/displacement_y", data=sy)
 f.create_dataset("displacement/error", data=error)
 f.create_dataset("displacement/xvec", data=xVec2)
 f.create_dataset("displacement/yvec", data=yVec2)
-
-
 
 
 f.flush()

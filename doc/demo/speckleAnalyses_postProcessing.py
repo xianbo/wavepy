@@ -9,6 +9,8 @@ Created on Sat Aug 13 16:00:19 2016
 # %%
 #==============================================================================
 import numpy as np
+
+from numpy.fft import fft2, ifft2, fftfreq
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
@@ -163,30 +165,60 @@ dTy = 1.0/delta*np.arctan2(sy*pixelsize, distDet2sample)
 # integration
 #==============================================================================
 
-def fourier_integration(del_f_del_x, del_f_del_y,
-                                xvec, yvec):
+# def fourier_integration(del_f_del_x, del_f_del_y,
+#                                 xvec, yvec):
+#
+#     delx = xvec[1] - xvec[0]
+#     dely = yvec[1] - yvec[0]
+#
+#
+#     fx, fy = wpu.fouriercoordmatrix(xvec.size, delx, yvec.size, dely)
+#
+#     fx = fx - np.min(fx)*2
+#     fy = fy - np.min(fy)*2
+#
+#
+#     denominator = 1j*fx - fy
+#     denominator[np.abs(denominator) < 1e-10] = NAN
+#
+#     return np.fft.ifft2(np.fft.fftshift(np.fft.fft2(del_f_del_x +
+#                                                     1j*del_f_del_y))
+#                                         /denominator)
 
-    delx = xvec[1] - xvec[0]
-    dely = yvec[1] - yvec[0]
+
+def fourier_integration(del_f_del_x, delx, del_f_del_y, dely):
+
+    fx, fy = np.meshgrid(np.fft.fftfreq(del_f_del_x.shape[1], delx),
+                         np.fft.fftfreq(del_f_del_x.shape[0], dely))
+
+    xx, yy = wpu.realcoordmatrix(del_f_del_x.shape[1], delx,
+                                 del_f_del_x.shape[0], dely)
+
+    fo_x = - np.abs(fx[0,1]/2) # shift fx value
+    fo_y = - np.abs(fy[1,0]/2) # shift fy value
 
 
-    fx, fy = wpu.fouriercoordmatrix(xvec.size, delx, yvec.size, dely)
+    phaseShift = np.exp(2*np.pi*1j*(fo_x*xx + fo_y*yy))  # exp factor for shift
 
-    fx = fx - np.min(fx)*2
-    fy = fy - np.min(fy)*2
-
-
-    denominator = 1j*fx - fy
-    denominator[np.abs(denominator) < 1e-10] = NAN
-
-    return np.fft.ifft2(np.fft.fftshift(np.fft.fft2(del_f_del_x +
-                                                    1j*del_f_del_y))
-                                        /denominator)
+    mult_factor = 1/(2*np.pi*1j)/(fx - fo_x - 1j*fy + 1j*fo_y)
 
 
-integration_res = fourier_integration(dTx, dTy, xVec, yVec)
+    bigGprime = fft2((del_f_del_x - 1j*del_f_del_y)*phaseShift)
+    bigG = bigGprime*mult_factor
 
-thickness = np.abs(integration_res)
+    func_g = ifft2(bigG) / phaseShift
+
+    func_g -= func_g[0]  # since the integral have and undefined constant,
+                         # here it is applied an arbritary offset
+
+
+    return func_g
+
+
+
+integration_res = fourier_integration(dTx, pixelsize, dTy, pixelsize)
+
+thickness = np.real(integration_res)
 
 thickness = thickness - np.min(thickness)
 
@@ -446,7 +478,7 @@ stride = 1
 
 surf = ax.plot_surface(xmatrix_croped1*1e6,
                        ymatrix_croped1*1e6,
-                       -maskGood_croped1*thickness_croped1*1e6,
+                       maskGood_croped1*thickness_croped1*1e6,
                         rstride=stride, cstride=stride,
                         #vmin=-120, vmax=0,
                        cmap='spectral', linewidth=0.1)
