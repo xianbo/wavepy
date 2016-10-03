@@ -50,8 +50,9 @@
 
 Ref: http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html#example-numpy
 
-This module demonstrates documentation as specified by the `NumPy
-Documentation HOWTO`_. Docstrings may extend over multiple lines. Sections
+This module demonstrates documentation as specified by the `A Guide to NumPy/SciPy
+Documentation <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_.
+Docstrings may extend over multiple lines. Sections
 are created with a section header followed by an underline of equal length.
 
 Example
@@ -119,8 +120,8 @@ module_level_variable2 = 98765
 def function_with_types_in_docstring(param1, param2):
     """Example function with types documented in the docstring.
 
-    `PEP 484`_ type annotations are supported. If attribute, parameter, and
-    return types are annotated according to `PEP 484`_, they do not need to be
+    ``PEP 484`` type annotations are supported. If attribute, parameter, and
+    return types are annotated according to ``PEP 484``, they do not need to be
     included in the docstring:
 
     Parameters

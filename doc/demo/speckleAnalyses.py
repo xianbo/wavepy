@@ -71,7 +71,7 @@ __version__ = "0.1.0"
 
 inifname = '.speckleAnalyses.ini'
 
-config, ini_pars, ini_file_list = wpu.load_ini_file(inifname, '**/*tif')
+config, ini_pars, ini_file_list = wpu.load_ini_file(inifname)
 
 fname = ini_file_list.get('image_filename')
 image = dxchange.read_tiff(fname)
@@ -82,11 +82,22 @@ pixelsize = float(ini_pars.get('pixel size'))
 phenergy = float(ini_pars.get('photon energy'))
 distDet2sample = float(ini_pars.get('distance detector to sample'))
 halfsubwidth = int(ini_pars.get('halfsubwidth'))
+halfTemplateSize = int(ini_pars.get('halfTemplateSize'))
+subpixelResolution = int(ini_pars.get('subpixelResolution'))
 npointsmax = int(ini_pars.get('npointsmax'))
 ncores = float(ini_pars.get('ncores')) / float(ini_pars.get('ncores of machine'))
-subpixelResolution = int(ini_pars.get('subpixelResolution'))
 saveH5 = ini_pars.get('save hdf5 files')
 
+if subpixelResolution < 1: subpixelResolution = None
+if halfTemplateSize < 1: halfTemplateSize = None
+
+
+# %%
+#
+#dummy = wpu.dummy_images('Shapes',  shape=(110, 110), noise = 1)
+#fname = 'dummy.tif'
+#image = dummy[5:-5,5:-5]
+#image_ref = dummy[7:-3,4:-6]
 
 # =============================================================================
 # %% parameters
@@ -103,51 +114,41 @@ kwave = 2*np.pi/wavelength
 
 
 # =============================================================================
-#  %% coordinates
-# =============================================================================
-
-
-xVec = wpu.realcoordvec(image.shape[1], pixelsize)
-yVec = wpu.realcoordvec(image.shape[0], pixelsize)
-
-
-# =============================================================================
 # %% Crop
 # =============================================================================
 
-kb_input = input('\nGraphic Crop? [N/y] : ')
+# =============================================================================
 
+kb_input = input('\nGraphic Crop? [N/y] : ')
 if kb_input.lower() == 'y':
     # Graphical Crop
-    (xVec, yVec, image, idx) = wpu.crop_graphic(xVec, yVec, image, verbose=True)
-    image_ref = wpu.crop_matrix_at_indexes(image_ref, idx)
-    print('idx:')
+
+    idx = wpu.graphical_roi_idx(image, verbose=True)
+
+    print('New idx:')
     print(idx)
 
-# idx = [563, 1693, 629, 1705]
-# image = wpu.crop_matrix_at_indexes(image, idx)
-# image_ref = wpu.crop_matrix_at_indexes(image_ref, idx)
+    ini_pars['crop'] = str('{0}, {1}, {2}, {3}'.format(idx[0], idx[1], idx[2], idx[3]))
+    with open(inifname, 'w') as configfile:  # update values in the ini file
+        config.write(configfile)
 
-# idx1 = [x+7 for x in idx[:]]
-# image_ref = wpu.cropMatrixAtIndexes(image_ref, idx1)
+image = wpu.crop_matrix_at_indexes(image, idx)
+image_ref = wpu.crop_matrix_at_indexes(image_ref, idx)
 
-
-ini_pars['crop'] = str('{0}, {1}, {2}, {3}'.format(idx[0], idx[1], idx[2], idx[3]))
-with open(inifname, 'w') as configfile:
-    config.write(configfile)
 
 # %%
 # =============================================================================
 # Displacement
-# =============================================================================
-
 sx, sy, \
 error, step = wps.speckleDisplacement(image, image_ref,
                                       halfsubwidth=halfsubwidth,
-                                      npointsmax=npointsmax,
+                                      halfTemplateSize=halfTemplateSize,
                                       subpixelResolution=subpixelResolution,
+                                      npointsmax=npointsmax,
                                       ncores=ncores, taskPerCore=15,
                                       verbose=True)
+
+
 
 
 totalS = np.sqrt(sx**2 + sy**2)
@@ -161,28 +162,33 @@ yVec2 = wpu.realcoordvec(sx.shape[0], pixelsize*step)
 # Save data in hdf5 format
 # =============================================================================
 
-
-fname_output = fname[:-4] + "_processed.h5"
+fname_output = fname[:-4] + '_' + wpu.datetime_now_str() + ".h5"
 f = h5.File(fname_output, "w")
 
 
 h5rawdata = f.create_group('raw')
 f.create_dataset("raw/image_sample", data=image)
 f.create_dataset("raw/image_ref", data=image_ref)
-h5rawdata.attrs['Pixel Size [m]'] = pixelsize
+h5rawdata.attrs['Pixel Size Detector [m]'] = pixelsize
+h5rawdata.attrs['Pixel Size Processed images [m]'] = pixelsize*step
 h5rawdata.attrs['Distance Detector to Sample [m]'] = distDet2sample
 h5rawdata.attrs['Photon Energy [eV]'] = phenergy
 h5rawdata.attrs['Comments'] = 'Created by Walan Grizolli'
 
-
+h5displacement = f.create_group('displacement')
 f.create_dataset("displacement/displacement_x", data=sx)
 f.create_dataset("displacement/displacement_y", data=sy)
 f.create_dataset("displacement/error", data=error)
 f.create_dataset("displacement/xvec", data=xVec2)
 f.create_dataset("displacement/yvec", data=yVec2)
 
+h5displacement.attrs['ini file'] = '\n' + open(inifname, 'r').read()
+
 
 f.flush()
 f.close()
 
-wpu.print_blue("File saved at {0}".format(fname_output))
+with open(fname_output[:-3] + '.log', 'w') as logfile:  # save ini files as log
+    config.write(logfile)
+
+wpu.print_blue("File saved at:\n{0}".format(fname_output))

@@ -76,7 +76,6 @@ def mpl_settings_4_nice_graphs():
 #==============================================================================
 
 fname = wpu.select_file('**/*.h5')
-# %%
 
 f = h5.File(fname,'r')
 
@@ -88,7 +87,7 @@ f = h5.File(fname,'r')
 
 delta = 5.3265E-06 # real part refractive index Be
 
-pixelsize = f['raw'].attrs['Pixel Size [m]']
+pixelsize = f['raw'].attrs['Pixel Size Processed images [m]']
 distDet2sample = f['raw'].attrs['Distance Detector to Sample [m]']
 phenergy = f['raw'].attrs['Photon Energy [eV]']
 
@@ -108,13 +107,18 @@ error_raw = np.array(f['displacement/error'])
 xVec_raw =  np.array(f['displacement/xvec'])
 yVec_raw =  np.array(f['displacement/yvec'])
 
+#sx_raw = np.array(f['displacement/displacement_y']).T
+#sy_raw = np.array(f['displacement/displacement_x']).T
+#error_raw = np.array(f['displacement/error']).T
+#
+#xVec_raw =  np.array(f['displacement/yvec'])
+#yVec_raw =  np.array(f['displacement/xvec'])
+
 #==============================================================================
 # %% Crop
 #==============================================================================
 
-(xVec, yVec, _, idx4crop) = wpu.crop_graphic(xVec_raw, yVec_raw,
-                                              np.sqrt(sx_raw**2 + sy_raw**2),
-                                              verbose=True)
+idx4crop = wpu.graphical_roi_idx(np.sqrt(sx_raw**2 + sy_raw**2), verbose=True)
 
 
 
@@ -126,7 +130,7 @@ error = wpu.crop_matrix_at_indexes(error_raw, idx4crop)
 #==============================================================================
 # %% Undersampling
 #==============================================================================
-step = int(np.ceil(sx.shape[0]/201))
+step = 1 #int(np.ceil(sx.shape[0]/201))
 
 
 
@@ -134,17 +138,11 @@ sx = sx[::step, ::step]
 sy = sy[::step, ::step]
 error = error[::step, ::step]
 
-xVec = xVec[::step]
-yVec = yVec[::step]
+xVec = wpu.realcoordvec(sx.shape[1], xVec_raw[1]-xVec_raw[0])
+yVec = wpu.realcoordvec(sx.shape[0], yVec_raw[1]-yVec_raw[0])
 
 xmatrix, ymatrix = np.meshgrid(xVec, yVec)
 
-
-#==============================================================================
-# %% Mask
-#==============================================================================
-maskGood = np.ones(error.shape, dtype='Bool')*NAN
-maskGood[error < 1.200] = 1.0
 
 
 
@@ -160,33 +158,22 @@ dTx = 1.0/delta*np.arctan2(sx*pixelsize, distDet2sample)
 dTy = 1.0/delta*np.arctan2(sy*pixelsize, distDet2sample)
 
 
+
 # %%
 #==============================================================================
 # integration
 #==============================================================================
 
-# def fourier_integration(del_f_del_x, del_f_del_y,
-#                                 xvec, yvec):
-#
-#     delx = xvec[1] - xvec[0]
-#     dely = yvec[1] - yvec[0]
-#
-#
-#     fx, fy = wpu.fouriercoordmatrix(xvec.size, delx, yvec.size, dely)
-#
-#     fx = fx - np.min(fx)*2
-#     fy = fy - np.min(fy)*2
-#
-#
-#     denominator = 1j*fx - fy
-#     denominator[np.abs(denominator) < 1e-10] = NAN
-#
-#     return np.fft.ifft2(np.fft.fftshift(np.fft.fft2(del_f_del_x +
-#                                                     1j*del_f_del_y))
-#                                         /denominator)
+
+def fourier_integration(del_f_del_x, delx, del_f_del_y, dely, zeroPaddingWidth=0):
 
 
-def fourier_integration(del_f_del_x, delx, del_f_del_y, dely):
+    if zeroPaddingWidth is not 0:
+        del_f_del_x = np.pad(del_f_del_x,zeroPaddingWidth,
+                             'constant', constant_values=0.0)
+
+        del_f_del_y = np.pad(del_f_del_y,zeroPaddingWidth,
+                             'constant', constant_values=0.0)
 
     fx, fy = np.meshgrid(np.fft.fftfreq(del_f_del_x.shape[1], delx),
                          np.fft.fftfreq(del_f_del_x.shape[0], dely))
@@ -200,23 +187,29 @@ def fourier_integration(del_f_del_x, delx, del_f_del_y, dely):
 
     phaseShift = np.exp(2*np.pi*1j*(fo_x*xx + fo_y*yy))  # exp factor for shift
 
-    mult_factor = 1/(2*np.pi*1j)/(fx - fo_x - 1j*fy + 1j*fo_y)
+    mult_factor = 1/(2*np.pi*1j)/(fx - fo_x + 1j*fy - 1j*fo_y)
 
 
-    bigGprime = fft2((del_f_del_x - 1j*del_f_del_y)*phaseShift)
+    bigGprime = fft2((del_f_del_x + 1j*del_f_del_y)*phaseShift)
     bigG = bigGprime*mult_factor
 
     func_g = ifft2(bigG) / phaseShift
 
+
+    if zeroPaddingWidth is not 0:
+        func_g = func_g[zeroPaddingWidth:-zeroPaddingWidth,
+                        zeroPaddingWidth:-zeroPaddingWidth]
+
+
     func_g -= func_g[0]  # since the integral have and undefined constant,
                          # here it is applied an arbritary offset
-
 
     return func_g
 
 
 
-integration_res = fourier_integration(dTx, pixelsize, dTy, pixelsize)
+integration_res = fourier_integration(dTx, pixelsize, dTy, pixelsize,
+                                      zeroPaddingWidth=200)
 
 thickness = np.real(integration_res)
 
@@ -278,7 +271,35 @@ def plotsidebyside(array1, array2, title1='', title2='', maintitle=''):
 
     #    plt.tight_layout()
 
+#==============================================================================
+# %% Plot Sx and Sy
+#==============================================================================
 
+
+fig = plt.figure(next(figCount),figsize=(14, 5))
+fig.suptitle('Displacements', fontsize=14)
+
+
+ax1 = plt.subplot(121)
+ax2 = plt.subplot(122, sharex=ax1, sharey=ax1)
+
+ax1.plot(xVec*1e6, sx[sx.shape[1]//4,:],'-o')
+ax1.plot(xVec*1e6, sx[sx.shape[1]//2,:],'-o')
+ax1.plot(xVec*1e6, sx[sx.shape[1]//4*3,:],'-o')
+ax1.set_title('Sx [pixel]', fontsize=22)
+ax1.set_adjustable('box-forced')
+
+
+ax2.plot(yVec*1e6, sy[:,sy.shape[0]//4],'-o')
+ax2.plot(yVec*1e6, sy[:,sy.shape[0]//2],'-o')
+ax2.plot(yVec*1e6, sy[:,sy.shape[0]//4*3],'-o')
+ax2.set_title('Sy [pixel]', fontsize=22)
+ax2.set_adjustable('box-forced')
+
+
+
+if saveFigFlag: mySaveFig()
+plt.show(block=True)
 
 
 # %%
@@ -313,54 +334,54 @@ if saveFigFlag: mySaveFig()
 plt.show(block=True)
 
 
-#==============================================================================
-# %% Quiver graph
-#==============================================================================
-
-stride = int(np.ceil(sx.shape[0]/15)) # undersampling to reduce the number of arrows
-
-plt.figure(next(figCount),figsize=(10, 8))
-
-Q = plt.quiver(xmatrix[::stride, ::stride]*1e6,
-               ymatrix[::stride, ::stride]*1e6,
-               sx[::stride, ::stride], sy[::stride, ::stride],
-               totalS[::stride, ::stride], minlength=3,
-               cmap='gist_heat_r')
-
-plt.title(r'$\vec{S}$ [pixels] (undersampled)')
-
-
-
-plt.xlim(1.1*xmatrix[0,0]*1e6,1.1*xmatrix[-1,-1]*1e6)
-plt.ylim(1.1*ymatrix[0,0]*1e6,1.1*ymatrix[-1,-1]*1e6)
-plt.colorbar()
-if saveFigFlag: mySaveFig()
-plt.show(block=True)
-
-#==============================================================================
-# %% Quiver graph overlap contourf
-#==============================================================================
-
-
-stride = int(np.ceil(sx.shape[0]/15)) # undersampling
-
-plt.figure(next(figCount),figsize=(10, 8))
-
-
-Q = plt.contourf(xmatrix*1e6, ymatrix*1e6, totalS, 101,
-               cmap='spectral')
-
-Q = plt.colorbar()
-
-Q = plt.quiver(xmatrix[::stride, ::stride]*1e6,
-               ymatrix[::stride, ::stride]*1e6,
-               sx[::stride, ::stride], sy[::stride, ::stride],
-               totalS[::stride, ::stride],
-               cmap='gist_heat_r', minlength=3)
-
-plt.title(r'$\vec{S}$ [pixels] (undersampled)')
-if saveFigFlag: mySaveFig()
-plt.show(block=True)
+##==============================================================================
+## %% Quiver graph
+##==============================================================================
+#
+#stride = int(np.ceil(sx.shape[0]/15)) # undersampling to reduce the number of arrows
+#
+#plt.figure(next(figCount),figsize=(10, 8))
+#
+#Q = plt.quiver(xmatrix[::stride, ::stride]*1e6,
+#               ymatrix[::stride, ::stride]*1e6,
+#               sx[::stride, ::stride], sy[::stride, ::stride],
+#               totalS[::stride, ::stride], minlength=3,
+#               cmap='gist_heat_r')
+#
+#plt.title(r'$\vec{S}$ [pixels] (undersampled)')
+#
+#
+#
+#plt.xlim(1.1*xmatrix[0,0]*1e6,1.1*xmatrix[-1,-1]*1e6)
+#plt.ylim(1.1*ymatrix[0,0]*1e6,1.1*ymatrix[-1,-1]*1e6)
+#plt.colorbar()
+#if saveFigFlag: mySaveFig()
+#plt.show(block=True)
+#
+##==============================================================================
+## %% Quiver graph overlap contourf
+##==============================================================================
+#
+#
+#stride = int(np.ceil(sx.shape[0]/15)) # undersampling
+#
+#plt.figure(next(figCount),figsize=(10, 8))
+#
+#
+#Q = plt.contourf(xmatrix*1e6, ymatrix*1e6, totalS, 101,
+#               cmap='spectral')
+#
+#Q = plt.colorbar()
+#
+#Q = plt.quiver(xmatrix[::stride, ::stride]*1e6,
+#               ymatrix[::stride, ::stride]*1e6,
+#               sx[::stride, ::stride], sy[::stride, ::stride],
+#               totalS[::stride, ::stride],
+#               cmap='gist_heat_r', minlength=3)
+#
+#plt.title(r'$\vec{S}$ [pixels] (undersampled)')
+#if saveFigFlag: mySaveFig()
+#plt.show(block=True)
 
 #==============================================================================
 # %% Histograms to evaluate data quality
@@ -382,15 +403,15 @@ ax2 = plt.title(r'$S_y$ [pixels]', fontsize=16)
 if saveFigFlag: mySaveFig()
 plt.show(block=True)
 
-#==============================================================================
-# %% Total displacement
-#==============================================================================
-
-plt.figure(next(figCount))
-plt.hist(totalS.flatten(), 51)[0]
-plt.title(r'Total displacement $|\vec{S}|$ [pixels]', fontsize=16)
-if saveFigFlag: mySaveFig()
-plt.show(block=True)
+##==============================================================================
+## %% Total displacement
+##==============================================================================
+#
+#plt.figure(next(figCount))
+#plt.hist(totalS.flatten(), 51)[0]
+#plt.title(r'Total displacement $|\vec{S}|$ [pixels]', fontsize=16)
+#if saveFigFlag: mySaveFig()
+#plt.show(block=True)
 
 
 #==============================================================================
@@ -417,68 +438,64 @@ plt.show(block=True)
 # %% Thickness
 #==============================================================================
 
-stride = 1
-
-plt.figure(next(figCount))
-
-plt.contourf(xmatrix[::stride, ::stride]*1e6,
-             ymatrix[::stride, ::stride]*1e6,
-             (maskGood*thickness)[::stride, ::stride]*1e6, 101, cmap='spectral')
-
-
-
-plt.xlabel('[um]')
-plt.ylabel('[um]')
-
-plt.title('Thickness')
-
-
-plt.colorbar()
-if saveFigFlag: mySaveFig()
-plt.show(block=True)
-#plt.close()
-
-
-# %%
 
 stride = 1
 
 wpu.plot_profile(xmatrix[::stride, ::stride]*1e6,
                 ymatrix[::stride, ::stride]*1e6,
-                (maskGood*thickness)[::stride, ::stride]*1e6,
-                title='Thickness', xlabel='[um]', ylabel='[um]') #, xo=0.0, yo=0.0)
+                thickness[::stride, ::stride]*1e6,
+                title='Thickness', xlabel='[um]', ylabel='[um]',
+                arg4main={'cmap':'spectral'}) #, xo=0.0, yo=0.0)
 plt.show(block=True)
 
 
-# %% Crop Result
+#==============================================================================
+# %% Error
+#==============================================================================
+
+stride = 1
+
+wpu.plot_profile(xmatrix[::stride, ::stride]*1e6,
+                ymatrix[::stride, ::stride]*1e6,
+                error[::stride, ::stride],
+                title='Error', xlabel='[um]', ylabel='[um]',
+                arg4main={'cmap':'spectral'}) #, xo=0.0, yo=0.0)
+plt.show(block=True)
+
+
+# %% Crop Result and plot surface
 
 
 
 (xVec_croped1, yVec_croped1,
- thickness_croped1, idx) = wpu.crop_graphic(xVec, yVec,
+ thickness_croped, _) = wpu.crop_graphic(xVec, yVec,
                                                      thickness*1e6,
                                                      verbose=True)
 
-thickness_croped1 *= 1e-6
+thickness_croped *= 1e-6
 
 xmatrix_croped1, ymatrix_croped1 = wpu.realcoordmatrix_fromvec(xVec_croped1,
                                                                yVec_croped1)
 
 
-maskGood_croped1 = wpu.crop_matrix_at_indexes(maskGood, idx)
 
+# %%
+
+offset =  100e-6
 
 #
 
 fig = plt.figure(next(figCount),figsize=(10, 7))
 ax = fig.add_subplot(111, projection='3d')
 
-stride = 1
+stride = 5
 
+thickness_croped = np.where(thickness_croped >offset,
+                            thickness_croped - offset,0)
 
 surf = ax.plot_surface(xmatrix_croped1*1e6,
                        ymatrix_croped1*1e6,
-                       maskGood_croped1*thickness_croped1*1e6,
+                       thickness_croped*1e6,
                         rstride=stride, cstride=stride,
                         #vmin=-120, vmax=0,
                        cmap='spectral', linewidth=0.1)
@@ -490,5 +507,190 @@ plt.title('Thickness [um]', fontsize=18, weight='bold')
 plt.colorbar(surf, shrink=.8, aspect=20)
 
 plt.tight_layout()
+if saveFigFlag: mySaveFig()
+plt.show(block=True)
+
+#exit()
+
+# %%
+from scipy.optimize import curve_fit
+
+
+
+
+# %% 1D Fit
+
+
+thickness_croped -= np.max(thickness_croped)
+
+line = xmatrix_croped1.shape[1]//2
+col = ymatrix_croped1.shape[1]//2
+
+lim = 100
+
+plt.figure()
+plt.plot(xmatrix_croped1[line,lim:-lim]*1e6,
+         thickness_croped[line,lim:-lim]*1e6,
+         '-ko', markersize=5, label='1D data')
+
+
+#
+
+def _1Dparabol_4_fit(x, a, b, c):
+    return (x-b)**2/a + c
+
+popt, pcov = curve_fit(_1Dparabol_4_fit, xmatrix_croped1[line,lim:-lim],
+                       thickness_croped[line,lim:-lim],
+                       p0=[-100e-6, 1e-9, 520e-6])
+
+print(popt)
+fitted = _1Dparabol_4_fit(xmatrix_croped1[line,lim:-lim], popt[0], popt[1], popt[2])
+
+
+plt.plot(xmatrix_croped1[line,lim:-lim]*1e6, fitted*1e6,
+         '-+r', label='Fir parabolic')
+
+#
+lim = 100
+def _1DSphere_4_fit(x, amp, xo, R):
+
+    return -amp * ((x-xo)/np.sin(np.arctan2((x-xo),R)) - R)
+#    return np.sqrt(a**2 - (x - b)**2) + c
+
+popt2, pcov2 = curve_fit(_1DSphere_4_fit, xmatrix_croped1[line,lim:-lim],
+                                    thickness_croped[line,lim:-lim],
+                                     p0=[1.0909, -1e-5, 50.9e-6])
+
+
+print(popt2)
+fitted2 = _1DSphere_4_fit(xmatrix_croped1[line,lim:-lim],
+                       popt2[0], popt2[1], popt2[2])
+
+
+plt.plot(xmatrix_croped1[line,lim:-lim]*1e6, fitted2*1e6,
+         '-xg', label='Fit Sphere')
+
+plt.legend()
+plt.show()
+
+# %%
+plt.figure()
+plt.plot(xmatrix_croped1[line,lim:-lim]*1e6,
+         thickness_croped[line,lim:-lim]*1e6 - fitted*1e6,
+         '-+', markersize=5, label='f')
+
+plt.show()
+
+# %% 2D Fit
+
+r2 = np.sqrt(xmatrix_croped1**2 + ymatrix_croped1**2)
+
+args4fit = np.where( r2.flatten() < 100e-6)
+
+data2fit = thickness_croped.flatten()[args4fit]
+
+xxfit = xmatrix_croped1.flatten()[args4fit]
+yyfit = ymatrix_croped1.flatten()[args4fit]
+
+xyfit = [xxfit, yyfit]
+
+# %%
+
+
+
+def _2Dparabol_4_fit(xy, ax, ay, xo, yo, offset):
+
+    x, y = xy
+    return (x - xo)**2/ax + (y - yo)**2/ay + offset
+thickness_croped
+
+
+popt, pcov = curve_fit(_2Dparabol_4_fit, xyfit, data2fit,
+                       p0=[-100e-6, -100e-6,  1e-9, 1e-9, 5.43e-6],
+                       bounds=([-1., -1., -1e-5, -1e-5, -1e-4],
+                               [0., 0., 1e-5, 1e-5, 1e-4]))
+
+print(popt*1e6)
+fitted = _2Dparabol_4_fit( [xmatrix_croped1, ymatrix_croped1],
+                          popt[0], popt[1], popt[2], popt[3], popt[4])
+
+#fitted = np.reshape(fitted, xmatrix_croped1.shape)
+
+# %%
+stride = 1
+lim = 1
+
+errorThickness = thickness_croped - fitted
+
+wpu.plot_profile(xmatrix_croped1[lim:-lim,lim:-lim]*1e6,
+                 ymatrix_croped1[lim:-lim,lim:-lim]*1e6,
+                 fitted[lim:-lim,lim:-lim]*1e6,
+                 title='FIT', xlabel='[um]', ylabel='[um]',
+                 arg4main={'cmap':'spectral'}) #, xo=0.0, yo=0.0)
+
+
+
+
+if saveFigFlag: mySaveFig()
+plt.show(block=True)
+
+# %%
+stride = 1
+lim = 40
+
+
+wpu.plot_profile(xmatrix_croped1[lim:-lim,lim:-lim]*1e6,
+                 ymatrix_croped1[lim:-lim,lim:-lim]*1e6,
+                 errorThickness[lim:-lim,lim:-lim]*1e6,
+                 title='Error Be1x50um_in_d345_8keV_10s_gr2500_001_20160922_175544Thickness', xlabel='[um]', ylabel='[um]',
+                 arg4main={'cmap':'spectral'}) #, xo=0.0, yo=0.0)
+
+
+# %%
+
+
+lim = 100
+
+fig = plt.figure(figsize=plt.figaspect(3.0/4.0), facecolor="white")
+ax = fig.gca(projection='3d')
+plt.tight_layout(pad=2.5)
+
+ax.scatter(xxfit*1e6, yyfit*1e6, data2fit*1e6, c='b', marker='+', alpha=0.8)
+
+if saveFigFlag: mySaveFig()
+plt.show(block=True)
+
+# %%
+
+
+lim = 30
+stride = 5
+
+fig = plt.figure(figsize=plt.figaspect(3.0/4.0), facecolor="white")
+ax = fig.gca(projection='3d')
+plt.tight_layout(pad=2.5)
+
+ax.scatter(xmatrix_croped1[lim:-lim:stride,lim:-lim:stride]*1e6,
+           ymatrix_croped1[lim:-lim:stride,lim:-lim:stride]*1e6,
+           errorThickness[lim:-lim:stride,lim:-lim:stride]*1e6, c='m', marker='+', alpha=0.8)
+
+
+if saveFigFlag: mySaveFig()
+plt.show(block=True)
+
+# %%
+plt.figure()
+
+
+lim = 100
+line = 105
+
+plt.plot(xmatrix_croped1[line,lim:-lim]*1e6,
+         thickness_croped[line,lim:-lim]*1e6,
+         '--+', markersize=5, label='f')
+plt.plot(xmatrix_croped1[line,lim:-lim]*1e6,
+         fitted[line,lim:-lim]*1e6, '--')
+
+
 if saveFigFlag: mySaveFig()
 plt.show(block=True)

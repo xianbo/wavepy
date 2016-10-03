@@ -639,7 +639,8 @@ def find_nearest_value(input_array, value):
 def find_nearest_value_index(input_array, value):
     """
 
-    Similar to :py:func:`wavepy.utils.find_nearest_value`, but returns the index of the nearest value (instead of the value itself)
+    Similar to :py:func:`wavepy.utils.find_nearest_value`, but returns the index of the nearest
+    value (instead of the value itself)
 
     Parameters
     ----------
@@ -703,16 +704,18 @@ def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
         * Stripes:            ``kwargs: nLinesH, nLinesV``
 
         * SumOfHarmonics: image is defined by:
-         .. math:: \sum_{ij} Amp_{ij} \cos (2 \pi i y) \cos (2 \pi j x).
+          .. math:: \sum_{ij} Amp_{ij} \cos (2 \pi i y) \cos (2 \pi j x).
 
-         Note that ``x`` and ``y`` are assumed to in the range [-1, 1]. The keyword
-         ``kwargs: harmAmpl`` is a 2D list that can be used to set the values for Amp_ij, see **Examples**
+            * Note that ``x`` and ``y`` are assumed to in the range [-1, 1]. The keyword \
+              ``kwargs: harmAmpl`` is a 2D list that can be used to set the values for Amp_ij, see **Examples**. \
 
         * Shapes: see **Examples**. ``kwargs=noise``, amplitude of noise to be \
           added to the image
 
-        * NormalDist: Normal distribution where it is assumed that ``x`` and ``y`` are in the interval `[-1,1]`.
-          ``keywords: FWHM_x, FWHM_y``
+        * NormalDist: Normal distribution where it is assumed that ``x`` and ``y`` are in the interval `[-1,1]`. \
+         ``keywords: FWHM_x, FWHM_y``
+
+
 
 
     Returns
@@ -1072,7 +1075,7 @@ def choose_unit(array):
     +------------+----------------------+------------------------+
     |     -6     |    10^-6             |     ``r'\mu'``         |
     +------------+----------------------+------------------------+
-    |     -3     |    10^-9             |        ``m``           |
+    |     -3     |    10^-3             |        ``m``           |
     +------------+----------------------+------------------------+
     |     +3     |    10^-6             |        ``k``           |
     +------------+----------------------+------------------------+
@@ -1293,17 +1296,18 @@ def realcoordmatrix(npointsx, deltax, npointsy, deltay):
                                    realcoordvec(npointsy, deltay))
 
 
-def fouriercoordvec(npoints, delta):
-    r"""
 
+def fouriercoordvec(npoints, delta):
+    """
     Create coordinates in the (spatial) frequency domain based on the number of
     points ``n`` and the step (binning) ``\Delta x`` in the **REAL SPACE**. It
     returns a vector of frequencies with values in the interval
 
 
-    .. math:: f = \left[ \frac{-1}{2 \Delta x} : \frac{1}{2 \Delta x} - \frac{1}{n \Delta x} \right]
+    .. math:: \\left[ \\frac{-1}{2 \\Delta x} : \\frac{1}{2 \\Delta x} - \\frac{1}{n \\Delta x} \\right],
 
-    with the same number of points
+
+    with the same number of points.
 
     Parameters
     ----------

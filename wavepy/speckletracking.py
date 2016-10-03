@@ -377,8 +377,8 @@ def speckleDisplacement(image, image_ref,
     '''
     This function track the movements of speckle in an image (with sample)
     related to a reference image (whith no sample). The function relies in two
-    other functions that you are advised to check:  `register_translation<http://scikit-image.org/docs/dev/auto_examples/transform/plot_register_translation.html>`_ and
-    see `match_template<http://scikit-image.org/docs/dev/auto_examples/plot_template.html>`_
+    other functions that you are advised to check:  `register_translation <http://scikit-image.org/docs/dev/auto_examples/transform/plot_register_translation.html>`_ and
+    see `match_template <http://scikit-image.org/docs/dev/auto_examples/plot_template.html>`_
 
     See Also
     --------
