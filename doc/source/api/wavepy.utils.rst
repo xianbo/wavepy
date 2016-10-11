@@ -9,30 +9,32 @@
    .. rubric:: **Functions:**
 
    .. autosummary::
-    
-      print_color
-      print_red
-      print_blue
-      plot_profile
-      select_file
-      select_dir
-      nan_mask_threshold
-      crop_matrix_at_indexes
-      find_nearest_value
-      find_nearest_value_index
-      dummy_images
-      graphical_roi_idx
-      crop_graphic
-      choose_unit
-      datetime_now_str
-      time_now_str
-      date_now_str
-      realcoordvec
-      realcoordmatrix_fromvec
-      realcoordmatrix
-      fouriercoordvec
-      fouriercoordmatrix
-      h5_list_of_groups
-      progress_bar4pmap
-      load_ini_file
+
+
+
+        crop_matrix_at_indexes
+        date_now_str
+        datetime_now_str
+        dummy_images
+        find_nearest_value
+        find_nearest_value_index
+        fouriercoordmatrix
+        fouriercoordvec
+        graphical_roi_idx
+        graphical_select_point_idx
+        h5_list_of_groups
+        load_ini_file
+        nan_mask_threshold
+        plot_profile
+        print_blue
+        print_color
+        print_red
+        progress_bar4pmap
+        realcoordmatrix
+        realcoordmatrix_fromvec
+        realcoordvec
+        rotate_img_graphical
+        select_dir
+        select_file
+        time_now_str
 

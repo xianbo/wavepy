@@ -63,7 +63,8 @@ __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
 __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'select_file', 'select_dir', 'nan_mask_threshold',
-           'crop_matrix_at_indexes',
+           'crop_matrix_at_indexes', 'crop_graphic', 'crop_graphic_image',
+           'crop_graphic_image', 'graphical_select_point_idx',
            'find_nearest_value', 'find_nearest_value_index',
            'dummy_images', 'graphical_roi_idx', 'crop_graphic', 'choose_unit',
            'datetime_now_str', 'time_now_str', 'date_now_str',
@@ -71,6 +72,8 @@ __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'fouriercoordvec', 'fouriercoordmatrix',
            'h5_list_of_groups',
            'progress_bar4pmap', 'load_ini_file']
+
+
 
 
 
@@ -1008,7 +1011,7 @@ def graphical_roi_idx(zmatrix, verbose=False, **kargs4graph):
            mutable_object_ROI['ROI_j_lim']  # Note that the + signal concatenates the two lists
 
 
-def crop_graphic(xvec, yvec, zmatrix, verbose=False):
+def crop_graphic(xvec=None, yvec=None, zmatrix=None, verbose=False):
     """
 
     Function to crop an image to the ROI selected using the mouse.
@@ -1048,13 +1051,176 @@ def crop_graphic(xvec, yvec, zmatrix, verbose=False):
 
     See Also
     --------
+    :py:func:`wavepy.utils.crop_graphic_image`
     :py:func:`wavepy.utils.graphical_roi_idx`
     """
+
     idx = graphical_roi_idx(zmatrix, verbose=verbose)
 
     return xvec[idx[2]:idx[3]], \
            yvec[idx[0]:idx[1]], \
            crop_matrix_at_indexes(zmatrix, idx), idx
+
+def crop_graphic_image(image, verbose=False):
+    """
+
+    Similar to :py:func:`wavepy.utils.crop_graphic`, but only for the main matrix
+    (and not for the x and y vectors). The function then returns the croped
+    version of the image and the indexes ``[i_min, i_max, j_min,_j_max]``
+
+    Parameters
+    ----------
+    zmatrix: 2D numpy array
+        image to be croped, as an 2D ndarray
+
+    Returns
+    -------
+    2D ndarray:
+        cropped image
+    list:
+        indexes of the crop ``[i_min, i_max, j_min,_j_max]``. Useful when the same crop must be applies to other images
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.crop_graphic`
+    :py:func:`wavepy.utils.graphical_roi_idx`
+    """
+
+
+    idx = graphical_roi_idx(image, verbose=verbose)
+
+    return crop_matrix_at_indexes(image, idx), idx
+
+
+
+
+def graphical_select_point_idx(zmatrix, verbose=False, **kargs4graph):
+    """
+    Function to define a rectangular region of interest (ROI) in an image.
+
+    """
+
+
+    from matplotlib.widgets import Cursor
+
+    if kargs4graph is None:
+        kargs4graph = {}
+
+    fig = plt.figure(facecolor="white",
+                     figsize=(10, 8))
+
+
+
+    surface = plt.imshow(zmatrix,  # origin='lower',
+                         cmap='spectral', **kargs4graph)
+    plt.autoscale(False)
+
+
+    plt.plot(zmatrix.shape[1]//2, zmatrix.shape[0]//2, 'k+', ms=30, mew=2)
+    plt.hlines(zmatrix.shape[0]//2, 0, zmatrix.shape[1])
+    plt.vlines(zmatrix.shape[1]//2, 0, zmatrix.shape[0])
+
+    plt.grid()
+    plt.xlabel('Pixels')
+    plt.ylabel('Pixels')
+    plt.title('CHOOSE POINT, CLOSE WHEN DONE\n' +\
+              'Middle Click: Select point\n',
+              fontsize=16, color='r', weight='bold')
+    plt.colorbar(surface)
+
+    mutable_object_xy = {'xo': np.nan,
+                         'yo': np.nan}
+
+    def onclick(event):
+        if event.button == 2:
+            xo, yo = event.xdata, event.ydata
+
+            plt.plot(xo, yo,'r+', ms=20, picker=10)
+            plt.title('CHOOSE POINT, CLOSE WHEN DONE\n' + \
+              'Middle Click: Select point\n' + \
+              'x: {:.0f}, y: {:.0f}'.format(xo, yo),
+              fontsize=16, color='r', weight='bold')
+
+#            plt.set_xlim([plt.gca().xmin, plt.gca().xmax])
+#            plt.set_ylim([ymin, ymax])
+            if verbose:
+                print('x: {:.3f}, y: {:.3f}'.format(xo, yo))
+
+            mutable_object_xy['xo'] = xo
+            mutable_object_xy['yo'] = yo
+
+
+        if event.button == 3:
+            plt.lines = []
+            plt.legend_ = None
+            plt.draw()
+
+    cursor = Cursor(plt.gca(), useblit=True, color='red', linewidth=2)
+    fig.canvas.mpl_connect('button_press_event', onclick)
+    plt.show(block=True)
+
+
+    return mutable_object_xy['xo'], mutable_object_xy['yo']
+
+
+def rotate_img_graphical(array2D,order=1, verbose=False):
+    '''
+    GUI to rotate an image
+
+    Parameters
+    ----------
+    zmatrix: 2D numpy array
+        image to be croped, as an 2D ndarray
+
+    Returns
+    -------
+    2D ndarray:
+        cropped image
+    list:
+        indexes of the crop ``[i_min, i_max, j_min,_j_max]``. Useful when the same crop must be applies to other images
+
+    Example
+    -------
+
+    >>> img = wpu.dummy_images('Shapes', noise=0)
+    >>> img_rotated, angle = wpu.rotate_img_graphical(img)
+    >>> plt.imshow(img_rotated, cmap='spectral_r', vmin=-10)
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.crop_graphic`
+    :py:func:`wavepy.utils.graphical_roi_idx`
+    '''
+
+
+    import skimage.transform
+
+    rot_ang = 0.0
+    _array2D = np.copy(array2D)
+
+    while 1:
+        joio = graphical_select_point_idx(_array2D, verbose)
+
+        if np.isnan(joio[0]):
+            break
+
+        jo = int(joio[0])
+        io = int(joio[1])
+
+
+
+        rot_ang += np.arctan2(array2D.shape[0]//2 - io, jo - array2D.shape[1]//2)*np.rad2deg(1)
+        rot_ang = rot_ang % 360
+
+        if verbose:
+
+            print(jo)
+            print(io)
+            print('Rot Angle = {:.3f} deg'.format(rot_ang))
+
+        _array2D = skimage.transform.rotate(array2D, -rot_ang, order=order)
+
+    return skimage.transform.rotate(array2D, -rot_ang, order=1), rot_ang
 
 
 def choose_unit(array):
@@ -1175,7 +1341,8 @@ def time_now_str():
 
 def date_now_str():
     """
-    Returns the current date as a string in the format YYmmDD. Alias for ``time.strftime("%Y%m%d")``.
+    Returns the current date as a string in the format YYmmDD. Alias
+    for ``time.strftime("%Y%m%d")``.
 
     Return
     ------
@@ -1191,7 +1358,8 @@ def date_now_str():
 
 def realcoordvec(npoints, delta):
     """
-    Build a vector with real space coordinates based on the number of points and bin (pixels) size.
+    Build a vector with real space coordinates based on the number of points
+    and bin (pixels) size.
 
     Alias for ``np.mgrid[-npoints/2*delta:npoints/2*delta-delta:npoints*1j]``
 
@@ -1262,9 +1430,11 @@ def realcoordmatrix_fromvec(xvec, yvec):
 
 def realcoordmatrix(npointsx, deltax, npointsy, deltay):
     """
-    Build a matrix (2D array) with real space coordinates based on the number of points and bin (pixels) size.
+    Build a matrix (2D array) with real space coordinates based on the number
+    of points and bin (pixels) size.
 
-    Alias for ``realcoordmatrix_fromvec(realcoordvec(nx, delx), realcoordvec(ny, dely))``
+    Alias for
+    ``realcoordmatrix_fromvec(realcoordvec(nx, delx), realcoordvec(ny, dely))``
 
     Parameters
     ----------
@@ -1296,7 +1466,6 @@ def realcoordmatrix(npointsx, deltax, npointsy, deltay):
                                    realcoordvec(npointsy, deltay))
 
 
-
 def fouriercoordvec(npoints, delta):
     """
     Create coordinates in the (spatial) frequency domain based on the number of
@@ -1325,7 +1494,7 @@ def fouriercoordvec(npoints, delta):
     -------
 
     >>> fouriercoordvec(10,1e-3)
-    array([-500., -400., -300., -200., -100.,    0.,  100.,  200.,  300.,  400.])
+    array([-500., -400., -300., -200., -100., 0., 100., 200., 300., 400.])
 
     See Also
     --------
@@ -1340,7 +1509,8 @@ def fouriercoordvec(npoints, delta):
 def fouriercoordmatrix(npointsx, deltax, npointsy, deltay):
     """
 
-    Similar to :py:func:`wavepy.utils.fouriercoordvec`, but for matrices (2D arrays).
+    Similar to :py:func:`wavepy.utils.fouriercoordvec`, but for matrices
+    (2D arrays).
 
     Parameters
     ----------
@@ -1418,9 +1588,11 @@ if __name__ == '__main__':
 
 def progress_bar4pmap(res, sleep_time=1.0):
     """
-    Progress bar from :py:mod:`tqdm` to be used with the function      :py:func:`multiprocessing.starmap_async`.
+    Progress bar from :py:mod:`tqdm` to be used with the function
+    :py:func:`multiprocessing.starmap_async`.
 
-    It holds the program in a loop waiting      :py:func:`multiprocessing.starmap_async` to finish
+    It holds the program in a loop waiting
+    :py:func:`multiprocessing.starmap_async` to finish
 
 
     Parameters
@@ -1442,7 +1614,7 @@ def progress_bar4pmap(res, sleep_time=1.0):
     """
 
     old_res_n_left = res._number_left
-    pbar = tqdm(total= old_res_n_left)
+    pbar = tqdm(total=old_res_n_left)
 
     while res._number_left > 0:
         if old_res_n_left != res._number_left:
@@ -1453,6 +1625,7 @@ def progress_bar4pmap(res, sleep_time=1.0):
     pbar.close()
     print('')
 
+
 def load_ini_file(inifname):
     """
 
@@ -1460,8 +1633,8 @@ def load_ini_file(inifname):
     <https://docs.python.org/3.5/library/configparser.html>`_ to set default
     option in a ``*.ini`` file.
 
-    In fact this function only update the ``ini`` file. The way to use is to run
-    ``load_ini_file`` at the begining of the script and then load the
+    In fact this function only update the ``ini`` file. The way to use is to
+    run ``load_ini_file`` at the begining of the script and then load the
     parameters from the file. See **Examples**.
 
     The ``ini`` file must contain two sections: ``Files`` and ``Parameters``.
@@ -1496,8 +1669,8 @@ def load_ini_file(inifname):
 
 
 
-    Note that ``load_ini_file`` first set/update the parameters in the file, and
-    we need to load each parameters afterwards:
+    Note that ``load_ini_file`` first set/update the parameters in the file,
+    and we need to load each parameters afterwards:
 
     >>> ini_pars, ini_file_list = load_ini_file('configfile.ini')
     >>> par1 = float(ini_pars.get('par1'))
@@ -1507,7 +1680,7 @@ def load_ini_file(inifname):
 
     if not os.path.isfile(inifname):
         raise Exception("File " + inifname + " doesn't exist. You must " +
-                         "create your init file first.")
+                        "create your init file first.")
 
     config = configparser.ConfigParser()
     config.read(inifname)
@@ -1515,39 +1688,119 @@ def load_ini_file(inifname):
     print('\nMESSAGE: All sections and keys:')
     for sections in config.sections():
         print_red(sections)
-        for key in config[sections]: print_blue('  ' + key + ':\t ' +
-                                           config[sections].get(key))
-
+        for key in config[sections]:
+            print_blue('  ' + key + ':\t ' +
+                       config[sections].get(key))
 
     ini_pars = config['Parameters']
     ini_file_list = config['Files']
-
 
     use_last_value = input('\nUse last values? [Y/n]: ')
 
     if use_last_value.lower() == 'n':
 
         for ftype in ini_file_list:
-            kb_input = input('\nUse ' + ini_file_list.get(ftype) + ' as ' \
-                               + ftype + '? [Y/n]: ')
+            kb_input = input('\nUse ' + ini_file_list.get(ftype) + ' as ' +
+                             ftype + '? [Y/n]: ')
             if kb_input.lower() == 'n':
-                patternForGlob='**/*.' + ini_file_list.get(ftype).split('.')[1]
-#
-#                patternForGlob = input('File type: [' + patternForGlob + ']: ') \
-#                                 or patternForGlob
-#                print('patternForGlob:' + patternForGlob)
+                patternForGlob = ('**/*.' +
+                                  ini_file_list.get(ftype).split('.')[1])
+
                 _filename = select_file(patternForGlob)
-                ini_file_list[ftype] = os.getcwd() + '/' + _filename
+                if _filename[0] != '/':
+                    _filename = os.getcwd() + '/' + _filename
+                ini_file_list[ftype] = _filename
 
         for key in ini_pars:
-            kb_input = input('\nEnter ' + key + ' value [' \
-                              + ini_pars.get(key) + '] : ')
+            kb_input = input('\nEnter ' + key + ' value [' +
+                             ini_pars.get(key) + '] : ')
             ini_pars[key] = kb_input or ini_pars[key]
 #            if kb_input != '': ini_pars[key] = kb_input
 
         with open(inifname, 'w') as configfile:
-          config.write(configfile)
+            config.write(configfile)
 
-    else: print('MESSAGE: Using values from ' + inifname)
+    else:
+        print('MESSAGE: Using values from ' + inifname)
 
     return config, ini_pars, ini_file_list
+
+
+def fourier_spline_1d(vec1d, n=2):
+
+    # reflec pad to avoid discontinuity at the edges
+    pad_vec1d = np.pad(vec1d, (0, vec1d.shape[0]), 'reflect')
+
+    fftvec = np.fft.fftshift(np.fft.fft(pad_vec1d))
+
+    fftvec = np.pad(fftvec, pad_width=fftvec.shape[0]*(n-1) // 2,
+                    mode='constant', constant_values=0.0)
+
+    res = np.fft.ifft(np.fft.ifftshift(fftvec))*n
+
+    return res[0:res.shape[0]//2]
+
+
+def fourier_spline_2d_axis(array, n=2, axis=0):
+
+    # reflec pad to avoid discontinuity at the edges
+
+    if axis == 0:
+        padwidth = ((0, array.shape[0]), (0, 0))
+    elif axis == 1:
+        padwidth = ((0, 0), (0, array.shape[1]))
+
+    pad_array = np.pad(array, pad_width=padwidth, mode='reflect')
+
+    fftvec = np.fft.fftshift(np.fft.fft(pad_array, axis=axis), axes=axis)
+
+    listpad = [(0, 0), (0, 0)]
+
+    if fftvec.shape[axis]*(n-1) % 2 == 0:
+        listpad[axis] = (fftvec.shape[axis]*(n-1)//2,
+                         fftvec.shape[axis]*(n-1)//2)
+    else:
+        listpad[axis] = (fftvec.shape[axis]*(n-1)//2,
+                         fftvec.shape[axis]*(n-1)//2 + 1)
+
+    fftvec = np.pad(fftvec, pad_width=listpad,
+                    mode='constant', constant_values=0.0)
+
+    res = np.fft.ifft(np.fft.ifftshift(fftvec, axes=axis), axis=axis)*n
+
+    if axis == 0:
+        return res[0:res.shape[0]//2, :]
+    elif axis == 1:
+        return res[:, 0:res.shape[1]//2]
+
+
+def fourier_spline_2d(array2d, n=2):
+
+    res = fourier_spline_2d_axis(fourier_spline_2d_axis(array2d,
+                                                        n=n, axis=0),
+                                 n=n, axis=1)
+
+    return res
+
+
+def shift_subpixel_1d(array, frac_of_pixel, axis=0):
+
+    if array.ndim == 1:
+        return fourier_spline_1d(array, frac_of_pixel)[1::frac_of_pixel]
+    elif array.ndim == 2:
+
+        if axis == 0:
+            return fourier_spline_2d_axis(array,
+                                          frac_of_pixel,
+                                          axis=0)[1::frac_of_pixel, :]
+
+        elif axis == 1:
+            return fourier_spline_2d_axis(array,
+                                          frac_of_pixel,
+                                          axis=0)[:, 1::frac_of_pixel]
+
+
+def shift_subpixel_2d(array2d, frac_of_pixel):
+
+    return fourier_spline_2d(array2d, frac_of_pixel)[1::frac_of_pixel,
+                                                     1::frac_of_pixel]

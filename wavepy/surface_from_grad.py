@@ -60,8 +60,8 @@ integrate the differential data.
 This is not as straight forward as it looks. The main reason is that, to be
 able to calculate the function from its gradient, the partial derivatives must
 be integrable (that is, the two cross partial derivative of the function must
-be equal). However, due to experimental errors and noises, there are no guarantees
-that the data is integrable (very likely they are not).
+be equal). However, due to experimental errors and noises, there are no
+guarantees that the data is integrable (very likely they are not).
 
 
 Different methods have been developed in other areas of science, in special
@@ -104,15 +104,15 @@ and comparing with the original gradient.
 #
 # from wavepy.cfg import *
 
+
+import numpy as np
+
+
 __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
 __all__ = ['frankotchellappa']
-
-# TODO: Remove debug library
-
-import numpy as np
 
 
 def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
@@ -142,22 +142,28 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
 
     * Padding
 
-        Frankt-Chellappa makes intensive use of the Discrete Fourier Transform (DFT), and due to
-        the periodicity property of the DFT, the result of the integration will also be periodic
-        (even though we only get one period of the answer). This property can result in a discontinuity at the edges,
-        and Frankt-Chellappa method is badly affected by discontinuity,
+        Frankt-Chellappa makes intensive use of the Discrete Fourier
+        Transform (DFT), and due to the periodicity property of the DFT, the
+        result of the integration will also be periodic (even though we
+        only get one period of the answer). This property can result in a
+        discontinuity at the edges, and Frankt-Chellappa method is badly
+        affected by discontinuity,
 
-        In this sense the idea of this padding is that by reflecting the function at the edges
-        we avoid discontinuity. This was inspired by the code of the function
-        `DfGBox <https://www.mathworks.com/matlabcentral/fileexchange/45269-dfgbox>`_,
+        In this sense the idea of this padding is that by reflecting the
+        function at the edges we avoid discontinuity. This was inspired by
+        the code of the function
+        `DfGBox
+        <https://www.mathworks.com/matlabcentral/fileexchange/45269-dfgbox>`_,
         available in the MATLAB File Exchange website.
 
-        Note that, since we only have the gradient data, we need to consider how a reflection
-        at the edges will affect the partial derivatives. We show it below without proof (but it is easy to see).
+        Note that, since we only have the gradient data, we need to consider
+        how a reflection at the edges will affect the partial derivatives. We
+        show it below without proof (but it is easy to see).
 
-        First lets consider the data for the x direction derivative
-        :math:`\\Delta_x = \\dfrac{\\partial f}{\\partial x}` consisting of a 2D
-        array of size MxN. The padded matrix will be given by:
+        First lets consider the data for the :math:`x` direction derivative
+        :math:`\\Delta_x = \\dfrac{\\partial f}{\\partial x}` consisting of a
+        2D array of size :math:`N \\times M`. The padded matrix
+        will be given by:
 
         .. math::
             \\left[
@@ -178,21 +184,25 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
             \\end{matrix}
             \\right]
 
-        Note that this padding increases the number of points from NxM to 2Mx2N, **however, the
-        function only returns the NxM result**, since the other parts are only a repetion of the result. In other
-        words, the padding is done only internally.
+        Note that this padding increases the number of points from
+        :math:`N \\times M` to :math:`2Mx2N`. However, **the function only
+        returns the** :math:`N \\times M` **result**, since the other parts are
+        only a repetion of the result. In other words, the padding is done
+        only internally.
 
 
     See Also
     --------
-        `Original Frankt-Chellappa Algorithm paper <http://dx.doi.org/10.1109/34.3909l>`_.
+        `Original Frankt-Chellappa Algorithm
+        paper <http://dx.doi.org/10.1109/34.3909l>`_.
 
     """
 
     from numpy.fft import fft2, ifft2, fftfreq
 
     if reflec_pad:
-        del_f_del_x, del_f_del_y = _reflec_pad_grad_fields(del_f_del_x, del_f_del_y)
+        del_f_del_x, del_f_del_y = _reflec_pad_grad_fields(del_f_del_x,
+                                                           del_f_del_y)
 
     NN, MM = del_f_del_x.shape
     wx, wy = np.meshgrid(fftfreq(MM) * 2 * np.pi,
@@ -202,9 +212,7 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
 
     denominator = (wx) ** 2 + (wy) ** 2 + np.finfo(float).eps
 
-    div = numerator / denominator
-
-    res = ifft2(div)
+    res = ifft2(numerator / denominator)
     res -= np.mean(np.real(res))
 
     if reflec_pad:
@@ -248,7 +256,8 @@ def _reflec_pad_grad_fields(del_func_x, del_func_y):
 
 def _one_forth_of_array(array):
     """
-    Undo for the function :py:func:`wavepy:surface_from_grad:_reflec_pad_grad_fields`
+    Undo for the function
+    :py:func:`wavepy:surface_from_grad:_reflec_pad_grad_fields`
 
     """
 
