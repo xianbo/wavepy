@@ -69,7 +69,7 @@ __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'dummy_images', 'graphical_roi_idx', 'crop_graphic', 'choose_unit',
            'datetime_now_str', 'time_now_str', 'date_now_str',
            'realcoordvec', 'realcoordmatrix_fromvec', 'realcoordmatrix',
-           'fouriercoordvec', 'fouriercoordmatrix',
+           'reciprocalcoordvec', 'reciprocalcoordmatrix',
            'h5_list_of_groups',
            'progress_bar4pmap', 'load_ini_file']
 
@@ -423,6 +423,7 @@ def select_file(pattern='*', message_to_print=None):
     pattern = input('File type: [' + pattern + ']: ') or pattern
 
     list_files = glob.glob(pattern, recursive=True)
+    list_files.sort()
 
     if len(list_files) == 1:
         print_color("Only one option. Loading " + list_files[0])
@@ -453,7 +454,7 @@ def select_file(pattern='*', message_to_print=None):
             raise GeneratorExit
 
 
-def select_dir(message_to_print=None):
+def select_dir(message_to_print=None, pattern='**/'):
     """
 
     List subdirectories of the current working directory, and expected the user to choose one of them.
@@ -478,13 +479,8 @@ def select_dir(message_to_print=None):
     :py:func:`wavepy.utils.select_file`
 
     """
-    if message_to_print is None:
-        print("\n\n\n#===================================================#")
-        print('Enter the number of the directory to be loaded:\n')
-    else:
-        print(message_to_print)
 
-    return select_file(pattern='', message_to_print='')
+    return select_file(pattern=pattern, message_to_print=message_to_print)
 
 
 
@@ -552,7 +548,7 @@ def nan_mask_threshold(input_matrix, threshold=0.0):
     if np.isreal(threshold):
         mask_intensity[input_matrix <= threshold] = float('nan')
     else:
-        mask_intensity[input_matrix >= threshold] = float('nan')
+        mask_intensity[input_matrix >= np.imag(threshold)] = float('nan')
 
     return mask_intensity
 
@@ -608,9 +604,13 @@ def find_nearest_value(input_array, value):
 
     Alias for ``input_array.flatten()[np.argmin(np.abs(input_array.flatten() - value))]``
 
-    In a array of float numbers, due to the precision, it is impossible to find exact values. For instance something like ``array1[array2==0.0]`` might fail because the zero values in the float array ``array2`` are actually something like 0.0004324235 (fictious value).
+    In a array of float numbers, due to the precision, it is impossible to
+    find exact values. For instance something like ``array1[array2==0.0]``
+    might fail because the zero values in the float array ``array2`` are
+    actually something like 0.0004324235 (fictious value).
 
-    This function will return the value in the array that is the nearest to the parameter ``value``.
+    This function will return the value in the array that is the nearest to
+    the parameter ``value``.
 
     Parameters
     ----------
@@ -1057,9 +1057,13 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None, verbose=False):
 
     idx = graphical_roi_idx(zmatrix, verbose=verbose)
 
-    return xvec[idx[2]:idx[3]], \
-           yvec[idx[0]:idx[1]], \
-           crop_matrix_at_indexes(zmatrix, idx), idx
+    if xvec is None:
+        return crop_matrix_at_indexes(zmatrix, idx), idx
+
+    else:
+        return xvec[idx[2]:idx[3]], \
+               yvec[idx[0]:idx[1]], \
+               crop_matrix_at_indexes(zmatrix, idx), idx
 
 def crop_graphic_image(image, verbose=False):
     """
@@ -1091,6 +1095,29 @@ def crop_graphic_image(image, verbose=False):
 
     return crop_matrix_at_indexes(image, idx), idx
 
+
+
+
+def pad_to_make_square(array, mode, **kwargs):
+    '''
+    #TODO: write docs
+    '''
+
+
+    diff_size = array.shape[0] - array.shape[1]
+
+    if diff_size > 0:
+
+        print(diff_size)
+        return np.pad(array,((0, 0),(diff_size // 2, diff_size - diff_size // 2)),
+                      mode, **kwargs)
+
+    elif diff_size < 0:
+        print(diff_size)
+        return np.pad(array,((-diff_size // 2, -diff_size + diff_size // 2), (0, 0)),
+                     mode, **kwargs)
+    else:
+        return array
 
 
 
@@ -1163,14 +1190,53 @@ def graphical_select_point_idx(zmatrix, verbose=False, **kargs4graph):
     return mutable_object_xy['xo'], mutable_object_xy['yo']
 
 
-def rotate_img_graphical(array2D,order=1, verbose=False):
+def save_figs_with_idx(patternforname='graph', extension='png'):
     '''
-    GUI to rotate an image
+    Use a counter to save the figures with suffix 1, 2, 3, ..., etc
 
     Parameters
     ----------
-    zmatrix: 2D numpy array
-        image to be croped, as an 2D ndarray
+
+    str: patternforname
+        Prefix for file name. Accept directories path.
+
+    str: extension
+        Format extension to save the figure. For file formats see
+        `:py:func:matplotlib.pyplot.savefig`
+
+
+    '''
+
+
+    if '_figCount' not in globals():
+
+            from itertools import count
+            global _figCount
+            _figCount = count()
+            next(_figCount)
+
+    figname = str('{:s}_{:02d}.{:s}'.format(patternforname,
+                  next(_figCount),extension))
+
+    plt.savefig(figname)
+    print('MESSAGE: ' + figname + ' SAVED')
+
+
+def rotate_img_graphical(array2D, order=1, mode='constant', verbose=False):
+    '''
+    GUI to rotate an image
+    #TODO: Write this documentations!
+
+    Parameters
+    ----------
+    order: int
+        The order of the spline interpolation
+
+    mode
+        : {'constant', 'edge', 'symmetric', 'reflect', 'wrap'}, optional
+        Points outside the boundaries of the input are filled according to
+        the given mode. Modes match the behaviour of numpy.pad.
+
 
     Returns
     -------
@@ -1218,9 +1284,11 @@ def rotate_img_graphical(array2D,order=1, verbose=False):
             print(io)
             print('Rot Angle = {:.3f} deg'.format(rot_ang))
 
-        _array2D = skimage.transform.rotate(array2D, -rot_ang, order=order)
+        _array2D = skimage.transform.rotate(array2D, -rot_ang,
+                                            mode=mode, order=order)
 
-    return skimage.transform.rotate(array2D, -rot_ang, order=1), rot_ang
+    return skimage.transform.rotate(array2D, -rot_ang,
+                                    mode=mode, order=order), rot_ang
 
 
 def choose_unit(array):
@@ -1386,7 +1454,9 @@ def realcoordvec(npoints, delta):
     :py:func:`wavepy.utils.realcoordmatrix`
 
     """
-    return np.mgrid[-npoints/2.*delta:npoints/2.*delta:npoints*1j]
+    #    return np.mgrid[-npoints/2.*delta:npoints/2.*delta:npoints*1j]
+
+    return (np.linspace(1, npoints, npoints) - npoints // 2 - 1) * delta
 
 
 def realcoordmatrix_fromvec(xvec, yvec):
@@ -1466,7 +1536,7 @@ def realcoordmatrix(npointsx, deltax, npointsy, deltay):
                                    realcoordvec(npointsy, deltay))
 
 
-def fouriercoordvec(npoints, delta):
+def reciprocalcoordvec(npoints, delta):
     """
     Create coordinates in the (spatial) frequency domain based on the number of
     points ``n`` and the step (binning) ``\Delta x`` in the **REAL SPACE**. It
@@ -1493,23 +1563,25 @@ def fouriercoordvec(npoints, delta):
     Example
     -------
 
-    >>> fouriercoordvec(10,1e-3)
+    >>> reciprocalcoordvec(10,1e-3)
     array([-500., -400., -300., -200., -100., 0., 100., 200., 300., 400.])
 
     See Also
     --------
     :py:func:`wavepy.utils.realcoordvec`
-    :py:func:`wavepy.utils.fouriercoordmatrix`
+    :py:func:`wavepy.utils.reciprocalcoordmatrix`
 
     """
 
-    return np.mgrid[-1/2/delta:1/2/delta-1/npoints/delta:npoints*1j]
+#    return np.mgrid[-1/2/delta:1/2/delta-1/npoints/delta:npoints*1j]
+
+    return (np.linspace(0, 1, npoints, endpoint=False) - .5) / delta
 
 
-def fouriercoordmatrix(npointsx, deltax, npointsy, deltay):
+def reciprocalcoordmatrix(npointsx, deltax, npointsy, deltay):
     """
 
-    Similar to :py:func:`wavepy.utils.fouriercoordvec`, but for matrices
+    Similar to :py:func:`wavepy.utils.reciprocalcoordvec`, but for matrices
     (2D arrays).
 
     Parameters
@@ -1527,7 +1599,7 @@ def fouriercoordmatrix(npointsx, deltax, npointsy, deltay):
     Example
     -------
 
-    >>> fouriercoordmatrix(5, 1e-3, 4, 1e-3)
+    >>> reciprocalcoordmatrix(5, 1e-3, 4, 1e-3)
     [array([[-500., -300., -100.,  100.,  300.],
     [-500., -300., -100.,  100.,  300.],
     [-500., -300., -100.,  100.,  300.],
@@ -1540,14 +1612,28 @@ def fouriercoordmatrix(npointsx, deltax, npointsy, deltay):
     See Also
     --------
     :py:func:`wavepy.utils.realcoordmatrix`
-    :py:func:`wavepy.utils.fouriercoordvec`
+    :py:func:`wavepy.utils.reciprocalcoordvec`
     """
-    return np.meshgrid(fouriercoordvec(npointsx, deltax),
-                       fouriercoordvec(npointsy, deltay))
+    return np.meshgrid(reciprocalcoordvec(npointsx, deltax),
+                       reciprocalcoordvec(npointsy, deltay))
+
+
+def fouriercoordvec(npoints, delta):
+    '''
+    For back compability
+    '''
+    return reciprocalcoordvec(npoints, delta)
+
+
+def fouriercoordmatrix(npointsx, deltax, npointsy, deltay):
+    '''
+    For back compability
+    '''
+    return reciprocalcoordmatrix(npointsx, deltax, npointsy, deltay)
 
 # h5 tools
 
-
+reciprocalcoordvec
 def h5_list_of_groups(h5file):
     """
 
@@ -1804,3 +1890,29 @@ def shift_subpixel_2d(array2d, frac_of_pixel):
 
     return fourier_spline_2d(array2d, frac_of_pixel)[1::frac_of_pixel,
                                                      1::frac_of_pixel]
+
+
+
+
+def _mpl_settings_4_nice_graphs():
+    '''
+    Settings for latex fonts in the graphs
+    ATTENTION: This will make the program slow because it will compile all
+    latex text. This means that you also need latex and any latex package
+    you want to use. I suggest to only use this when you want produce final
+    graphs to publish or to make public. The latex dependecies are not taken
+    care  by the installation scripts. You are by your own to solve these
+    dependencies.
+    '''
+
+    plt.style.use('default')
+    #Direct input
+    plt.rcParams['text.latex.preamble']=[r"\usepackage[utopia]{mathdesign}"]
+    ##Options
+    params = {'text.usetex' : True,
+              'font.size' : 16,
+              'font.family' : 'utopia',
+              'text.latex.unicode': True,
+              'figure.facecolor' : 'white'
+              }
+    plt.rcParams.update(params)
