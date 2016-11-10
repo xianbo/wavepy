@@ -92,7 +92,6 @@ and comparing with the original gradient.
 
 # import itertools
 # import numpy as np
-# import matplotlib.pyplot as plt
 # import time
 # from tqdm import tqdm
 #
@@ -106,13 +105,15 @@ and comparing with the original gradient.
 
 
 import numpy as np
+import matplotlib.pyplot as plt
+import wavepy.utils as wpu
 
 
 __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
-__all__ = ['frankotchellappa']
+__all__ = ['frankotchellappa', 'error_integration']
 
 
 def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
@@ -263,3 +264,76 @@ def _one_forth_of_array(array):
 
     array, _ = np.array_split(array, 2, axis=0)
     return np.array_split(array, 2, axis=1)[0]
+
+
+def _grad(func):
+
+    del_func_2d_x = np.diff(func, axis=1)
+    del_func_2d_x = np.pad(del_func_2d_x, ((0, 0), (1, 0)), 'edge')
+
+    del_func_2d_y = np.diff(func, axis=0)
+    del_func_2d_y = np.pad(del_func_2d_y, ((1, 0), (0, 0)), 'edge')
+
+    return del_func_2d_x, del_func_2d_y
+
+
+def error_integration(del_f_del_x, del_f_del_y, func,
+                      pixelsize, errors=False,
+                      shifthalfpixel=False, plot_flag=True):
+
+    if shifthalfpixel:
+        func = wpu.shift_subpixel_2d(func, 2)
+
+    xx, yy = wpu.realcoordmatrix(func.shape[1], pixelsize,
+                                 func.shape[0], pixelsize)
+    midleX = xx.shape[0] // 2
+    midleY = xx.shape[1] // 2
+
+    grad_x, grad_y = _grad(func)
+
+    grad_x -= np.mean(grad_x)
+    grad_y -= np.mean(grad_y)
+    del_f_del_x -= np.mean(del_f_del_x)
+    del_f_del_y -= np.mean(del_f_del_y)
+
+    amp_x = np.max(del_f_del_x) - np.min(del_f_del_x)
+    amp_y = np.max(del_f_del_y) - np.min(del_f_del_y)
+
+    error_x = np.abs(grad_x - del_f_del_x)/amp_x*100
+    error_y = np.abs(grad_y - del_f_del_y)/amp_y*100
+
+    if plot_flag:
+        plt.figure(figsize=(14, 10))
+
+        ax1 = plt.subplot(221)
+        ax1.ticklabel_format(style='sci', axis='both', scilimits=(0, 1))
+        ax1.plot(xx[midleX, :], del_f_del_x[midleX, :], '-kx',
+                 markersize=10, label='dx data')
+        ax1.plot(xx[midleX, :], grad_x[midleX, :], '-r+',
+                 markersize=10, label='dx reconstructed')
+        ax1.legend()
+
+        ax2 = plt.subplot(223, sharex=ax1)
+        ax2.plot(xx[midleX, :],
+                 error_x[midleX, :], '-g.', label='error x')
+        plt.title(r'$\mu$ = {:.2g}'.format(np.mean(error_x[midleX, :])))
+        ax2.legend()
+
+        ax3 = plt.subplot(222, sharex=ax1, sharey=ax1)
+        ax3.plot(yy[:, midleY], del_f_del_y[:, midleY], '-kx',
+                 markersize=10, label='dy data')
+        ax3.plot(yy[:, midleY], grad_y[:, midleY], '-r+',
+                 markersize=10, label='dy reconstructed')
+        ax3.legend()
+
+        ax4 = plt.subplot(224, sharex=ax1, sharey=ax2)
+        ax4.plot(yy[:, midleY],
+                 error_y[:, midleY], '-g.', label='error y')
+        plt.title(r'$\mu$ = {:.2g}'.format(np.mean(error_y[:, midleY])))
+        ax4.legend()
+
+        plt.suptitle('Erro integration', fontsize=22)
+        plt.show(block=True)
+
+    if errors:
+        return error_x, error_y
