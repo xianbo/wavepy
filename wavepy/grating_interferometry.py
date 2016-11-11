@@ -105,13 +105,13 @@ def _idxPeak_ij(i, j, nRows, nColumns, periodVert, periodHor):
 #                     plotFlag=False, verbose=True):
 
 def extract_harmonic(imgFFT, harmonicPeriod,
-                     harmonic_ij='00',
+                     harmonic_ij='00', searchRegion = 10,
                      plotFlag=False, verbose=True):
 
     '''
     Function to extract one harmonic image of the FFT of single 2D grating Talbot imaging.
 
-    Note that it is the FFT of the real image tis required.
+    Note that it is the FFT of the real image that is required.
 
     ``Q: Why not the real image??``.
     A: Because FFT can be time consuming. If we use the real image, it will
@@ -143,6 +143,16 @@ def extract_harmonic(imgFFT, harmonicPeriod,
         complex), then negative and positive harmonics are symetric
         related to zero.
 
+    searchRegion: int
+        search for the peak will be in a region of harmonicPeriod/searchRegion
+        around the theoretical peak position
+
+    plotFlag: boolean
+
+    verbose: boolean
+        verbose mode
+
+
     Returns
     -------
     img00, img01, img10: three 2D ndarray data
@@ -159,7 +169,7 @@ def extract_harmonic(imgFFT, harmonicPeriod,
     periodHor = harmonicPeriod[1]
 
     intensity = (np.abs(imgFFT))
-    
+
     harV = int(harmonic_ij[0])
     harH = int(harmonic_ij[1])
 
@@ -168,15 +178,16 @@ def extract_harmonic(imgFFT, harmonicPeriod,
     #  Estimate harmonic positions
 
     idxPeak_ij = _idxPeak_ij(harV, harH, nRows, nColumns, periodVert, periodHor)
-    
-    maskHarmRegion = np.zeros((nRows, nColumns))
 
-    maskHarmRegion[idxPeak_ij[0] - periodVert//2:idxPeak_ij[0] + periodVert//2,
-                   idxPeak_ij[1] - periodHor//2:idxPeak_ij[1] + periodHor//2] = 1.0
+    maskSearchRegion = np.zeros((nRows, nColumns))
+
+    maskSearchRegion[idxPeak_ij[0] - periodVert//searchRegion:idxPeak_ij[0] + periodVert//searchRegion,
+                     idxPeak_ij[1] - periodHor//searchRegion:idxPeak_ij[1] + periodHor//searchRegion] = 1.0
 
 
     # correct idxPeak_ij to the experimental value
-    idxPeak_ij_exp = np.where(intensity*maskHarmRegion == np.max(np.abs(imgFFT*maskHarmRegion)))
+
+    idxPeak_ij_exp = np.where(intensity*maskSearchRegion == np.max(np.abs(imgFFT*maskSearchRegion)))
 
 
     idxPeak_ij_exp = [idxPeak_ij_exp[0][0], idxPeak_ij_exp[1][0]]
@@ -189,21 +200,31 @@ def extract_harmonic(imgFFT, harmonicPeriod,
         print("MESSAGE: {:d} pixels in vertical, {:d} pixels in hor".format(
                (idxPeak_ij_exp[0]-idxPeak_ij[0]),
                (idxPeak_ij_exp[1]-idxPeak_ij[1])))
-               
+
+    if ((np.abs(idxPeak_ij_exp[0]-idxPeak_ij[0]) > periodVert // searchRegion // 2) or
+        (np.abs(idxPeak_ij_exp[1]-idxPeak_ij[1]) > periodHor // searchRegion // 2)):
+
+        wpu.print_red("ATTENTION: Harmonic Peak " + harmonic_ij[0] +
+                      harmonic_ij[1] + " is too far from theoretical value.")
+        wpu.print_red("ATTENTION: {:d} pixels in vertical, {:d} pixels in hor".format(
+                      (idxPeak_ij_exp[0]-idxPeak_ij[0]),
+                      (idxPeak_ij_exp[1]-idxPeak_ij[1])))
+
     if plotFlag:
-        
+
         from matplotlib.patches import Rectangle
         plt.figure()
         plt.imshow(np.log10(intensity))
-        
+
         plt.gca().add_patch(Rectangle((idxPeak_ij_exp[1] - periodHor//2,
                                        idxPeak_ij_exp[0] - periodVert//2),
                                         periodHor, periodVert,
                                         lw=2, ls='--', color='red',
                                         fill=None, alpha=1))
 
-        plt.title('Selected Region', fontsize=18, weight='bold')
-        plt.show(block=True)               
+        plt.title('Selected Region ' + harmonic_ij[0] + harmonic_ij[1],
+                  fontsize=18, weight='bold')
+        plt.show()
 
     return imgFFT[idxPeak_ij_exp[0] - periodVert//2:
                   idxPeak_ij_exp[0] + periodVert//2,
@@ -228,13 +249,11 @@ def plot_harmonic_grid(imgFFT, harmonicPeriod):
         applied.
 
 
-    pixelSize : float or list of float
-        Detector pixel size in meters. If pixel is not square, use
-        ``pixelSize=[pixelSizeVertical, pixelSizeHorizontal]``
-
-    gratingPeriod : float or list of float
-        Grating line period in lines per meters. If period is the same in both directions,
-        use ``gratingPeriod=[gratingPeriodVertical, gratingPeriodHorizontal]``
+    harmonicPeriod : list of integers in the format [periodVert, periodHor]
+        ``periodVert`` and ``periodVert`` are the period of the harmonics in
+        the reciprocal space in pixels. For the checked board grating,
+        periodVert = sqrt(2) * pixel Size / grating Period * number of
+        rows in the image
 
     harmonic_ij : string
         string with the harmonic to extract, for instance '00', '01', '10' or '11'. Note
