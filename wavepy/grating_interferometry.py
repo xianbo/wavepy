@@ -98,11 +98,14 @@ __all__ = ['frankotchellappa', 'error_integration']
 
 
 
-
 def _idxPeak_ij(i, j, nRows, nColumns, periodVert, periodHor):
     return [nRows // 2 + i * periodVert, nColumns // 2 + j * periodHor]
 
-def extract_harmonic(imgFFT, pixelSize, gratingPeriod, harmonic_ij='00',
+#def extract_harmonic(imgFFT, pixelSize, gratingPeriod, harmonic_ij='00',
+#                     plotFlag=False, verbose=True):
+
+def extract_harmonic(imgFFT, harmonicPeriod,
+                     harmonic_ij='00',
                      plotFlag=False, verbose=True):
 
     '''
@@ -122,13 +125,11 @@ def extract_harmonic(imgFFT, pixelSize, gratingPeriod, harmonic_ij='00',
         applied.
 
 
-    pixelSize : float or list of float
-        Detector pixel size in meters. If pixel is not square, use
-        ``pixelSize=[pixelSizeVertical, pixelSizeHorizontal]``
-
-    gratingPeriod : float or list of float
-        Grating line period in lines per meters. If period is the same in both directions,
-        use ``gratingPeriod=[gratingPeriodVertical, gratingPeriodHorizontal]``
+    harmonicPeriod : list of integers in the format [periodVert, periodHor]
+        ``periodVert`` and ``periodVert`` are the period of the harmonics in
+        the reciprocal space in pixels. For the checked board grating,
+        periodVert = sqrt(2) * pixel Size / grating Period * number of
+        rows in the image
 
     harmonic_ij : string or list of string
         string with the harmonic to extract, for instance '00', '01', '10'
@@ -149,67 +150,60 @@ def extract_harmonic(imgFFT, pixelSize, gratingPeriod, harmonic_ij='00',
 
     '''
 
-    if isinstance(pixelSize, list):
-        pixelSizeVert = pixelSize[0]
-        pixelSizeHor = pixelSize[1]
-    else:
-        pixelSizeVert = pixelSizeHor = pixelSize
-
-    if isinstance(gratingPeriod, list):
-        gratingPeriodVert = gratingPeriod[0]
-        gratingPeriodHor = gratingPeriod[1]
-    else:
-        gratingPeriodVert = gratingPeriodHor = gratingPeriod
-
 
     #  information from the image
 
-    harV = int(harmonic_ij[0])
-    harH = int(harmonic_ij[1])
-
     (nRows, nColumns) = imgFFT.shape
 
-    periodVert = np.int(np.sqrt(2)*pixelSizeVert/gratingPeriodVert*nRows)
-    periodHor = np.int(np.sqrt(2)*pixelSizeHor/gratingPeriodHor*nColumns)
+    periodVert = harmonicPeriod[0]
+    periodHor = harmonicPeriod[1]
 
     intensity = (np.abs(imgFFT))
+    
+    harV = int(harmonic_ij[0])
+    harH = int(harmonic_ij[1])
 
 
 
     #  Estimate harmonic positions
 
     idxPeak_ij = _idxPeak_ij(harV, harH, nRows, nColumns, periodVert, periodHor)
+    
+    maskHarmRegion = np.zeros((nRows, nColumns))
 
-    imgFFT_ij = imgFFT[idxPeak_ij[0] - periodVert//2:idxPeak_ij[0] + periodVert//2,
-                      idxPeak_ij[1] - periodHor//2:idxPeak_ij[1] + periodHor//2]
+    maskHarmRegion[idxPeak_ij[0] - periodVert//2:idxPeak_ij[0] + periodVert//2,
+                   idxPeak_ij[1] - periodHor//2:idxPeak_ij[1] + periodHor//2] = 1.0
 
-
-    if plotFlag:
-        plt.figure()
-        plt.imshow(np.log10(intensity))
-        plt.axvline(idxPeak_ij[1] - periodHor//2, lw=2, color='r')
-        plt.axvline(idxPeak_ij[1] + periodHor//2, lw=2, color='r')
-
-        plt.axhline(idxPeak_ij[0] - periodVert//2, lw=2, color='r')
-        plt.axhline(idxPeak_ij[0] + periodVert//2, lw=2, color='r')
-
-
-#        plt.plot(idxPeak_ij[1]*np.ones(nRows),
-#                 np.linspace(0,nRows,nRows),'-r', lw=2)
-        plt.show()
 
     # correct idxPeak_ij to the experimental value
-    idxPeak_ij_exp = np.where(intensity == np.max(np.abs(imgFFT_ij)))
+    idxPeak_ij_exp = np.where(intensity*maskHarmRegion == np.max(np.abs(imgFFT*maskHarmRegion)))
+
 
     idxPeak_ij_exp = [idxPeak_ij_exp[0][0], idxPeak_ij_exp[1][0]]
     # convert to list
 
     if verbose:
         print("MESSAGE: extract_harmonic:" +
-              " harmonic peak %s is misplaced by:".format(harmonic_ij))
-        print("MESSAGE: {:.3e} m in vertical, {:.3e} m in hor".format(
-               (idxPeak_ij_exp[0]-idxPeak_ij[0])*pixelSize,
-               (idxPeak_ij_exp[1]-idxPeak_ij[1])*pixelSize))
+              " harmonic peak " + harmonic_ij[0] + harmonic_ij[1] +
+              " is misplaced by:")
+        print("MESSAGE: {:d} pixels in vertical, {:d} pixels in hor".format(
+               (idxPeak_ij_exp[0]-idxPeak_ij[0]),
+               (idxPeak_ij_exp[1]-idxPeak_ij[1])))
+               
+    if plotFlag:
+        
+        from matplotlib.patches import Rectangle
+        plt.figure()
+        plt.imshow(np.log10(intensity))
+        
+        plt.gca().add_patch(Rectangle((idxPeak_ij_exp[1] - periodHor//2,
+                                       idxPeak_ij_exp[0] - periodVert//2),
+                                        periodHor, periodVert,
+                                        lw=2, ls='--', color='red',
+                                        fill=None, alpha=1))
+
+        plt.title('Selected Region', fontsize=18, weight='bold')
+        plt.show(block=True)               
 
     return imgFFT[idxPeak_ij_exp[0] - periodVert//2:
                   idxPeak_ij_exp[0] + periodVert//2,
@@ -219,7 +213,7 @@ def extract_harmonic(imgFFT, pixelSize, gratingPeriod, harmonic_ij='00',
 
 
 
-def plot_harmonic_grid(imgFFT, pixelSize, gratingPeriod):
+def plot_harmonic_grid(imgFFT, harmonicPeriod):
 
     '''
     Takes the FFT of single 2D grating Talbot imaging and plot the grid from
@@ -251,22 +245,11 @@ def plot_harmonic_grid(imgFFT, pixelSize, gratingPeriod):
 
     '''
 
-    if isinstance(pixelSize, list):
-        pixelSizeVert = pixelSize[0]
-        pixelSizeHor = pixelSize[1]
-    else:
-        pixelSizeVert = pixelSizeHor = pixelSize
-
-    if isinstance(gratingPeriod, list):
-        gratingPeriodVert = gratingPeriod[0]
-        gratingPeriodHor = gratingPeriod[1]
-    else:
-        gratingPeriodVert = gratingPeriodHor = gratingPeriod
-
     (nRows, nColumns) = imgFFT.shape
 
-    periodVert = np.int(np.sqrt(2)*pixelSizeVert/gratingPeriodVert*nRows)
-    periodHor = np.int(np.sqrt(2)*pixelSizeHor/gratingPeriodHor*nColumns)
+    periodVert = harmonicPeriod[0]
+    periodHor = harmonicPeriod[1]
+
 
     plt.figure()
     plt.imshow(np.log10(np.abs(imgFFT)))
@@ -305,7 +288,7 @@ def plot_harmonic_grid(imgFFT, pixelSize, gratingPeriod):
 
     plt.xlim(0, nColumns)
     plt.ylim(nRows,0)
-
+    plt.title('Hamonics Subset and indexes', fontsize=18, weight='bold')
     plt.show()
 
 
