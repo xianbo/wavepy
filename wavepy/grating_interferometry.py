@@ -104,15 +104,13 @@ __all__ = ['extract_harmonic', 'plot_harmonic_grid']
 def _idxPeak_ij(i, j, nRows, nColumns, periodVert, periodHor):
     return [nRows // 2 + i * periodVert, nColumns // 2 + j * periodHor]
 
-#def extract_harmonic(imgFFT, pixelSize, gratingPeriod, harmonic_ij='00',
-#                     plotFlag=False, verbose=True):
 
-def extract_harmonic(imgFFT, harmonicPeriod,
-                     harmonic_ij='00', searchRegion = 10,
+def extract_harmonic(img, harmonicPeriod,
+                     harmonic_ij='00', searchRegion = 10, isFFT=False,
                      plotFlag=False, verbose=True):
 
     '''
-    Function to extract one harmonic image of the FFT of single 2D grating
+    Function to extract one harmonic image of the FFT of single grating
     Talbot imaging.
 
 
@@ -134,7 +132,8 @@ def extract_harmonic(imgFFT, harmonicPeriod,
         ``periodVert`` and ``periodVert`` are the period of the harmonics in
         the reciprocal space in pixels. For the checked board grating,
         periodVert = sqrt(2) * pixel Size / grating Period * number of
-        rows in the image
+        rows in the image. For 1D grating, set one of the values to negative or
+        zero (it will set the period to number of rows or colunms).
 
     harmonic_ij : string or list of string
         string with the harmonic to extract, for instance '00', '01', '10'
@@ -161,7 +160,7 @@ def extract_harmonic(imgFFT, harmonicPeriod,
     Returns
     -------
     2D ndarray
-        Copped Images of size  the harmonics 00, 01 and 10.
+        Copped Images of the harmonics ij
 
 
     This functions crops a rectagle of size ``periodVert x periodHor`` centered
@@ -190,15 +189,40 @@ def extract_harmonic(imgFFT, harmonicPeriod,
 
     '''
 
-    (nRows, nColumns) = imgFFT.shape
+    (nRows, nColumns) = img.shape
+
+    harV = int(harmonic_ij[0])
+    harH = int(harmonic_ij[1])
 
     periodVert = harmonicPeriod[0]
     periodHor = harmonicPeriod[1]
 
+
+    # adjusts for 1D grating
+    if periodVert <= 0 or periodVert is None:
+        periodVert = nRows
+
+    if periodHor <= 0 or periodHor is None:
+        periodHor = nColumns
+
+    # Check if full harmonic image is within the main image
+
+    if (harV + .5)*periodVert > nRows / 2:
+        return np.ones((nRows, periodHor))*np.nan
+
+    if (harH + .5)*periodHor > nColumns / 2:
+        return np.ones((periodVert, nColumns))*np.nan
+
+
+
+    if not isFFT:
+        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img)))
+    else:
+        imgFFT = img
+
+
     intensity = (np.abs(imgFFT))
 
-    harV = int(harmonic_ij[0])
-    harH = int(harmonic_ij[1])
 
 
 
@@ -241,7 +265,7 @@ def extract_harmonic(imgFFT, harmonicPeriod,
 
         from matplotlib.patches import Rectangle
         plt.figure()
-        plt.imshow(np.log10(intensity))
+        plt.imshow(np.log10(intensity), cmap='Spectral_r')
 
         plt.gca().add_patch(Rectangle((idxPeak_ij_exp[1] - periodHor//2,
                                        idxPeak_ij_exp[0] - periodVert//2),
@@ -261,7 +285,7 @@ def extract_harmonic(imgFFT, harmonicPeriod,
 
 
 
-def plot_harmonic_grid(imgFFT, harmonicPeriod):
+def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
 
     '''
     Takes the FFT of single 2D grating Talbot imaging and plot the grid from
@@ -271,34 +295,46 @@ def plot_harmonic_grid(imgFFT, harmonicPeriod):
 
     Parameters
     ----------
-    imgFFT : 	ndarray – Data (data_exchange format)
-        FFT of the Experimental image, whith proper blank image, crop and rotation already
+    img : 	ndarray – Data (data_exchange format)
+        Experimental image, whith proper blank image, crop and rotation already
         applied.
 
-
-    harmonicPeriod : list of integers in the format [periodVert, periodHor]
+    harmonicPeriod : integer or list of integers
+        If list, it must be in the format ``[periodVert, periodHor]``. If
+        integer, then [periodVert = periodHor``.
         ``periodVert`` and ``periodVert`` are the period of the harmonics in
         the reciprocal space in pixels. For the checked board grating,
-        periodVert = sqrt(2) * pixel Size / grating Period * number of
-        rows in the image
+        ``periodVert = sqrt(2) * pixel Size / grating Period * number of
+        rows in the image``
 
-    harmonic_ij : string
-        string with the harmonic to extract, for instance '00', '01', '10' or '11'. Note
-        that negative harmonics are not allowed, but since the original image contain
-        only real numbers (not complex), then negative and positive harmonics are symetric
-        related to zero
-
+    isFFT : boolean
+        if True, then imf is the FFT of the desired image. Used to avoid an
+        extra FFT operation, which can be time consuming
 
     '''
 
-    (nRows, nColumns) = imgFFT.shape
+
+    if not isFFT:
+        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img)))
+    else:
+        imgFFT = img
+
+    (nRows, nColumns) = img.shape
 
     periodVert = harmonicPeriod[0]
     periodHor = harmonicPeriod[1]
 
 
+    # adjusts for 1D grating
+    if periodVert <= 0 or periodVert is None:
+        periodVert = nRows
+
+    if periodHor <= 0 or periodHor is None:
+        periodHor = nColumns
+
+
     plt.figure()
-    plt.imshow(np.log10(np.abs(imgFFT)))
+    plt.imshow(np.log10(np.abs(imgFFT)), cmap='Spectral_r')
 
     harV_min = -(nRows + 1) // 2 // periodVert
     harV_max = (nRows + 1) // 2 // periodVert
@@ -334,16 +370,18 @@ def plot_harmonic_grid(imgFFT, harmonicPeriod):
 
     plt.xlim(0, nColumns)
     plt.ylim(nRows,0)
-    plt.title('Hamonics Subset and indexes', fontsize=18, weight='bold')
-    plt.show()
+    plt.title('log scale FFT magnitude, Hamonics Subsets and Indexes',
+              fontsize=16, weight='bold')
 
 
 
 
-def single_grating_harmonic_images(img, pixelSize, gratingPeriod, plotFlag=True):
+def single_grating_harmonic_images(img, harmonicPeriod,
+                                   searchRegion=10,
+                                   plotFlag=False, verbose=False):
 
     '''
-    Function to process the data of single 2D grating Talbot imaging. It
+    Auxiliar function to process the data of single 2D grating Talbot imaging. It
     obtain the (real space) harmonic images  00, 01 and 10.
 
     Parameters
@@ -352,13 +390,22 @@ def single_grating_harmonic_images(img, pixelSize, gratingPeriod, plotFlag=True)
         Experimental image, whith proper blank image, crop and rotation already
         applied.
 
-    pixelSize : float or list of float
-        Detector pixel size in meters. If pixel is not square, use
-        ``pixelSize=[pixelSizeVertical, pixelSizeHorizontal]``
+    harmonicPeriod : list of integers in the format [periodVert, periodHor]
+        ``periodVert`` and ``periodVert`` are the period of the harmonics in
+        the reciprocal space in pixels. For the checked board grating,
+        periodVert = sqrt(2) * pixel Size / grating Period * number of
+        rows in the image. For 1D grating, set one of the values to negative or
+        zero (it will set the period to number of rows or colunms).
 
-    gratingPeriod : float or list of float
-        Grating line period in lines per meters. If period is the same in both directions,
-        use ``gratingPeriod=[gratingPeriodVertical, gratingPeriodHorizontal]``
+    searchRegion: int
+        search for the peak will be in a region of harmonicPeriod/searchRegion
+        around the theoretical peak position. See also
+        `:py:func:`wavepy.grating_interferometry.plot_harmonic_grid`
+
+    plotFlag: boolean
+
+    verbose: boolean
+        verbose mode
 
     Returns
     -------
@@ -368,59 +415,56 @@ def single_grating_harmonic_images(img, pixelSize, gratingPeriod, plotFlag=True)
     '''
 
 
-
-    if isinstance(pixelSize, list):
-        pixelSizeVert = pixelSize[0]
-        pixelSizeHor = pixelSize[1]
-    else:
-        pixelSizeVert = pixelSizeHor = pixelSize
-
-    if isinstance(gratingPeriod, list):
-        gratingPeriodVert = gratingPeriod[0]
-        gratingPeriodHor = gratingPeriod[1]
-    else:
-        gratingPeriodVert = gratingPeriodHor = gratingPeriod
-
     #  FFT image
     imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img)))
 
 
-    periodVert = np.int(np.sqrt(2)*pixelSizeVert/gratingPeriodVert*img.shape[0])
-    periodHor = np.int(np.sqrt(2)*pixelSizeHor/gratingPeriodHor*img.shape[1])
-
-
     if plotFlag:
-        plot_harmonic_grid(imgFFT, harmonicPeriod=[periodVert,periodHor])
+        plot_harmonic_grid(imgFFT, harmonicPeriod=harmonicPeriod, isFFT=True)
+        plt.show(block=False)
+
 
 
     imgFFT00 = extract_harmonic(imgFFT,
-                                    harmonicPeriod=[periodVert,periodHor],
-                                    harmonic_ij='00', plotFlag=True,
-                                    verbose=True)
+                                    harmonicPeriod=harmonicPeriod,
+                                    harmonic_ij='00',
+                                    searchRegion=searchRegion,
+                                    isFFT=True,
+                                    plotFlag=plotFlag,
+                                    verbose=verbose)
 
     imgFFT01 = extract_harmonic(imgFFT,
-                                    harmonicPeriod=[periodVert,periodHor],
-                                    harmonic_ij='01',plotFlag=True,
-                                    verbose=True)
+                                    harmonicPeriod=harmonicPeriod,
+                                    harmonic_ij='01',
+                                    searchRegion=searchRegion,
+                                    isFFT=True,
+                                    plotFlag=plotFlag,
+                                    verbose=verbose)
 
     imgFFT10 = extract_harmonic(imgFFT,
-                                    harmonicPeriod=[periodVert,periodHor],
-                                    harmonic_ij=['1','0'], plotFlag=True,
-                                    verbose=True)
+                                    harmonicPeriod=harmonicPeriod,
+                                    harmonic_ij=['1','0'],
+                                    searchRegion=searchRegion,
+                                    isFFT=True,
+                                    plotFlag=plotFlag,
+                                    verbose=verbose)
 
-    # Intensitis Fourier Space
-    intFFT00 = np.log10(np.abs(imgFFT00))
-    intFFT01 = np.log10(np.abs(imgFFT01))
-    intFFT10 = np.log10(np.abs(imgFFT10))
+
 
     #  Plot Fourier image (intensity)
     if plotFlag:
+
+        # Intensity is Fourier Space
+        intFFT00 = np.log10(np.abs(imgFFT00))
+        intFFT01 = np.log10(np.abs(imgFFT01))
+        intFFT10 = np.log10(np.abs(imgFFT10))
+
         fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(14,4))
         for dat, ax, textTitle in zip([intFFT00, intFFT01, intFFT10], axes.flat,
                                       ['FFT 00', 'FFT 01', 'FFT 10']):
 
             # The vmin and vmax arguments specify the color limits
-            im = ax.imshow(dat, cmap='spectral', vmin=np.min(intFFT00),
+            im = ax.imshow(dat, cmap='Spectral_r', vmin=np.min(intFFT00),
                            vmax=np.max(intFFT00))
 
             ax.set_title(textTitle)
@@ -432,26 +476,40 @@ def single_grating_harmonic_images(img, pixelSize, gratingPeriod, plotFlag=True)
         plt.suptitle('FFT subsets - Intensity', fontsize=18, weight='bold')
         plt.show(block=True)
 
+
+    # non existing harmonics will return NAN, so here we check NAN
+
     img00 = np.fft.ifftshift(np.fft.ifft2(np.fft.ifftshift(imgFFT00)))
-    img01 = np.fft.ifftshift(np.fft.ifft2(np.fft.ifftshift(imgFFT01)))
-    img10 = np.fft.ifftshift(np.fft.ifft2(np.fft.ifftshift(imgFFT10)))
+
+    if np.all(np.isfinite(imgFFT01)):
+        img01 = np.fft.ifftshift(np.fft.ifft2(np.fft.ifftshift(imgFFT01)))
+    else:
+        img01 = imgFFT01
+
+    if np.all(np.isfinite(imgFFT10)):
+        img10 = np.fft.ifftshift(np.fft.ifft2(np.fft.ifftshift(imgFFT10)))
+    else:
+        img10 = imgFFT10
 
     return (img00, img01, img10)
 
 
+def single_2Dgrating_analyses(img, img_ref, harmonicPeriod,
+                              unwrapFlag=True, plotFlag=True):
 
-#==============================================================================
-# %% Apply main function
-#==============================================================================
+    '''
+    Function to process the data of single 2D grating Talbot imaging. It
+    wraps other functions in order to make all the process transparent
 
-
-def single_grating_analyses(img, img_ref, pixelSize, gratingPeriod,
-                            unwrapFlag=True):
+    '''
 
 
     # Obtain Harmonic images
-    h_img = single_grating_harmonic_images(img, pixelSize, gratingPeriod)
-    h_img_ref = single_grating_harmonic_images(img_ref, pixelSize, gratingPeriod)
+    h_img = single_grating_harmonic_images(img, harmonicPeriod,
+                                           plotFlag=plotFlag)
+
+    h_img_ref = single_grating_harmonic_images(img_ref, harmonicPeriod,
+                                               plotFlag=plotFlag)
 
     int00 = np.abs(h_img[0])/np.abs(h_img_ref[0])
     int01 = np.abs(h_img[1])/np.abs(h_img_ref[1])
@@ -480,8 +538,64 @@ def single_grating_analyses(img, img_ref, pixelSize, gratingPeriod,
         diffPhase01 -= np.mean(diffPhase01)
         diffPhase10 -= np.mean(diffPhase10)
 
-
     return [int00, int01, int10,
             darkField01, darkField10,
             diffPhase01, diffPhase10]
 
+
+def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20):
+    '''
+    This function obtain the visibility in a grating imaging experiment by the
+    ratio of the amplitudes of the first and zero harmonics. See
+    https://doi.org/10.1364/OE.22.014041 .
+
+    Note
+    ----
+    Note that the absolute visibility also depends on the higher harmonics, and
+    for a absolute value of visibility all of them must be considered.
+
+
+    Parameters
+    ----------
+    img : 	ndarray – Data (data_exchange format)
+        Experimental image, whith proper blank image, crop and rotation already
+        applied.
+
+    harmonicPeriod : list of integers in the format [periodVert, periodHor]
+        ``periodVert`` and ``periodVert`` are the period of the harmonics in
+        the reciprocal space in pixels. For the checked board grating,
+        periodVert = sqrt(2) * pixel Size / grating Period * number of
+        rows in the image. For 1D grating, set one of the values to negative or
+        zero (it will set the period to number of rows or colunms).
+
+    searchRegion: int
+        search for the peak will be in a region of harmonicPeriod/searchRegion
+        around the theoretical peak position. See also
+        `:py:func:`wavepy.grating_interferometry.plot_harmonic_grid`
+
+
+    Returns
+    -------
+    (float, float)
+        horizontal and vertical visibilities respectivelly from
+        harmonics 01 and 10
+
+
+    '''
+
+    (imgFFT00,
+     imgFFT01,
+     imgFFT10) = single_grating_harmonic_images(img,
+                                                [harmonicPeriod[0],
+                                                 harmonicPeriod[1]],
+                                                searchRegion=searchRegion,
+                                                plotFlag=False)
+    img00 = np.fft.ifft(imgFFT00)
+    img01 = np.fft.ifft(imgFFT01)
+    img10 = np.fft.ifft(imgFFT10)
+
+    return (np.sum(np.abs(img01))/np.sum(np.abs(img00)),
+            np.sum(np.abs(img10))/np.sum(np.abs(img00)))
+
+
+#

@@ -190,6 +190,7 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
         must have the same shape
 
     xlabel, ylabel, zlabel: str, optional
+        Labels for the axes ``x``, ``y`` and ``z``.
 
     title: str, optional
         title for the main graph #BUG: sometimes this title disappear
@@ -263,9 +264,9 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
 
-    main_plot = main_subplot.contourf(xmatrix, ymatrix, zmatrix, 256, **arg4main)
+    main_plot = main_subplot.contourf(xmatrix, ymatrix, zmatrix,
+                                      256, **arg4main)
 
-    #    main_subplot.contour(xmatrix, ymatrix, zmatrix, 256, cmap='jet', lw=0.1)
 
     colorbar_subplot = plt.subplot2grid((4, 20), (1, 0), rowspan=3, colspan=1)
     plt.colorbar(main_plot, cax=colorbar_subplot)
@@ -281,7 +282,8 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
     plt.ylim(z_min, 1.05 * z_max)
 
     # Side graph, vertical profile. Empty, wait data from cursor on the graph.
-    ax_side = side_subplot = plt.subplot2grid((4, 5), (1, 4), rowspan=3, colspan=1)
+    ax_side = side_subplot = plt.subplot2grid((4, 5), (1, 4),
+                                              rowspan=3, colspan=1)
     ax_side.set_yticklabels([])
     plt.minorticks_on()
     plt.grid(True, which='both', axis='both')
@@ -291,7 +293,9 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
     plt.xlim(z_min, 1.05 * z_max)
 
     def onclick(event):
-        if event.xdata is not None and event.ydata is not None and event.button == 2:
+        if (event.xdata is not None and event.ydata is not None and
+           event.button == 2):
+
             return plot_profiles_at(event.xdata, event.ydata)
 
         if event.button == 3:
@@ -309,7 +313,8 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
         # print('xo: %.4f, yo: %.4f' % (xo, yo))
 
         # plot the vertical and horiz. profiles that pass at xo and yo
-        lines = top_subplot.plot(xmatrix[ymatrix == _yo], zmatrix[ymatrix == _yo],
+        lines = top_subplot.plot(xmatrix[ymatrix == _yo],
+                                 zmatrix[ymatrix == _yo],
                                  lw=2, drawstyle='steps-mid', **arg4top)
 
         side_subplot.plot(zmatrix[xmatrix == _xo],
@@ -332,33 +337,44 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
         _delta_y = None
 
         if do_fwhm:
-            [fwhm_top_x, fwhm_top_y] = _fwhm_xy(xmatrix[(ymatrix == _yo) &
-                                                (xmatrix > main_subplot_x_min) &
-                                                (xmatrix < main_subplot_x_max)],
-                                                zmatrix[(ymatrix == _yo) &
-                                                (xmatrix > main_subplot_x_min) &
-                                                (xmatrix < main_subplot_x_max)])
+            [fwhm_top_x,
+             fwhm_top_y] = _fwhm_xy(xmatrix[(ymatrix == _yo) &
+                                            (xmatrix > main_subplot_x_min) &
+                                            (xmatrix < main_subplot_x_max)],
+                                            zmatrix[(ymatrix == _yo) &
+                                            (xmatrix > main_subplot_x_min) &
+                                            (xmatrix < main_subplot_x_max)])
 
-            [fwhm_side_x, fwhm_side_y] = _fwhm_xy(ymatrix[(xmatrix == _xo) &
-                                                  (ymatrix > main_subplot_y_min) &
-                                                  (ymatrix < main_subplot_y_max)],
-                                                  zmatrix[(xmatrix == _xo) &
-                                                  (ymatrix > main_subplot_y_min) &
-                                                  (ymatrix < main_subplot_y_max)])
+            [fwhm_side_x,
+             fwhm_side_y] = _fwhm_xy(ymatrix[(xmatrix == _xo) &
+                                             (ymatrix > main_subplot_y_min) &
+                                             (ymatrix < main_subplot_y_max)],
+                                             zmatrix[(xmatrix == _xo) &
+                                             (ymatrix > main_subplot_y_min) &
+                                             (ymatrix < main_subplot_y_max)])
 
             if len(fwhm_top_x) == 2:
                 _delta_x = abs(fwhm_top_x[0] - fwhm_top_x[1])
                 print('fwhm_x: %.4f' % _delta_x)
-                message = message + '\n' + r'$FWHM_x = %.4g %s' % (_delta_x, xunit) + '$'
-                top_subplot.plot(fwhm_top_x, fwhm_top_y, 'r--+', lw=1.5, ms=15, mew=1.4)
+                message = message + '\n' + \
+                          r'$FWHM_x = {0:.4g} {1:s}'.format(_delta_x, xunit) + \
+                          '$'
+
+                top_subplot.plot(fwhm_top_x, fwhm_top_y, 'r--+',
+                                 lw=1.5, ms=15, mew=1.4)
 
             if len(fwhm_side_x) == 2:
                 _delta_y = abs(fwhm_side_x[0] - fwhm_side_x[1])
                 print('fwhm_y: %.4f\n' % _delta_y)
-                message = message + '\n' + r'$FWHM_y = {0:.4g} {1:s}'.format(_delta_y, yunit) + '$'
-                side_subplot.plot(fwhm_side_y, fwhm_side_x, 'r--+', lw=1.5, ms=15, mew=1.4)
+                message = message + '\n' + \
+                          r'$FWHM_y = {0:.4g} {1:s}'.format(_delta_y, yunit) + \
+                          '$'
+                side_subplot.plot(fwhm_side_y, fwhm_side_x, 'r--+',
+                                  lw=1.5, ms=15, mew=1.4)
 
         # adjust top and side graphs to the zoom of the main graph
+
+        fig.suptitle(title, fontsize=14, weight='bold')
 
         top_subplot.set_xlim(main_subplot_x_min, main_subplot_x_max)
         side_subplot.set_ylim(main_subplot_y_min, main_subplot_y_max)
@@ -366,8 +382,6 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
         plt.gcf().texts = []
         plt.gcf().text(.8, .75, message, fontsize=14, va='bottom',
                        bbox=dict(facecolor=last_color, alpha=0.5))
-
-        fig.suptitle(title, fontsize=14, weight='bold')
 
         plt.show()
 
@@ -391,16 +405,19 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
 
 def select_file(pattern='*', message_to_print=None):
     """
-    List files under the subdirectories of the current working directory, and expected the user to choose one of them.
+    List files under the subdirectories of the current working directory,
+    and expected the user to choose one of them.
 
-    The list of files is of the form ``number: filename``. The user choose the file by typing the number of the desired filename.
+    The list of files is of the form ``number: filename``. The user choose
+    the file by typing the number of the desired filename.
 
 
     Parameters
     ----------
 
     pattern: str
-        list only files with this patter. Similar to pattern in the linux comands ls, grep, etc
+        list only files with this patter. Similar to pattern in the linux
+        comands ls, grep, etc
     message_to_print: str, optional
 
     Returns
@@ -457,9 +474,11 @@ def select_file(pattern='*', message_to_print=None):
 def select_dir(message_to_print=None, pattern='**/'):
     """
 
-    List subdirectories of the current working directory, and expected the user to choose one of them.
+    List subdirectories of the current working directory, and expected the
+    user to choose one of them.
 
-    The list of files is of the form ``number: filename``. The user choose the file by typing the number of the desired filename.
+    The list of files is of the form ``number: filename``. The user choose
+    the file by typing the number of the desired filename.
 
     Similar to :py:func:`wavepy.utils.select_file`
 
@@ -483,10 +502,10 @@ def select_dir(message_to_print=None, pattern='**/'):
     return select_file(pattern=pattern, message_to_print=message_to_print)
 
 
-
 def _choose_one_of_this_options(header=None, list_of_options=None):
     """
-    Plot contourf in the main graph plus profiles over vertical and horizontal line defined by mouse.
+    Plot contourf in the main graph plus profiles over vertical and horizontal
+    line defined by mouse.
 
     Parameters
     ----------
@@ -518,7 +537,8 @@ def nan_mask_threshold(input_matrix, threshold=0.0):
     input_matrix : ndarray
         2 dimensional (or n-dimensional?) numpy.array to be masked
     threshold: float
-        threshold for masking. If real (imaginary) value, values below(above) the threshold are set to NAN
+        threshold for masking. If real (imaginary) value, values below(above)
+        the threshold are set to NAN
 
     Returns
     -------
@@ -537,9 +557,12 @@ def nan_mask_threshold(input_matrix, threshold=0.0):
     Notes
     -----
 
-        * Note that ``array[mask]`` will return only the values where ``mask == 1``.
+        * Note that ``array[mask]`` will return only the values
+        where ``mask == 1``.
 
-        * Also note that this is NOT the same as :py:mod:`numpy.ma`, the `masked arrays <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in numpy.
+        * Also note that this is NOT the same as :py:mod:`numpy.ma`, the
+        `masked arrays
+        <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in numpy.
 
     """
 
@@ -567,42 +590,27 @@ def crop_matrix_at_indexes(input_matrix, list_of_indexes):
     Returns
     -------
     ndarray
-        copy of the sub-region ``inputMatrix[i_min:i_max, j_min:j_max]`` of the inputMatrix.
+        copy of the sub-region ``inputMatrix[i_min:i_max, j_min:j_max]``
+        of the inputMatrix.
 
     Warning
     -------
-        Note the `difference of copy and view in Numpy <http://scipy-cookbook.readthedocs.io/items/ViewsVsCopies.html>`_.
+        Note the `difference of copy and view in Numpy
+        <http://scipy-cookbook.readthedocs.io/items/ViewsVsCopies.html>`_.
     """
+
+
+    if list_of_indexes == [0, -1, 0, -1]: return input_matrix
 
     return np.copy(input_matrix[list_of_indexes[0]:list_of_indexes[1],
                    list_of_indexes[2]:list_of_indexes[3]])
 
 
-# def find_nearest_value_index(input_array, value):
-#     """
-#
-#     Similar to :py:func:`wavepy.utils.find_nearest_value`, but returns the index of the nearest value (instead of the value itself)
-#
-#     Parameters
-#     ----------
-#
-#     input_array : ndarray
-#     value : float
-#
-#     Returns
-#     -------
-#
-#         int
-#
-#     """
-#
-#     return np.int(np.where(input_array == find_nearest_value(input_array, value))[0])
-
-
 def find_nearest_value(input_array, value):
     """
 
-    Alias for ``input_array.flatten()[np.argmin(np.abs(input_array.flatten() - value))]``
+    Alias for
+    ``input_array.flatten()[np.argmin(np.abs(input_array.flatten() - value))]``
 
     In a array of float numbers, due to the precision, it is impossible to
     find exact values. For instance something like ``array1[array2==0.0]``
@@ -642,8 +650,8 @@ def find_nearest_value(input_array, value):
 def find_nearest_value_index(input_array, value):
     """
 
-    Similar to :py:func:`wavepy.utils.find_nearest_value`, but returns the index of the nearest
-    value (instead of the value itself)
+    Similar to :py:func:`wavepy.utils.find_nearest_value`, but returns
+    the index of the nearest value (instead of the value itself)
 
     Parameters
     ----------
@@ -709,14 +717,15 @@ def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
         * SumOfHarmonics: image is defined by:
           .. math:: \sum_{ij} Amp_{ij} \cos (2 \pi i y) \cos (2 \pi j x).
 
-            * Note that ``x`` and ``y`` are assumed to in the range [-1, 1]. The keyword \
-              ``kwargs: harmAmpl`` is a 2D list that can be used to set the values for Amp_ij, see **Examples**. \
+            * Note that ``x`` and ``y`` are assumed to in the range [-1, 1].
+            The keyword ``kwargs: harmAmpl`` is a 2D list that can
+            be used to set the values for Amp_ij, see **Examples**.
 
-        * Shapes: see **Examples**. ``kwargs=noise``, amplitude of noise to be \
+        * Shapes: see **Examples**. ``kwargs=noise``, amplitude of noise to be
           added to the image
 
-        * NormalDist: Normal distribution where it is assumed that ``x`` and ``y`` are in the interval `[-1,1]`. \
-         ``keywords: FWHM_x, FWHM_y``
+        * NormalDist: Normal distribution where it is assumed that ``x`` and
+        ``y`` are in the interval `[-1,1]`. ``keywords: FWHM_x, FWHM_y``
 
 
 
@@ -875,26 +884,31 @@ def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
 
 
 # noinspection PyClassHasNoInit,PyShadowingNames
-def graphical_roi_idx(zmatrix, verbose=False, **kargs4graph):
+def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
     """
     Function to define a rectangular region of interest (ROI) in an image.
 
-    The image is plotted and, using the mouse, the user select the region of interest (ROI). The ROI is ploted as an transparent rectangular region. When the image is closed the function returns the indexes ``[i_min, i_max, j_min,_j_max]`` of the ROI.
+    The image is plotted and, using the mouse, the user select the region of
+    interest (ROI). The ROI is ploted as an transparent rectangular region.
+    When the image is closed the function returns the indexes
+    ``[i_min, i_max, j_min,_j_max]`` of the ROI.
 
     Parameters
     ----------
 
     input_array : ndarray
     verbose : Boolean
-        In the verbose mode it is printed some additional infomations, like the ROI indexes, as the user select different ROI's
-    **kargs4graph : float
+        In the verbose mode it is printed some additional infomations,
+        like the ROI indexes, as the user select different ROI's
+    **kargs4graph :
         Options for the main graph. **WARNING:** not tested very well
 
     Returns
     -------
 
     list:
-        indexes of the crop ``[i_min, i_max, j_min,_j_max]``. Useful when the same crop must be applies to other images
+        indexes of the crop ``[i_min, i_max, j_min,_j_max]``.
+        Useful when the same crop must be applies to other images
 
     Note
     ----
@@ -983,7 +997,7 @@ def graphical_roi_idx(zmatrix, verbose=False, **kargs4graph):
                      figsize=(10, 8))
 
     surface = plt.imshow(zmatrix,  # origin='lower',
-                         cmap='spectral', **kargs4graph)
+                         **kargs4graph)
 
     plt.xlabel('Pixels')
     plt.ylabel('Pixels')
@@ -1011,7 +1025,8 @@ def graphical_roi_idx(zmatrix, verbose=False, **kargs4graph):
            mutable_object_ROI['ROI_j_lim']  # Note that the + signal concatenates the two lists
 
 
-def crop_graphic(xvec=None, yvec=None, zmatrix=None, verbose=False):
+def crop_graphic(xvec=None, yvec=None, zmatrix=None,
+                 verbose=False, kargs4graph={}):
     """
 
     Function to crop an image to the ROI selected using the mouse.
@@ -1024,6 +1039,8 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None, verbose=False):
         vector with the coordinates ``x`` and ``y``
     zmatrix: 2D numpy array
         image to be croped, as an 2D ndarray
+    **kargs4graph:
+        kargs for main graph
 
     Returns
     -------
@@ -1055,7 +1072,7 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None, verbose=False):
     :py:func:`wavepy.utils.graphical_roi_idx`
     """
 
-    idx = graphical_roi_idx(zmatrix, verbose=verbose)
+    idx = graphical_roi_idx(zmatrix, verbose=verbose, **kargs4graph)
 
     if xvec is None:
         return crop_matrix_at_indexes(zmatrix, idx), idx
@@ -1065,7 +1082,7 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None, verbose=False):
                yvec[idx[0]:idx[1]], \
                crop_matrix_at_indexes(zmatrix, idx), idx
 
-def crop_graphic_image(image, verbose=False):
+def crop_graphic_image(image, verbose=False, kargs4graph={}):
     """
 
     Similar to :py:func:`wavepy.utils.crop_graphic`, but only for the main matrix
@@ -1076,6 +1093,9 @@ def crop_graphic_image(image, verbose=False):
     ----------
     zmatrix: 2D numpy array
         image to be croped, as an 2D ndarray
+
+    **kargs4graph:
+        kargs for main graph
 
     Returns
     -------
@@ -1091,7 +1111,7 @@ def crop_graphic_image(image, verbose=False):
     """
 
 
-    idx = graphical_roi_idx(image, verbose=verbose)
+    idx = graphical_roi_idx(image, verbose=verbose, kargs4graph=kargs4graph)
 
     return crop_matrix_at_indexes(image, idx), idx
 
@@ -1121,7 +1141,7 @@ def pad_to_make_square(array, mode, **kwargs):
 
 
 
-def graphical_select_point_idx(zmatrix, verbose=False, **kargs4graph):
+def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
     """
     Function to define a rectangular region of interest (ROI) in an image.
 

@@ -134,7 +134,8 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
     Returns
     -------
     ndarray
-        Integrated data, as provided by the Frankt-Chellappa Algorithm.
+        Integrated data, as provided by the Frankt-Chellappa Algorithm. Note
+        that the result are complex numbers. See below
 
 
     Notes
@@ -190,6 +191,16 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
         returns the** :math:`N \\times M` **result**, since the other parts are
         only a repetion of the result. In other words, the padding is done
         only internally.
+
+
+    * Results are Complex Numbers
+
+        Again due to the use of DFT's, the results are complex numbers.
+        In principle an ideal gradient field of real numbers results a real-only
+        result. This "imaginary noise" is observerd even with theoretical
+        functions, which leads to the conclusion that it is due to a
+        numerical noise. It is left to the user to decide what to do with noise,
+        for instance to use the modulus or the real part of the result.
 
 
     See Also

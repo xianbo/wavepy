@@ -52,7 +52,6 @@ Functions for speckle tracking analises
 import itertools
 import numpy as np
 import matplotlib.pyplot as plt
-import time
 from tqdm import tqdm
 
 from skimage.feature import register_translation
@@ -280,7 +279,7 @@ def _speckleDisplacementMulticore(image, image_ref, stride,
 
     print('MESSAGE: _speckleDisplacementMulticore:')
     print("MESSAGE: %d cpu's available" % cpu_count())
-    p = Pool(processes=int(cpu_count() * ncores))
+    p = Pool(processes=cpu_count() * ncores // 1)
     print("MESSAGE: Using %d cpu's" % p._processes)
 
     irange = np.arange(halfsubwidth, image.shape[0] - halfsubwidth + 1, stride)
@@ -290,7 +289,7 @@ def _speckleDisplacementMulticore(image, image_ref, stride,
 
     ntasks = np.size(irange) * np.size(jrange)
 
-    chunksize = int(ntasks / p._processes / taskPerCore + 1)
+    chunksize = ntasks // p._processes // taskPerCore + 1
 
 
     if subpixelResolution is not None:
