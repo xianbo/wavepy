@@ -279,7 +279,8 @@ def _speckleDisplacementMulticore(image, image_ref, stride,
 
     print('MESSAGE: _speckleDisplacementMulticore:')
     print("MESSAGE: %d cpu's available" % cpu_count())
-    p = Pool(processes=cpu_count() * ncores // 1)
+    nprocesses = int(cpu_count() * ncores)
+    p = Pool(processes=nprocesses)
     print("MESSAGE: Using %d cpu's" % p._processes)
 
     irange = np.arange(halfsubwidth, image.shape[0] - halfsubwidth + 1, stride)

@@ -90,24 +90,9 @@ and comparing with the original gradient.
 
 """
 
-# import itertools
-# import numpy as np
-# import time
-# from tqdm import tqdm
-#
-# from skimage.feature import register_translation
-#
-# from multiprocessing import Pool, cpu_count
-#
-# import wavepy.utils as wpu
-#
-# from wavepy.cfg import *
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 import wavepy.utils as wpu
-
 
 __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
@@ -187,20 +172,22 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
             \\right]
 
         Note that this padding increases the number of points from
-        :math:`N \\times M` to :math:`2Mx2N`. However, **the function only
-        returns the** :math:`N \\times M` **result**, since the other parts are
-        only a repetion of the result. In other words, the padding is done
-        only internally.
+        :math:`N \\times M` to :math:`2M \\times 2N`. However, **the function
+        only returns the** :math:`N \\times M` **result**, since the
+        other parts are only a repetion of the result. In other words,
+        the padding is done only internally.
 
 
     * Results are Complex Numbers
 
         Again due to the use of DFT's, the results are complex numbers.
-        In principle an ideal gradient field of real numbers results a real-only
-        result. This "imaginary noise" is observerd even with theoretical
-        functions, which leads to the conclusion that it is due to a
-        numerical noise. It is left to the user to decide what to do with noise,
-        for instance to use the modulus or the real part of the result.
+        In principle an ideal gradient field of real numbers results
+        a real-only result. This "imaginary noise" is observerd
+        even with theoretical functions, which leads to the conclusion
+        that it is due to a numerical noise. It is left to the user
+        to decide what to do with noise, for instance to use the
+        modulus or the real part of the result. But it
+        is recomended to use the real part.
 
 
     See Also
@@ -219,6 +206,7 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
     NN, MM = del_f_del_x.shape
     wx, wy = np.meshgrid(fftfreq(MM) * 2 * np.pi,
                          fftfreq(NN) * 2 * np.pi, indexing='xy')
+    # by using fftfreq there is no need to use fftshift
 
     numerator = -1j * wx * fft2(del_f_del_x) - 1j * wy * fft2(del_f_del_y)
 
@@ -292,6 +280,8 @@ def error_integration(del_f_del_x, del_f_del_y, func,
                       pixelsize, errors=False,
                       shifthalfpixel=False, plot_flag=True):
 
+    func = np.real(func)
+
     if shifthalfpixel:
         func = wpu.shift_subpixel_2d(func, 2)
 
@@ -343,7 +333,7 @@ def error_integration(del_f_del_x, del_f_del_y, func,
         plt.title(r'$\mu$ = {:.2g}'.format(np.mean(error_y[:, midleY])))
         ax4.legend()
 
-        plt.suptitle('Erro integration', fontsize=22)
+        plt.suptitle('Error integration', fontsize=22)
         plt.show(block=True)
 
     if errors:

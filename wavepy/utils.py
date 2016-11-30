@@ -950,7 +950,8 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
         if verbose:
             print('\nSelecting ROI:')
             print(' lower position : (%d, %d)' % (ROI_j_lim[0], ROI_i_lim[0]))
-            print(' higher position   : (%d, %d)' % (ROI_j_lim[1], ROI_i_lim[1]))
+            print(' higher position   : (%d, %d)' % (ROI_j_lim[1],
+                                                     ROI_i_lim[1]))
             print(' width x and y: (%d, %d)' %
                   (ROI_j_lim[1] - ROI_j_lim[0], ROI_i_lim[1] - ROI_i_lim[0]))
 
@@ -996,7 +997,7 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
     fig = plt.figure(facecolor="white",
                      figsize=(10, 8))
 
-    surface = plt.imshow(zmatrix,  # origin='lower',
+    surface = plt.imshow(zmatrix, # origin='lower',
                          **kargs4graph)
 
     plt.xlabel('Pixels')

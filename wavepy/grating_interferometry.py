@@ -88,8 +88,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import wavepy.utils as wpu
 
+from skimage.restoration import unwrap_phase
 
-from unwrap import unwrap
+
+import unwrap as uw
 
 
 __authors__ = "Walan Grizolli"
@@ -99,14 +101,133 @@ __docformat__ = "restructuredtext en"
 __all__ = ['extract_harmonic', 'plot_harmonic_grid']
 
 
+def _idxPeak_ij(harV, harH, nRows, nColumns, periodVert, periodHor):
+    """
+    Calculates the indexes of the peak of the harmonic harV, harH in the main
+    FFT image
+    """
+    return [nRows // 2 + harV * periodVert, nColumns // 2 + harH * periodHor]
 
 
-def _idxPeak_ij(i, j, nRows, nColumns, periodVert, periodHor):
-    return [nRows // 2 + i * periodVert, nColumns // 2 + j * periodHor]
+def _idxPeak_ij_exp(imgFFT, harV, harH, periodVert, periodHor, searchRegion):
+    """
+    Returns the index of the maximum intensity in a harmonic sub image.
+    """
+
+    intensity = (np.abs(imgFFT))
+
+    (nRows, nColumns) = imgFFT.shape
+
+    idxPeak_ij = _idxPeak_ij(harV, harH, nRows, nColumns,
+                             periodVert, periodHor)
+
+    maskSearchRegion = np.zeros((nRows, nColumns))
+
+    maskSearchRegion[idxPeak_ij[0] - periodVert//searchRegion:
+                     idxPeak_ij[0] + periodVert//searchRegion,
+                     idxPeak_ij[1] - periodHor//searchRegion:
+                     idxPeak_ij[1] + periodHor//searchRegion] = 1.0
+
+    idxPeak_ij_exp = np.where(intensity * maskSearchRegion ==
+                              np.max(intensity * maskSearchRegion))
+
+    return [idxPeak_ij_exp[0][0], idxPeak_ij_exp[1][0]]
+
+
+def _check_harmonic_inside_image(harV, harH, nRows, nColumns,
+                                 periodVert, periodHor):
+    """
+    Check if full harmonic image is within the main image
+    """
+
+    errFlag = False
+
+    if (harV + .5)*periodVert > nRows / 2:
+        wpu.print_red("ATTENTION: Harmonic Peak " +
+                      "{:d}{:d}".format(harV, harH) +
+                      " is out of image vertical range.")
+        errFlag = True
+
+    if (harH + .5)*periodHor > nColumns / 2:
+        wpu.print_red("ATTENTION: Harmonic Peak " +
+                      "{:d}{:d} is ".format(harV, harH) +
+                      "is out of image horizontal range.")
+        errFlag = True
+
+    if errFlag:
+        raise ValueError("ERROR: Harmonic Peak " +
+                         "{:d}{:d} is ".format(harV, harH) +
+                         "out of image frequency range.")
+
+
+def _error_harmonic_peak(imgFFT, harV, harH,
+                         periodVert, periodHor, searchRegion=10):
+
+    (nRows, nColumns) = imgFFT.shape
+
+    #  Estimate harmonic positions
+
+    idxPeak_ij = _idxPeak_ij(harV, harH, imgFFT.shape[0], imgFFT.shape[1],
+                             periodVert, periodHor)
+
+    idxPeak_ij_exp = _idxPeak_ij_exp(imgFFT, harV, harH,
+                                     periodVert, periodHor, searchRegion)
+
+    del_i = idxPeak_ij_exp[0] - idxPeak_ij[0]
+    del_j = idxPeak_ij_exp[1] - idxPeak_ij[1]
+
+    return del_i, del_j
+
+
+def experimental_harmonic_period(img, harmonicPeriod,
+                                 harmonic_ij='00', searchRegion=10,
+                                 isFFT=False, verbose=True):
+    """
+    To be written
+    """
+
+    (nRows, nColumns) = img.shape
+
+    harV = int(harmonic_ij[0])
+    harH = int(harmonic_ij[1])
+
+    periodVert = harmonicPeriod[0]
+    periodHor = harmonicPeriod[1]
+
+    # adjusts for 1D grating
+    if periodVert <= 0 or periodVert is None:
+        periodVert = nRows
+        if verbose:
+            wpu.print_blue("MESSAGE: Assuming Horizontal 1D Grating")
+
+    if periodHor <= 0 or periodHor is None:
+        periodHor = nColumns
+        if verbose:
+            wpu.print_blue("MESSAGE: Assuming Vertical 1D Grating")
+
+    _check_harmonic_inside_image(harV, harH, nRows, nColumns,
+                                 periodVert, periodHor)
+
+    if isFFT:
+        imgFFT = img
+    else:
+        imgFFT = np.fft.fftshift(np.fft.fft2(img))
+
+    del_i, del_j = _error_harmonic_peak(imgFFT, harV, harH,
+                                        periodVert, periodHor,
+                                        searchRegion)
+
+    if verbose:
+        wpu.print_blue("MESSAGE: error experimental harmonics " +
+                       "vertical: {:d}".format(del_i))
+        wpu.print_blue("MESSAGE: error experimental harmonics " +
+                       "horizontal: {:d}".format(del_j))
+
+    return periodVert + del_i, periodHor + del_j
 
 
 def extract_harmonic(img, harmonicPeriod,
-                     harmonic_ij='00', searchRegion = 10, isFFT=False,
+                     harmonic_ij='00', searchRegion=10, isFFT=False,
                      plotFlag=False, verbose=True):
 
     '''
@@ -124,8 +245,8 @@ def extract_harmonic(img, harmonicPeriod,
     Parameters
     ----------
     imgFFT : 	ndarray – Data (data_exchange format)
-        FFT of the Experimental image, whith proper blank image, crop and rotation already
-        applied.
+        FFT of the Experimental image, whith proper blank image, crop and
+        rotation already applied.
 
 
     harmonicPeriod : list of integers in the format [periodVert, periodHor]
@@ -134,7 +255,10 @@ def extract_harmonic(img, harmonicPeriod,
         periodVert = sqrt(2) * pixel Size / grating Period * number of
         rows in the image. For 1D grating, set one of the values to negative or
         zero (it will set the period to number of rows or colunms).
-
+    if not isFFT:
+        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img)))
+    else:
+        imgFFT = img
     harmonic_ij : string or list of string
         string with the harmonic to extract, for instance '00', '01', '10'
         or '11'. In this notation negative harmonics are not allowed.
@@ -153,8 +277,8 @@ def extract_harmonic(img, harmonicPeriod,
 
     plotFlag: boolean
 
-    verbose: boolean
-        verbose mode
+    verbose: Boolean
+        verbose flag.
 
 
     Returns
@@ -171,9 +295,7 @@ def extract_harmonic(img, harmonicPeriod,
     Note
     ----
         * Note that it is the FFT of the image that is required.
-        * When the peak is found, the only extra operation tis to re-center
-          the harmonic image. It is be possible to recalculate an
-          experimental period, but this has almost no effect and it is not done.
+        * The search for the peak is only used to print warning messages.
 
     **Q: Why not the real image??**
 
@@ -197,69 +319,63 @@ def extract_harmonic(img, harmonicPeriod,
     periodVert = harmonicPeriod[0]
     periodHor = harmonicPeriod[1]
 
+    if verbose:
+            wpu.print_blue("MESSAGE: Extracting harmonic " +
+                           harmonic_ij[0] + harmonic_ij[1])
+            wpu.print_blue("MESSAGE: Harmonic period " +
+                           "Horizontal: {:d} pixels".format(periodHor))
+            wpu.print_blue("MESSAGE: Harmonic period " +
+                           "Vertical: {:d} pixels".format(periodVert))
 
     # adjusts for 1D grating
     if periodVert <= 0 or periodVert is None:
         periodVert = nRows
+        if verbose:
+            wpu.print_blue("MESSAGE: Assuming Horizontal 1D Grating")
 
     if periodHor <= 0 or periodHor is None:
         periodHor = nColumns
+        if verbose:
+            wpu.print_blue("MESSAGE: Assuming Vertical 1D Grating")
 
-    # Check if full harmonic image is within the main image
+    try:
+        _check_harmonic_inside_image(harV, harH, nRows, nColumns,
+                                     periodVert, periodHor)
+    except ValueError:
+        raise SystemExit
 
-    if (harV + .5)*periodVert > nRows / 2:
-        return np.ones((nRows, periodHor))*np.nan
-
-    if (harH + .5)*periodHor > nColumns / 2:
-        return np.ones((periodVert, nColumns))*np.nan
-
-
-
-    if not isFFT:
-        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img)))
-    else:
+    if isFFT:
         imgFFT = img
-
+    else:
+        imgFFT = np.fft.fftshift(np.fft.fft2(img))
 
     intensity = (np.abs(imgFFT))
 
-
-
-
     #  Estimate harmonic positions
+    idxPeak_ij = _idxPeak_ij(harV, harH, nRows, nColumns,
+                             periodVert, periodHor)
 
-    idxPeak_ij = _idxPeak_ij(harV, harH, nRows, nColumns, periodVert, periodHor)
-
-    maskSearchRegion = np.zeros((nRows, nColumns))
-
-    maskSearchRegion[idxPeak_ij[0] - periodVert//searchRegion:idxPeak_ij[0] + periodVert//searchRegion,
-                     idxPeak_ij[1] - periodHor//searchRegion:idxPeak_ij[1] + periodHor//searchRegion] = 1.0
-
-
-    # correct idxPeak_ij to the experimental value
-
-    idxPeak_ij_exp = np.where(intensity * maskSearchRegion == np.max(np.abs(imgFFT * maskSearchRegion)))
-
-    idxPeak_ij_exp = [idxPeak_ij_exp[0][0], idxPeak_ij_exp[1][0]]
-
-    # convert to list
+    del_i, del_j = _error_harmonic_peak(imgFFT, harV, harH,
+                                        periodVert, periodHor,
+                                        searchRegion)
 
     if verbose:
         print("MESSAGE: extract_harmonic:" +
               " harmonic peak " + harmonic_ij[0] + harmonic_ij[1] +
               " is misplaced by:")
         print("MESSAGE: {:d} pixels in vertical, {:d} pixels in hor".format(
-               (idxPeak_ij_exp[0]-idxPeak_ij[0]),
-               (idxPeak_ij_exp[1]-idxPeak_ij[1])))
+               del_i, del_j))
 
-    if ((np.abs(idxPeak_ij_exp[0]-idxPeak_ij[0]) > periodVert // searchRegion // 2) or
-        (np.abs(idxPeak_ij_exp[1]-idxPeak_ij[1]) > periodHor // searchRegion // 2)):
+        print("MESSAGE: Theoretical peak index: {:d},{:d} [VxH]".format(
+              idxPeak_ij[0], idxPeak_ij[1]))
+
+    if ((np.abs(del_i) > periodVert // searchRegion // 2) or
+       (np.abs(del_j) > periodHor // searchRegion // 2)):
 
         wpu.print_red("ATTENTION: Harmonic Peak " + harmonic_ij[0] +
                       harmonic_ij[1] + " is too far from theoretical value.")
-        wpu.print_red("ATTENTION: {:d} pixels in vertical, {:d} pixels in hor".format(
-                      (idxPeak_ij_exp[0]-idxPeak_ij[0]),
-                      (idxPeak_ij_exp[1]-idxPeak_ij[1])))
+        wpu.print_red("ATTENTION: {:d} pixels in vertical,".format(del_i) +
+                      "{:d} pixels in hor".format(del_j))
 
     if plotFlag:
 
@@ -267,22 +383,20 @@ def extract_harmonic(img, harmonicPeriod,
         plt.figure()
         plt.imshow(np.log10(intensity), cmap='Spectral_r')
 
-        plt.gca().add_patch(Rectangle((idxPeak_ij_exp[1] - periodHor//2,
-                                       idxPeak_ij_exp[0] - periodVert//2),
-                                        periodHor, periodVert,
-                                        lw=2, ls='--', color='red',
-                                        fill=None, alpha=1))
+        plt.gca().add_patch(Rectangle((idxPeak_ij[1] - periodHor//2,
+                                      idxPeak_ij[0] - periodVert//2),
+                                      periodHor, periodVert,
+                                      lw=2, ls='--', color='red',
+                                      fill=None, alpha=1))
 
         plt.title('Selected Region ' + harmonic_ij[0] + harmonic_ij[1],
                   fontsize=18, weight='bold')
         plt.show()
 
-    return imgFFT[idxPeak_ij_exp[0] - periodVert//2:
-                  idxPeak_ij_exp[0] + periodVert//2,
-                  idxPeak_ij_exp[1] - periodHor//2:
-                  idxPeak_ij_exp[1] + periodHor//2]
-
-
+    return imgFFT[idxPeak_ij[0] - periodVert//2:
+                  idxPeak_ij[0] + periodVert//2,
+                  idxPeak_ij[1] - periodHor//2:
+                  idxPeak_ij[1] + periodHor//2]
 
 
 def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
@@ -313,7 +427,6 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
 
     '''
 
-
     if not isFFT:
         imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img)))
     else:
@@ -324,14 +437,12 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     periodVert = harmonicPeriod[0]
     periodHor = harmonicPeriod[1]
 
-
     # adjusts for 1D grating
     if periodVert <= 0 or periodVert is None:
         periodVert = nRows
 
     if periodHor <= 0 or periodHor is None:
         periodHor = nColumns
-
 
     plt.figure()
     plt.imshow(np.log10(np.abs(imgFFT)), cmap='Spectral_r')
@@ -344,13 +455,15 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
 
     for harV in range(harV_min + 1, harV_max + 2):
 
-       idxPeak_ij = _idxPeak_ij(harV, 0, nRows, nColumns, periodVert, periodHor)
+        idxPeak_ij = _idxPeak_ij(harV, 0, nRows, nColumns,
+                                 periodVert, periodHor)
 
-       plt.axhline(idxPeak_ij[0] - periodVert//2, lw=2, color='r')
+        plt.axhline(idxPeak_ij[0] - periodVert//2, lw=2, color='r')
 
     for harH in range(harH_min + 1, harH_max + 2):
 
-        idxPeak_ij = _idxPeak_ij(0, harH, nRows, nColumns, periodVert, periodHor)
+        idxPeak_ij = _idxPeak_ij(0, harH, nRows, nColumns,
+                                 periodVert, periodHor)
         plt.axvline(idxPeak_ij[1] - periodHor // 2, lw=2, color='r')
 
     for harV in range(harV_min, harV_max + 1):
@@ -360,20 +473,17 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
                                      nRows, nColumns,
                                      periodVert, periodHor)
 
-
             plt.plot(idxPeak_ij[1], idxPeak_ij[0],
-                    'ko', mew=2, mfc="None", ms=5 )
+                     'ko', mew=2, mfc="None", ms=5)
 
             plt.annotate('{:d}{:d}'.format(harV, harH),
                          (idxPeak_ij[1], idxPeak_ij[0]),
-                          color='red', fontsize=20)
+                         color='red', fontsize=20)
 
     plt.xlim(0, nColumns)
-    plt.ylim(nRows,0)
+    plt.ylim(nRows, 0)
     plt.title('log scale FFT magnitude, Hamonics Subsets and Indexes',
               fontsize=16, weight='bold')
-
-
 
 
 def single_grating_harmonic_images(img, harmonicPeriod,
@@ -381,8 +491,8 @@ def single_grating_harmonic_images(img, harmonicPeriod,
                                    plotFlag=False, verbose=False):
 
     '''
-    Auxiliar function to process the data of single 2D grating Talbot imaging. It
-    obtain the (real space) harmonic images  00, 01 and 10.
+    Auxiliar function to process the data of single 2D grating Talbot imaging.
+    It obtain the (real space) harmonic images  00, 01 and 10.
 
     Parameters
     ----------
@@ -404,8 +514,8 @@ def single_grating_harmonic_images(img, harmonicPeriod,
 
     plotFlag: boolean
 
-    verbose: boolean
-        verbose mode
+    verbose: Boolean
+        verbose flag.
 
     Returns
     -------
@@ -414,42 +524,35 @@ def single_grating_harmonic_images(img, harmonicPeriod,
 
     '''
 
-
-    #  FFT image
-    imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img)))
-
+    imgFFT = np.fft.fftshift(np.fft.fft2(img))
 
     if plotFlag:
         plot_harmonic_grid(imgFFT, harmonicPeriod=harmonicPeriod, isFFT=True)
         plt.show(block=False)
 
-
-
     imgFFT00 = extract_harmonic(imgFFT,
-                                    harmonicPeriod=harmonicPeriod,
-                                    harmonic_ij='00',
-                                    searchRegion=searchRegion,
-                                    isFFT=True,
-                                    plotFlag=plotFlag,
-                                    verbose=verbose)
+                                harmonicPeriod=harmonicPeriod,
+                                harmonic_ij='00',
+                                searchRegion=searchRegion,
+                                isFFT=True,
+                                plotFlag=plotFlag,
+                                verbose=verbose)
 
     imgFFT01 = extract_harmonic(imgFFT,
-                                    harmonicPeriod=harmonicPeriod,
-                                    harmonic_ij='01',
-                                    searchRegion=searchRegion,
-                                    isFFT=True,
-                                    plotFlag=plotFlag,
-                                    verbose=verbose)
+                                harmonicPeriod=harmonicPeriod,
+                                harmonic_ij=['0', '1'],
+                                searchRegion=searchRegion,
+                                isFFT=True,
+                                plotFlag=plotFlag,
+                                verbose=verbose)
 
     imgFFT10 = extract_harmonic(imgFFT,
-                                    harmonicPeriod=harmonicPeriod,
-                                    harmonic_ij=['1','0'],
-                                    searchRegion=searchRegion,
-                                    isFFT=True,
-                                    plotFlag=plotFlag,
-                                    verbose=verbose)
-
-
+                                harmonicPeriod=harmonicPeriod,
+                                harmonic_ij=['1', '0'],
+                                searchRegion=searchRegion,
+                                isFFT=True,
+                                plotFlag=plotFlag,
+                                verbose=verbose)
 
     #  Plot Fourier image (intensity)
     if plotFlag:
@@ -459,8 +562,10 @@ def single_grating_harmonic_images(img, harmonicPeriod,
         intFFT01 = np.log10(np.abs(imgFFT01))
         intFFT10 = np.log10(np.abs(imgFFT10))
 
-        fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(14,4))
-        for dat, ax, textTitle in zip([intFFT00, intFFT01, intFFT10], axes.flat,
+        fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(14, 4))
+
+        for dat, ax, textTitle in zip([intFFT00, intFFT01, intFFT10],
+                                      axes.flat,
                                       ['FFT 00', 'FFT 01', 'FFT 10']):
 
             # The vmin and vmax arguments specify the color limits
@@ -469,25 +574,22 @@ def single_grating_harmonic_images(img, harmonicPeriod,
 
             ax.set_title(textTitle)
 
-
         # Make an axis for the colorbar on the right side
         cax = fig.add_axes([0.92, 0.1, 0.03, 0.8])
         fig.colorbar(im, cax=cax)
         plt.suptitle('FFT subsets - Intensity', fontsize=18, weight='bold')
         plt.show(block=True)
 
+    img00 = np.fft.ifft2(np.fft.ifftshift(imgFFT00))
 
     # non existing harmonics will return NAN, so here we check NAN
-
-    img00 = np.fft.ifftshift(np.fft.ifft2(np.fft.ifftshift(imgFFT00)))
-
     if np.all(np.isfinite(imgFFT01)):
-        img01 = np.fft.ifftshift(np.fft.ifft2(np.fft.ifftshift(imgFFT01)))
+        img01 = np.fft.ifft2(np.fft.ifftshift(imgFFT01))
     else:
         img01 = imgFFT01
 
     if np.all(np.isfinite(imgFFT10)):
-        img10 = np.fft.ifftshift(np.fft.ifft2(np.fft.ifftshift(imgFFT10)))
+        img10 = np.fft.ifft2(np.fft.ifftshift(imgFFT10))
     else:
         img10 = imgFFT10
 
@@ -495,7 +597,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
 
 
 def single_2Dgrating_analyses(img, img_ref, harmonicPeriod,
-                              unwrapFlag=True, plotFlag=True):
+                              unwrapFlag=True, plotFlag=True, verbose=False):
 
     '''
     Function to process the data of single 2D grating Talbot imaging. It
@@ -503,13 +605,14 @@ def single_2Dgrating_analyses(img, img_ref, harmonicPeriod,
 
     '''
 
-
     # Obtain Harmonic images
     h_img = single_grating_harmonic_images(img, harmonicPeriod,
-                                           plotFlag=plotFlag)
+                                           plotFlag=plotFlag,
+                                           verbose=verbose)
 
     h_img_ref = single_grating_harmonic_images(img_ref, harmonicPeriod,
-                                               plotFlag=plotFlag)
+                                               plotFlag=plotFlag,
+                                               verbose=verbose)
 
     int00 = np.abs(h_img[0])/np.abs(h_img_ref[0])
     int01 = np.abs(h_img[1])/np.abs(h_img_ref[1])
@@ -525,25 +628,15 @@ def single_2Dgrating_analyses(img, img_ref, harmonicPeriod,
 
     if unwrapFlag:
 
-        diffPhase01 = unwrap(diffPhase01,
-                             wrap_around_axis_0=True,
-                             wrap_around_axis_1=False,
-                             wrap_around_axis_2=False)
-
-        diffPhase10 = unwrap(diffPhase10,
-                             wrap_around_axis_0=False,
-                             wrap_around_axis_1=True,
-                             wrap_around_axis_2=False)
-
-        diffPhase01 -= np.mean(diffPhase01)
-        diffPhase10 -= np.mean(diffPhase10)
+        diffPhase01 = unwrap_phase(diffPhase01)
+        diffPhase10 = unwrap_phase(diffPhase10)
 
     return [int00, int01, int10,
             darkField01, darkField10,
             diffPhase01, diffPhase10]
 
 
-def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20):
+def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
     '''
     This function obtain the visibility in a grating imaging experiment by the
     ratio of the amplitudes of the first and zero harmonics. See
@@ -573,6 +666,9 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20):
         around the theoretical peak position. See also
         `:py:func:`wavepy.grating_interferometry.plot_harmonic_grid`
 
+    verbose: Boolean
+        verbose flag.
+
 
     Returns
     -------
@@ -589,7 +685,8 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20):
                                                 [harmonicPeriod[0],
                                                  harmonicPeriod[1]],
                                                 searchRegion=searchRegion,
-                                                plotFlag=False)
+                                                plotFlag=False,
+                                                verbose=verbose)
     img00 = np.fft.ifft(imgFFT00)
     img01 = np.fft.ifft(imgFFT01)
     img10 = np.fft.ifft(imgFFT10)
