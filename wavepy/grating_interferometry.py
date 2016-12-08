@@ -179,9 +179,9 @@ def _error_harmonic_peak(imgFFT, harV, harH,
     return del_i, del_j
 
 
-def experimental_harmonic_period(img, harmonicPeriod,
-                                 harmonic_ij='00', searchRegion=10,
-                                 isFFT=False, verbose=True):
+def exp_harm_period(img, harmonicPeriod,
+                    harmonic_ij='00', searchRegion=10,
+                    isFFT=False, verbose=True):
     """
     To be written
     """
@@ -211,7 +211,7 @@ def experimental_harmonic_period(img, harmonicPeriod,
     if isFFT:
         imgFFT = img
     else:
-        imgFFT = np.fft.fftshift(np.fft.fft2(img))
+        imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
 
     del_i, del_j = _error_harmonic_peak(imgFFT, harV, harH,
                                         periodVert, periodHor,
@@ -347,7 +347,7 @@ def extract_harmonic(img, harmonicPeriod,
     if isFFT:
         imgFFT = img
     else:
-        imgFFT = np.fft.fftshift(np.fft.fft2(img))
+        imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
 
     intensity = (np.abs(imgFFT))
 
@@ -428,7 +428,7 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     '''
 
     if not isFFT:
-        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img)))
+        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img), norm='ortho'))
     else:
         imgFFT = img
 
@@ -491,7 +491,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
                                    plotFlag=False, verbose=False):
 
     '''
-    Auxiliar function to process the data of single 2D grating Talbot imaging.
+    Auxiliary function to process the data of single 2D grating Talbot imaging.
     It obtain the (real space) harmonic images  00, 01 and 10.
 
     Parameters
@@ -524,7 +524,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
 
     '''
 
-    imgFFT = np.fft.fftshift(np.fft.fft2(img))
+    imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
 
     if plotFlag:
         plot_harmonic_grid(imgFFT, harmonicPeriod=harmonicPeriod, isFFT=True)
@@ -580,24 +580,24 @@ def single_grating_harmonic_images(img, harmonicPeriod,
         plt.suptitle('FFT subsets - Intensity', fontsize=18, weight='bold')
         plt.show(block=True)
 
-    img00 = np.fft.ifft2(np.fft.ifftshift(imgFFT00))
+    img00 = np.fft.ifft2(np.fft.ifftshift(imgFFT00), norm='ortho')
 
     # non existing harmonics will return NAN, so here we check NAN
     if np.all(np.isfinite(imgFFT01)):
-        img01 = np.fft.ifft2(np.fft.ifftshift(imgFFT01))
+        img01 = np.fft.ifft2(np.fft.ifftshift(imgFFT01), norm='ortho')
     else:
         img01 = imgFFT01
 
     if np.all(np.isfinite(imgFFT10)):
-        img10 = np.fft.ifft2(np.fft.ifftshift(imgFFT10))
+        img10 = np.fft.ifft2(np.fft.ifftshift(imgFFT10), norm='ortho')
     else:
         img10 = imgFFT10
 
     return (img00, img01, img10)
 
 
-def single_2Dgrating_analyses(img, img_ref, harmonicPeriod,
-                              unwrapFlag=True, plotFlag=True, verbose=False):
+def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
+                              unwrapFlag=1, plotFlag=True, verbose=False):
 
     '''
     Function to process the data of single 2D grating Talbot imaging. It
@@ -610,9 +610,15 @@ def single_2Dgrating_analyses(img, img_ref, harmonicPeriod,
                                            plotFlag=plotFlag,
                                            verbose=verbose)
 
-    h_img_ref = single_grating_harmonic_images(img_ref, harmonicPeriod,
-                                               plotFlag=plotFlag,
-                                               verbose=verbose)
+    if img_ref is not None:
+
+        h_img_ref = single_grating_harmonic_images(img_ref, harmonicPeriod,
+                                                   plotFlag=plotFlag,
+                                                   verbose=verbose)
+    else:
+        h_img_ref = [None, None, None]
+        h_img_ref[0] = np.ones((h_img[0].shape[0], h_img[0].shape[1]))
+        h_img_ref[1] = h_img_ref[2] = h_img_ref[0]
 
     int00 = np.abs(h_img[0])/np.abs(h_img_ref[0])
     int01 = np.abs(h_img[1])/np.abs(h_img_ref[1])
@@ -621,12 +627,10 @@ def single_2Dgrating_analyses(img, img_ref, harmonicPeriod,
     darkField01 = int01*int00
     darkField10 = int10*int00
 
-    diffPhase01 = np.arctan2(np.real(h_img[1]/h_img_ref[1]),
-                             np.imag(h_img[1]/h_img_ref[1]))
-    diffPhase10 = np.arctan2(np.real(h_img[2]/h_img_ref[2]),
-                             np.imag(h_img[2]/h_img_ref[2]))
+    diffPhase01 = np.angle(h_img[1]) - np.angle(h_img_ref[1])
+    diffPhase10 = np.angle(h_img[2]) - np.angle(h_img_ref[2])
 
-    if unwrapFlag:
+    if unwrapFlag == 1:
 
         diffPhase01 = unwrap_phase(diffPhase01)
         diffPhase10 = unwrap_phase(diffPhase10)

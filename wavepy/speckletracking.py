@@ -68,9 +68,6 @@ __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
 __all__ = ['speckleDisplacement']
 
-# TODO: Remove debug library
-from wavepy._my_debug_tools import *
-
 
 def _speckleDisplacementSingleCore_method1(image, image_ref, halfsubwidth,
                                            subpixelResolution, stride, verbose):
@@ -319,53 +316,6 @@ def _speckleDisplacementMulticore(image, image_ref, stride,
 
     return (sx, sy, error, stride)
 
-
-#def _speckleDisplacementMethod2(image, image_ref, halfsubwidth,
-#                                  stride, subpixelResolution,
-#                                  ncores, taskPerCore):
-#
-#
-#
-#    print('MESSAGE: _speckleDisplacementMethod2:')
-#    print("MESSAGE: %d cpu's available" % cpu_count())
-#    p = Pool(processes=int(cpu_count() * ncores))
-#    print("MESSAGE: Using %d cpu's" % p._processes)
-#
-#    irange = np.arange(halfsubwidth,
-#                       image.shape[0] - halfsubwidth + 1,
-#                       stride)
-#    jrange = np.arange(halfsubwidth,
-#                       image.shape[1] - halfsubwidth + 1,
-#                       stride)
-#
-#    parList = [image, image_ref, halfsubwidth,
-#               subpixelResolution]
-#
-#    ntasks = np.size(irange) * np.size(jrange)
-#
-#    chunksize = int(ntasks / p._processes / taskPerCore + 1)
-#
-#    # DEBUG_print_var("chunksize", chunksize)
-#    # DEBUG_print_var("ntasks", ntasks)
-#    # DEBUG_print_var("np.size(irange)", np.size(irange))
-#
-#    # DEBUG_print_var("np.size(jrange)", np.size(jrange))
-#
-#    res = p.starmap_async(_func_4_starmap_async_method2,
-#                          zip(itertools.product(irange, jrange),
-#                              itertools.repeat(parList)),
-#                          chunksize=chunksize)
-#
-#    p.close()  # No more work
-#
-#    wpu.progress_bar4pmap(res)  # Holds the program in a loop waiting
-#                                 # starmap_async to finish
-#
-#    sx = np.array(res.get())[:, 0].reshape(len(irange), len(jrange))
-#    sy = np.array(res.get())[:, 1].reshape(len(irange), len(jrange))
-#    error = np.array(res.get())[:, 2].reshape(len(irange), len(jrange))
-#
-#    return (sx, sy, error, stride)
 
 def speckleDisplacement(image, image_ref,
                         stride=1, npointsmax=None,

@@ -54,8 +54,12 @@ import matplotlib.pyplot as plt
 import time
 from tqdm import tqdm  # progress bar
 
+import easygui_qt as easyqt
+import os
+
+import dxchange
+
 import configparser
-import os.path
 
 __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
@@ -72,9 +76,6 @@ __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'reciprocalcoordvec', 'reciprocalcoordmatrix',
            'h5_list_of_groups',
            'progress_bar4pmap', 'load_ini_file']
-
-
-
 
 
 def print_color(message, color='red',
@@ -502,6 +503,64 @@ def select_dir(message_to_print=None, pattern='**/'):
     return select_file(pattern=pattern, message_to_print=message_to_print)
 
 
+
+
+
+def gui_load_data_ref_dark_files(directory=''):
+
+
+
+
+    originalDir = os.getcwd()
+
+
+    def check_empty_fname(fname):
+
+
+        if fname == []:
+            return None
+        else:
+            return fname[0]
+
+
+    if directory != '':
+
+        if os.path.isdir(directory):
+            os.chdir(directory)
+        else:
+            print_red("WARNING: Directory " + directory + " doesn't exist.")
+            print_blue("MESSAGE: Using current working directory " +
+                       originalDir)
+
+
+    fname1 = easyqt.get_file_names("File name with Data")
+
+    if len(fname1) == 3:
+        [fname1, fname2, fname3] = fname1
+
+    else:
+
+        fname1 = check_empty_fname(fname1)
+
+        os.chdir(fname1.rsplit('/', 1)[0])
+
+        fname2 = easyqt.get_file_names("File name with Reference")
+        fname3 = easyqt.get_file_names("File name with Dark Image")
+
+        fname2 = check_empty_fname(fname2)
+        fname3 = check_empty_fname(fname3)
+
+    os.chdir(originalDir)
+
+    print_blue('MESSAGE: Loading ' + fname1)
+    print_blue('MESSAGE: Loading ' + fname2)
+    print_blue('MESSAGE: Loading ' + fname3)
+
+
+    return (dxchange.read_tiff(fname1), dxchange.read_tiff(fname2),
+            dxchange.read_tiff(fname3))
+
+
 def _choose_one_of_this_options(header=None, list_of_options=None):
     """
     Plot contourf in the main graph plus profiles over vertical and horizontal
@@ -907,7 +966,7 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
     -------
 
     list:
-        indexes of the crop ``[i_min, i_max, j_min,_j_max]``.
+        indexes of the ROI ``[i_min, i_max, j_min,_j_max]``.
         Useful when the same crop must be applies to other images
 
     Note
