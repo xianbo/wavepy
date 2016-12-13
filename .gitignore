@@ -123,6 +123,6 @@ workingOn/
 # Walan's #
 ###########
 .directory
-_ignore_me*
-
+_ignoreme*
+_*
 

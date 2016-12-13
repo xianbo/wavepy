@@ -123,10 +123,10 @@ def _idxPeak_ij_exp(imgFFT, harV, harH, periodVert, periodHor, searchRegion):
 
     maskSearchRegion = np.zeros((nRows, nColumns))
 
-    maskSearchRegion[idxPeak_ij[0] - periodVert//searchRegion:
-                     idxPeak_ij[0] + periodVert//searchRegion,
-                     idxPeak_ij[1] - periodHor//searchRegion:
-                     idxPeak_ij[1] + periodHor//searchRegion] = 1.0
+    maskSearchRegion[idxPeak_ij[0] - searchRegion:
+                     idxPeak_ij[0] + searchRegion,
+                     idxPeak_ij[1] - searchRegion:
+                     idxPeak_ij[1] + searchRegion] = 1.0
 
     idxPeak_ij_exp = np.where(intensity * maskSearchRegion ==
                               np.max(intensity * maskSearchRegion))
@@ -381,7 +381,7 @@ def extract_harmonic(img, harmonicPeriod,
 
         from matplotlib.patches import Rectangle
         plt.figure()
-        plt.imshow(np.log10(intensity), cmap='Spectral_r')
+        plt.imshow(np.log10(intensity), cmap='inferno')
 
         plt.gca().add_patch(Rectangle((idxPeak_ij[1] - periodHor//2,
                                       idxPeak_ij[0] - periodVert//2),
@@ -445,7 +445,7 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
         periodHor = nColumns
 
     plt.figure()
-    plt.imshow(np.log10(np.abs(imgFFT)), cmap='Spectral_r')
+    plt.imshow(np.log10(np.abs(imgFFT)), cmap='inferno')
 
     harV_min = -(nRows + 1) // 2 // periodVert
     harV_max = (nRows + 1) // 2 // periodVert
@@ -484,6 +484,7 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     plt.ylim(nRows, 0)
     plt.title('log scale FFT magnitude, Hamonics Subsets and Indexes',
               fontsize=16, weight='bold')
+    plt.show(block=True)
 
 
 def single_grating_harmonic_images(img, harmonicPeriod,
@@ -569,7 +570,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
                                       ['FFT 00', 'FFT 01', 'FFT 10']):
 
             # The vmin and vmax arguments specify the color limits
-            im = ax.imshow(dat, cmap='Spectral_r', vmin=np.min(intFFT00),
+            im = ax.imshow(dat, cmap='inferno', vmin=np.min(intFFT00),
                            vmax=np.max(intFFT00))
 
             ax.set_title(textTitle)
@@ -683,20 +684,63 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
 
     '''
 
-    (imgFFT00,
-     imgFFT01,
-     imgFFT10) = single_grating_harmonic_images(img,
-                                                [harmonicPeriod[0],
-                                                 harmonicPeriod[1]],
-                                                searchRegion=searchRegion,
-                                                plotFlag=False,
-                                                verbose=verbose)
-    img00 = np.fft.ifft(imgFFT00)
-    img01 = np.fft.ifft(imgFFT01)
-    img10 = np.fft.ifft(imgFFT10)
+    imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
 
-    return (np.sum(np.abs(img01))/np.sum(np.abs(img00)),
-            np.sum(np.abs(img10))/np.sum(np.abs(img00)))
+    _idxPeak_ij_exp00 = _idxPeak_ij_exp(imgFFT, 0, 0,
+                                        harmonicPeriod[0], harmonicPeriod[1],
+                                        searchRegion)
+
+    _idxPeak_ij_exp10 = _idxPeak_ij_exp(imgFFT, 1, 0,
+                                        harmonicPeriod[0], harmonicPeriod[1],
+                                        searchRegion)
+
+    _idxPeak_ij_exp01 = _idxPeak_ij_exp(imgFFT, 0, 1,
+                                        harmonicPeriod[0], harmonicPeriod[1],
+                                        searchRegion)
+
+
+
+    peak00 = np.abs(imgFFT[_idxPeak_ij_exp00[0], _idxPeak_ij_exp00[1]])
+    peak10 = np.abs(imgFFT[_idxPeak_ij_exp10[0], _idxPeak_ij_exp10[1]])
+    peak01 = np.abs(imgFFT[_idxPeak_ij_exp01[0], _idxPeak_ij_exp01[1]])
+
+    print('01 10 00')
+    print(peak10/peak00)
+    print(peak01/peak00)
+    print(peak00/peak00)
+
+
+
+    return (peak10/peak00, peak01/peak00)
+
+#    (imgFFT00,
+#     imgFFT01,
+#     imgFFT10) = single_grating_harmonic_images(img,
+#                                                [harmonicPeriod[0],
+#                                                 harmonicPeriod[1]],
+#                                                searchRegion=searchRegion,
+#                                                plotFlag=False,
+#                                                verbose=verbose)
+#
+#
+#    print('01 10 00')
+#    print(np.max(np.abs(imgFFT01[260:300,260:300])))
+#
+#    print(np.max(np.abs(imgFFT10[260:300,260:300])))
+#
+#    print(np.max(np.abs(imgFFT00[260:300,260:300])))
+#
+#
+#    return (np.max(np.abs(imgFFT01[260:300,260:300]))/np.max(np.abs(imgFFT00[260:300,260:300])),
+#                  np.max(np.abs(imgFFT10[260:300,260:300]))/np.max(np.abs(imgFFT00[260:300,260:300])))
+
+#
+#    img00 = np.fft.ifft(np.fft.ifftshift(imgFFT00))
+#    img01 = np.fft.ifft(np.fft.ifftshift(imgFFT01))
+#    img10 = np.fft.ifft(np.fft.ifftshift(imgFFT10))
+#
+#    return (np.sum(np.abs(img01))/np.sum(np.abs(img00)),
+#            np.sum(np.abs(img10))/np.sum(np.abs(img00)))
 
 
 #

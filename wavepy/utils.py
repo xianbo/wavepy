@@ -54,6 +54,8 @@ import matplotlib.pyplot as plt
 import time
 from tqdm import tqdm  # progress bar
 
+import pickle as pl
+
 import easygui_qt as easyqt
 import os
 
@@ -240,14 +242,12 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
 
     """
 
-
-
     if arg4side is None:
         arg4side = {}
     if arg4top is None:
         arg4top = {}
     if arg4main is None:
-        arg4main = {}
+        arg4main = {'cmap': 'viridis'}
     from matplotlib.widgets import Cursor
 
     z_min, z_max = float(np.nanmin(zmatrix)), float(np.nanmax(zmatrix))
@@ -984,10 +984,6 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
     :py:func:`wavepy:utils:crop_graphic`
     """
 
-
-    if kargs4graph is None:
-        kargs4graph = {}
-
     from matplotlib.widgets import RectangleSelector
 
     mutable_object_ROI = {'ROI_j_lim': [0, -1],
@@ -996,8 +992,10 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
     def onselect(eclick, erelease):
         """eclick and erelease are matplotlib events at press and release"""
 
-        ROI_j_lim = np.sort([eclick.xdata, erelease.xdata]).astype(int).tolist()
-        ROI_i_lim = np.sort([eclick.ydata, erelease.ydata]).astype(int).tolist()
+        ROI_j_lim = np.sort([eclick.xdata,
+                             erelease.xdata]).astype(int).tolist()
+        ROI_i_lim = np.sort([eclick.ydata,
+                             erelease.ydata]).astype(int).tolist()
         # this round method has
         # an error of +-1pixel
 
@@ -1200,28 +1198,20 @@ def pad_to_make_square(array, mode, **kwargs):
         return array
 
 
-
 def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
     """
     Function to define a rectangular region of interest (ROI) in an image.
 
     """
 
-
     from matplotlib.widgets import Cursor
-
-    if kargs4graph is None:
-        kargs4graph = {}
 
     fig = plt.figure(facecolor="white",
                      figsize=(10, 8))
 
-
-
     surface = plt.imshow(zmatrix,  # origin='lower',
                          cmap='spectral', **kargs4graph)
     plt.autoscale(False)
-
 
     plt.plot(zmatrix.shape[1]//2, zmatrix.shape[0]//2, 'k+', ms=30, mew=2)
     plt.hlines(zmatrix.shape[0]//2, 0, zmatrix.shape[1])
@@ -1298,7 +1288,49 @@ def save_figs_with_idx(patternforname='graph', extension='png'):
     figname = str('{:s}_{:02d}.{:s}'.format(patternforname,
                   next(_figCount),extension))
 
+    while os.path.isfile(figname):
+        figname = str('{:s}_{:02d}.{:s}'.format(patternforname,
+                      next(_figCount),extension))
+
     plt.savefig(figname)
+    print('MESSAGE: ' + figname + ' SAVED')
+
+
+
+
+def save_figs_with_idx_pickle(figObj, patternforname='graph'):
+    '''
+    Use a counter to save the figures with suffix 1, 2, 3, ..., etc
+
+    Parameters
+    ----------
+
+    str: patternforname
+        Prefix for file name. Accept directories path.
+
+    figObj: matplotlib figure object
+
+
+        TODO: WRITE DOCUMENTATION!!!
+
+    '''
+
+    if '_figCount_pickle' not in globals():
+
+            from itertools import count
+            global _figCount_pickle
+            _figCount_pickle = count()
+            next(_figCount_pickle)
+
+    figname = str('{:s}_{:02d}.pickle'.format(patternforname,
+                                              next(_figCount_pickle)))
+
+    while os.path.isfile(figname):
+        figname = str('{:s}_{:02d}.pickle'.format(patternforname,
+                                                  next(_figCount_pickle)))
+
+    pl.dump(figObj, open(figname, 'wb'))
+
     print('MESSAGE: ' + figname + ' SAVED')
 
 
