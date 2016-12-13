@@ -507,8 +507,9 @@ def select_dir(message_to_print=None, pattern='**/'):
 
 
 def gui_load_data_ref_dark_files(directory=''):
-
-
+    '''
+        TODO: Write Docstring
+    '''
 
 
     originalDir = os.getcwd()
