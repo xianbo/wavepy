@@ -63,6 +63,9 @@ import dxchange
 
 import configparser
 
+
+from matplotlib.widgets import Slider, Button, RadioButtons, CheckButtons
+
 __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
@@ -561,6 +564,56 @@ def gui_load_data_ref_dark_files(directory=''):
     return (dxchange.read_tiff(fname1), dxchange.read_tiff(fname2),
             dxchange.read_tiff(fname3))
 
+def gui_load_data_dark_files(directory=''):
+    '''
+        TODO: Write Docstring
+    '''
+
+
+    originalDir = os.getcwd()
+
+
+    def check_empty_fname(fname):
+
+
+        if fname == []:
+            return None
+        else:
+            return fname[0]
+
+
+    if directory != '':
+
+        if os.path.isdir(directory):
+            os.chdir(directory)
+        else:
+            print_red("WARNING: Directory " + directory + " doesn't exist.")
+            print_blue("MESSAGE: Using current working directory " +
+                       originalDir)
+
+
+    fname1 = easyqt.get_file_names("File name with Data")
+
+    if len(fname1) == 2:
+        [fname1, fname2] = fname1
+
+    else:
+
+        fname1 = check_empty_fname(fname1)
+
+        os.chdir(fname1.rsplit('/', 1)[0])
+
+        fname2 = easyqt.get_file_names("File name with Reference")
+
+        fname2 = check_empty_fname(fname2)
+
+    os.chdir(originalDir)
+
+    print_blue('MESSAGE: Loading ' + fname1)
+    print_blue('MESSAGE: Loading ' + fname2)
+
+
+    return (dxchange.read_tiff(fname1), dxchange.read_tiff(fname2))
 
 def _choose_one_of_this_options(header=None, list_of_options=None):
     """
@@ -1175,8 +1228,6 @@ def crop_graphic_image(image, verbose=False, kargs4graph={}):
     return crop_matrix_at_indexes(image, idx), idx
 
 
-
-
 def pad_to_make_square(array, mode, **kwargs):
     '''
     #TODO: write docs
@@ -1261,6 +1312,141 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
     return mutable_object_xy['xo'], mutable_object_xy['yo']
 
 
+def plot_slide_colorbar(zmatrix, title='',
+                        xlabel='', ylabel='',
+                        min_slider_val=None,
+                        max_slider_val=None,
+                        **kwargs4imshow):
+    '''
+    TODO: Write docstring
+    '''
+
+
+
+    fig, ax = plt.subplots(figsize=(10,9))
+    plt.subplots_adjust(left=0.25, bottom=0.25)
+
+    surf = plt.imshow(zmatrix, cmap='viridis', **kwargs4imshow)
+    plt.title(title, fontsize=14, weight='bold')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    fig.colorbar(surf)
+
+    axcmin = plt.axes([0.25, 0.1, 0.65, 0.03])
+    axcmax = plt.axes([0.25, 0.15, 0.65, 0.03])
+
+    cmin_o = surf.get_clim()[0]
+    cmax_o = surf.get_clim()[1]
+
+    if min_slider_val is None:
+        min_slider_val = (9*cmin_o - cmax_o)/8
+        #        min_slider_val = np.mean(zmatrix) - 8*np.std(zmatrix)
+
+    if max_slider_val is None:
+        max_slider_val = (9*cmax_o - cmin_o)/8
+        #        max_slider_val = np.mean(zmatrix) + 8*np.std(zmatrix)
+
+    scmin = Slider(axcmin, 'Min',
+                   min_slider_val, max_slider_val,
+                   valinit=cmin_o)
+    scmax = Slider(axcmax, 'Max',
+                   min_slider_val, max_slider_val,
+                   valinit=cmax_o)
+
+    resetax = plt.axes([0.8, 0.015, 0.1, 0.04])
+    button = Button(resetax, 'Reset', hovercolor='0.975')
+
+    logax = plt.axes([0.025, 0.7, 0.15, 0.15])
+    radio2 = RadioButtons(logax, ('lin', 'log'), active=0)
+
+    cmapax = plt.axes([0.025, 0.3, 0.15, 0.25])
+    radio1 = RadioButtons(cmapax, ('gray', 'gray_r',
+                                   'viridis', 'viridis_r',
+                                   'gnuplot', 'rainbow'), active=2)
+
+    maskFlag = False
+    maskax = plt.axes([0.025, 0.15, 0.15, 0.10])
+    chkbtom = CheckButtons(maskax, labels=['Mask'],
+                           actives=[maskFlag])
+
+
+    def maskfunc(label):
+        if chkbtom.lines[0][0].get_visible():
+            zmatrix_tmp = np.copy(zmatrix)
+
+            zmatrix_tmp[np.where(zmatrix > scmax.val)] = np.nan
+            zmatrix_tmp[np.where(zmatrix < scmin.val)] = np.nan
+
+            surf.set_data(zmatrix_tmp)
+        else:
+            surf.set_data(zmatrix)
+
+
+    chkbtom.on_clicked(maskfunc)
+
+    def update(val):
+        cmin = scmin.val
+        cmax = scmax.val
+
+        if cmin < cmax:
+            scmin.label.set_text('Min')
+            scmax.label.set_text('Max')
+        else:
+            scmin.label.set_text('Max')
+            scmax.label.set_text('Min')
+
+        if radio2.value_selected == 'log':
+            cmin = np.log10(cmin)
+            cmax = np.log10(cmax)
+            zmatrix_2plot = np.log10(zmatrix)
+        else:
+            zmatrix_2plot = np.copy(zmatrix)
+
+        surf.set_clim(cmax, cmin)
+
+        if chkbtom.lines[0][0].get_visible():
+            zmatrix_2plot[np.where(zmatrix > scmax.val)] = np.nan
+            zmatrix_2plot[np.where(zmatrix < scmin.val)] = np.nan
+            surf.set_data(zmatrix_2plot)
+
+        surf.set_data(zmatrix_2plot)
+        fig.canvas.draw_idle()
+
+    scmin.on_changed(update)
+    scmax.on_changed(update)
+
+    def reset(event):
+        scmin.reset()
+        scmax.reset()
+    button.on_clicked(reset)
+
+    def colorfunc(label):
+        surf.set_cmap(label)
+        fig.canvas.draw_idle()
+    radio1.on_clicked(colorfunc)
+
+    def log_or_lin(label):
+        if label == 'lin':
+            zmatrix_tmp = zmatrix
+        elif label == 'log':
+            zmatrix_tmp = np.log10(zmatrix)
+
+        surf.set_data(zmatrix_tmp)
+        surf.set_clim(zmatrix_tmp.min(), zmatrix_tmp.max())
+        scmin.set_val(zmatrix_tmp.min())
+        scmax.set_val(zmatrix_tmp.max())
+        scmin.reset()
+        scmax.reset()
+        fig.canvas.draw_idle()
+    radio2.on_clicked(log_or_lin)
+
+
+
+    plt.show(block=True)
+
+    return [scmin.val, scmax.val]
+
+
 def save_figs_with_idx(patternforname='graph', extension='png'):
     '''
     Use a counter to save the figures with suffix 1, 2, 3, ..., etc
@@ -1295,8 +1481,6 @@ def save_figs_with_idx(patternforname='graph', extension='png'):
 
     plt.savefig(figname)
     print('MESSAGE: ' + figname + ' SAVED')
-
-
 
 
 def save_figs_with_idx_pickle(figObj, patternforname='graph'):
