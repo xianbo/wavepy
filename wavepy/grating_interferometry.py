@@ -98,7 +98,10 @@ __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
-__all__ = ['extract_harmonic', 'plot_harmonic_grid']
+__all__ = ['exp_harm_period', 'extract_harmonic',
+           'plot_harmonic_grid', 'plot_harmonic_peak',
+           'single_grating_harmonic_images', 'single_2Dgrating_analyses',
+           'visib_1st_harmonics']
 
 
 def _idxPeak_ij(harV, harH, nRows, nColumns, periodVert, periodHor):
@@ -162,6 +165,10 @@ def _check_harmonic_inside_image(harV, harH, nRows, nColumns,
 
 def _error_harmonic_peak(imgFFT, harV, harH,
                          periodVert, periodHor, searchRegion=10):
+    """
+    Error in pixels (in the reciprocal space) between the harmonic peak and
+    the provided theoretical value
+    """
 
     (nRows, nColumns) = imgFFT.shape
 
@@ -183,7 +190,8 @@ def exp_harm_period(img, harmonicPeriod,
                     harmonic_ij='00', searchRegion=10,
                     isFFT=False, verbose=True):
     """
-    TODO: Write Documentation
+    Function to obtain the position (in pixels) in the reciprocal space
+    of the first harmonic ().
     """
 
     (nRows, nColumns) = img.shape
@@ -244,10 +252,10 @@ def extract_harmonic(img, harmonicPeriod,
 
     Parameters
     ----------
-    imgFFT : 	ndarray – Data (data_exchange format)
-        FFT of the Experimental image, whith proper blank image, crop and
-        rotation already applied.
 
+    img : 	ndarray – Data (data_exchange format)
+        Experimental image, whith proper blank image, crop and rotation already
+        applied.
 
     harmonicPeriod : list of integers in the format [periodVert, periodHor]
         ``periodVert`` and ``periodVert`` are the period of the harmonics in
@@ -255,10 +263,7 @@ def extract_harmonic(img, harmonicPeriod,
         periodVert = sqrt(2) * pixel Size / grating Period * number of
         rows in the image. For 1D grating, set one of the values to negative or
         zero (it will set the period to number of rows or colunms).
-    if not isFFT:
-        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img)))
-    else:
-        imgFFT = img
+
     harmonic_ij : string or list of string
         string with the harmonic to extract, for instance '00', '01', '10'
         or '11'. In this notation negative harmonics are not allowed.
@@ -270,12 +275,17 @@ def extract_harmonic(img, harmonicPeriod,
         Note that since the original image contain only real numbers (not
         complex), then negative and positive harmonics are symetric
         related to zero.
+    isFFT : Boolean
+        Flag that tells if the input image ``img`` is in the reciprocal
+        (``isFFT=True``) or in the real space (``isFFT=False``)
 
     searchRegion: int
         search for the peak will be in a region of harmonicPeriod/searchRegion
         around the theoretical peak position
 
-    plotFlag: boolean
+    plotFlag: Boolean
+        Flag to plot the image in the reciprocal space and to show the position
+        of the found peaked and the limits of the harmonic image
 
     verbose: Boolean
         verbose flag.
@@ -421,9 +431,9 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
         ``periodVert = sqrt(2) * pixel Size / grating Period * number of
         rows in the image``
 
-    isFFT : boolean
-        if True, then imf is the FFT of the desired image. Used to avoid an
-        extra FFT operation, which can be time consuming
+    isFFT : Boolean
+        Flag that tells if the input image ``img`` is in the reciprocal
+        (``isFFT=True``) or in the real space (``isFFT=False``)
 
     """
 
@@ -487,8 +497,26 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
 
 
 def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
-	"""
-    TODO: Write Documentation
+    """
+    Funtion to plot the profile of the harmonic peaks ``10`` and ``01``.
+    It is ploted 11 profiles of the 11 nearest vertical (horizontal)
+    lines to the peak ``01`` (``10``)
+
+    img : 	ndarray – Data (data_exchange format)
+        Experimental image, whith proper blank image, crop and rotation already
+        applied.
+
+    harmonicPeriod : integer or list of integers
+        If list, it must be in the format ``[periodVert, periodHor]``. If
+        integer, then [periodVert = periodHor``.
+        ``periodVert`` and ``periodVert`` are the period of the harmonics in
+        the reciprocal space in pixels. For the checked board grating,
+        ``periodVert = sqrt(2) * pixel Size / grating Period * number of
+        rows in the image``
+
+    isFFT : Boolean
+        Flag that tells if the input image ``img`` is in the reciprocal
+        (``isFFT=True``) or in the real space (``isFFT=False``)
     """
 
 
@@ -545,9 +573,6 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
 
     ax2.set_xlabel('Pixels')
     ax2.set_ylabel(r'$| FFT |$ ')
-#
-#    ax1.legend(fontsize=8)
-#    ax2.legend(fontsize=8)
     plt.show(block=False)
 
     if fname is not None:
