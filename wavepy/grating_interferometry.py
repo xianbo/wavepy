@@ -641,6 +641,8 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
             diffPhase01, diffPhase10]
 
 
+
+
 def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
     '''
     This function obtain the visibility in a grating imaging experiment by the
@@ -704,43 +706,8 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
     peak10 = np.abs(imgFFT[_idxPeak_ij_exp10[0], _idxPeak_ij_exp10[1]])
     peak01 = np.abs(imgFFT[_idxPeak_ij_exp01[0], _idxPeak_ij_exp01[1]])
 
-    print('01 10 00')
-    print(peak10/peak00)
-    print(peak01/peak00)
-    print(peak00/peak00)
+    return (2*peak10/peak00, 2*peak01/peak00)
 
 
 
-    return (peak10/peak00, peak01/peak00)
 
-#    (imgFFT00,
-#     imgFFT01,
-#     imgFFT10) = single_grating_harmonic_images(img,
-#                                                [harmonicPeriod[0],
-#                                                 harmonicPeriod[1]],
-#                                                searchRegion=searchRegion,
-#                                                plotFlag=False,
-#                                                verbose=verbose)
-#
-#
-#    print('01 10 00')
-#    print(np.max(np.abs(imgFFT01[260:300,260:300])))
-#
-#    print(np.max(np.abs(imgFFT10[260:300,260:300])))
-#
-#    print(np.max(np.abs(imgFFT00[260:300,260:300])))
-#
-#
-#    return (np.max(np.abs(imgFFT01[260:300,260:300]))/np.max(np.abs(imgFFT00[260:300,260:300])),
-#                  np.max(np.abs(imgFFT10[260:300,260:300]))/np.max(np.abs(imgFFT00[260:300,260:300])))
-
-#
-#    img00 = np.fft.ifft(np.fft.ifftshift(imgFFT00))
-#    img01 = np.fft.ifft(np.fft.ifftshift(imgFFT01))
-#    img10 = np.fft.ifft(np.fft.ifftshift(imgFFT10))
-#
-#    return (np.sum(np.abs(img01))/np.sum(np.abs(img00)),
-#            np.sum(np.abs(img10))/np.sum(np.abs(img00)))
-
-
-#
