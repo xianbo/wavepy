@@ -1194,7 +1194,7 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None,
                yvec[idx[0]:idx[1]], \
                crop_matrix_at_indexes(zmatrix, idx), idx
 
-def crop_graphic_image(image, verbose=False, kargs4graph={}):
+def crop_graphic_image(image, verbose=False, **kargs4graph):
     """
 
     Similar to :py:func:`wavepy.utils.crop_graphic`, but only for the main matrix
@@ -1223,7 +1223,7 @@ def crop_graphic_image(image, verbose=False, kargs4graph={}):
     """
 
 
-    idx = graphical_roi_idx(image, verbose=verbose, kargs4graph=kargs4graph)
+    idx = graphical_roi_idx(image, verbose=verbose, **kargs4graph)
 
     return crop_matrix_at_indexes(image, idx), idx
 
@@ -2022,8 +2022,8 @@ def load_ini_file(inifname):
 
     The ``ini`` file must contain two sections: ``Files`` and ``Parameters``.
     The ``Files`` section list all files to be loaded. If you don't accept the
-    default     value that it is offered, it will run
-    :py:func:`wavepy.utils..select_file` to select other file.
+    default value that it is offered, it will run
+    :py:func:`wavepy.utils.select_file` to select other file.
 
     The section ``Parameters`` can contain anything, in any format, but keep in
     mind that they are passed as string.
