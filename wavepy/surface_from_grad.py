@@ -49,43 +49,80 @@
 """
 
 
-Function to obtain the surface from gradient data
+Surface from gradient data
 -------------------------------------------------
 
 In many x-ray imaging techniques we obtain the differential phase of the
 wavefront in two directions. This is the same as to say that we measured
 the gradient of the phase. Therefore to obtain the phase we need a method to
-integrate the differential data.
+integrate the differential data. Matematically we want to obtain the surface
+:math:`s(x,y)` from the (experimental) differential curves
+:math:`s_x = s_x(x,y) = \\frac{\\partial s (x, y)}{\\partial x}` and
+:math:`s_y = s_y(x,y) = \\frac{\\partial s (x, y)}{\\partial y}`.
+
 
 This is not as straight forward as it looks. The main reason is that, to be
 able to calculate the function from its gradient, the partial derivatives must
-be integrable (that is, the two cross partial derivative of the function must
-be equal). However, due to experimental errors and noises, there are no
+be integrable. A function is integrable when the two cross partial
+derivative of the function are equal, that is
+
+    .. math::
+        \\frac{\\partial^2 s (x, y)}{\\partial x \\partial y} =
+        \\frac{\\partial^2 s (x, y)}{\\partial y \\partial x}
+
+
+
+However, due to experimental errors and noises, there are no
 guarantees that the data is integrable (very likely they are not).
 
 
-Different methods have been developed in other areas of science, in special
-computer vision, where this problem is refered as "Surface Reconstruction
-from Gradient Fields", and for consistense we will (try to) use this term.
+To obtain a signal/image from differential information is a broader topic
+with application in others topic of science. Few methods have been
+developed in different context, in special
+computer vision where this problem is refered as "Surface Reconstruction
+from Gradient Fields". For consistense, we will (try to) stick to this same
+term.
+
+These methods try to find the best signal :math:`s(x,y)` that best describes
+the differential curves. For this reason, it is advised to use some
+kind of check for the integration, for instance by calculating the gradient
+from the result and comparing with the original gradient. It is better if
+this is done in the current library. See for instance the use of
+:py:func:`wavepy.error_integration` in the function
+:py:func:`wavepy.surdace_from_grad.frankotchellappa` below.
+
+It is the goal for this library to add few different methods, since it is
+clear that different methods have different strenghts and weakness
+(precision, processing time, memory requirements, etc).
 
 
-The simplest method is the so-called Frankot-Chelappa method. The idea
-behind this method is to search (calculate) an integrable gradient field
-that best fits the data. Luckly, Frankot Chelappa were able in they article
-to find a simple single (non interective) equation for that. We are
-even luckier since this equation makes use of FFT, which is very
-computationally efficient.
 
-However it is  is well known that Frankot-Chelappa is not the best method. More
-advanced alghorithms are available, where it is used more complex math and
-interactive methods. Unfortunatelly, these algorothims are only available for
-MATLAB.
+References
+----------
 
+    `Frankot, R. T., & Chellappa, R. (1988). A method for enforcing
+    integrability in shape from shading algorithms
+    <https://doi.org/10.1109/34.3909>`_.
 
-There are plans to make use of such methods in the future, but for now we
-only provide the Frankot-Chelappa. It is advised to use some kind of check
-for the integration, for instance by calculating the gradient from the result
-and comparing with the original gradient.
+    `Agrawal, A. et al (2006). What Is the Range of Surface Reconstructions
+    from a Gradient Field?
+    <https://doi.org/10.1007/11744023_45>`_.
+
+    `Harker, M. et al (2008). Least squares surface reconstruction from
+    measured gradient fields
+    <https://doi.org/10.1109/CVPR.2008.4587414>`_.
+
+    `Sevcenco, I. S. et al (2015). A wavelet based method for image
+    reconstruction from gradient data with applications
+    <https://doi.org/10.1007/s11045-013-0262-3>`_.
+
+    `Harker, M. et al (2015). MATLAB toolbox for the regularized surface
+    reconstruction from gradients
+    <https://doi.org/10.1117/12.2182827>`_.
+
+    `Huang, L .et al (2015). Comparison of two-dimensional integration
+    methods for shape reconstruction from gradient data
+    <https://doi.org/10.1016/j.optlaseng.2014.07.002>`_.
 
 
 """
@@ -105,6 +142,63 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
     """
 
     Frankt-Chellappa Algorithm
+    ---------------------------
+
+
+    The simplest method is the so-called Frankot-Chelappa method. The idea
+    behind this method is to search (calculate) an integrable gradient field
+    that best fits the data. Luckly, Frankot Chelappa were able in they article
+    to find a simple single (non interective) equation for that. We are
+    even luckier since this equation makes use of FFT, which is very
+    computationally efficient.
+
+    Considering a signal :math:`s(x,y)`
+    with differential signal given by
+    :math:`s_x = s_x(x,y) = \\frac{\\partial s (x, y)}{\\partial x}` and
+    :math:`s_y = s_y(x,y) = \\frac{\\partial s (x, y)}{\\partial y}`. The
+    Fourier Transform of :math:`s_x` and :math:`s_y` are given by
+
+    .. math::
+            \\mathcal{F} \\left [ s_x \\right ] =
+            \\mathcal{F} \\left [ s_x \\right ] (f_x, f_y) =
+            \\mathcal{F} \\left [ \\frac{\\partial s (x, y)}
+            {\\partial x} \\right ](f_x, f_y), \\quad
+            \\mathcal{F} \\left [ s_y \\right ] =
+            \\mathcal{F} \\left [ s_y \\right ] (f_x, f_y) =
+            \\mathcal{F} \\left [ \\frac{\\partial s (x, y)}
+            {\\partial y} \\right ](f_x, f_y).
+
+
+
+    Finally, Frankot-Chellappa method is base in solving the following equation:
+
+
+    .. math::
+            \\mathcal{F} \\left [ s \\right ] = \\frac{-i f_x \\mathcal{F}
+            \\left [ s_x \\right ] - i f_y \\mathcal{F} \\left [ s_y
+            \\right ]}{2 \\pi (f_x^2 + f_y^2 )}
+
+    where
+
+    .. math::
+            \\mathcal{F} \\left [ s \\right ] = \\mathcal{F} \\left[
+            s(x, y) \\right ] (f_x, f_y)
+
+    is the Fourier Transform of :math:`s`.
+
+    To avoid the singularity in the denominator, it is added
+    :py:func:`numpy.finfo(float).eps`, the smallest float number in the
+    machine.
+
+    Keep in mind that Frankot-Chelappa is not the best method. More advanced
+    alghorithms are available, where it is used more complex math and
+    interactive methods. Unfortunatelly, these algorothims are only available
+    for MATLAB.
+
+
+
+
+
 
     Parameters
     ----------
@@ -194,6 +288,12 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
     --------
         `Original Frankt-Chellappa Algorithm
         paper <http://dx.doi.org/10.1109/34.3909l>`_.
+
+        The padding we use here is `Huang, L .et al (2015). Comparison of
+        two-dimensional integration
+        methods for shape reconstruction from gradient data
+        <https://doi.org/10.1016/j.optlaseng.2014.07.002>`_.
+
 
     """
 
