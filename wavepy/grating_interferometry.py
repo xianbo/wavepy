@@ -722,17 +722,17 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
     darkField01 = int01/int00
     darkField10 = int10/int00
 
-    diffPhase01 = np.angle(h_img[1]) - np.angle(h_img_ref[1])
-    diffPhase10 = np.angle(h_img[2]) - np.angle(h_img_ref[2])
+    arg01 = np.angle(h_img[1]) - np.angle(h_img_ref[1])
+    arg10 = np.angle(h_img[2]) - np.angle(h_img_ref[2])
 
     if unwrapFlag == 1:
 
-        diffPhase01 = unwrap_phase(diffPhase01)
-        diffPhase10 = unwrap_phase(diffPhase10)
+        arg01 = unwrap_phase(arg01)
+        arg10 = unwrap_phase(arg10)
 
     return [int00, int01, int10,
             darkField01, darkField10,
-            diffPhase01, diffPhase10]
+            arg01, arg10]
 
 
 
