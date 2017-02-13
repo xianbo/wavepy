@@ -507,7 +507,13 @@ def select_dir(message_to_print=None, pattern='**/'):
 
 
 
+def _check_empty_fname(fname):
 
+
+    if fname == []:
+        return None
+    else:
+        return fname[0]
 
 def gui_load_data_ref_dark_files(directory=''):
     '''
@@ -517,14 +523,6 @@ def gui_load_data_ref_dark_files(directory=''):
 
     originalDir = os.getcwd()
 
-
-    def check_empty_fname(fname):
-
-
-        if fname == []:
-            return None
-        else:
-            return fname[0]
 
 
     if directory != '':
@@ -544,15 +542,15 @@ def gui_load_data_ref_dark_files(directory=''):
 
     else:
 
-        fname1 = check_empty_fname(fname1)
+        fname1 = _check_empty_fname(fname1)
 
         os.chdir(fname1.rsplit('/', 1)[0])
 
         fname2 = easyqt.get_file_names("File name with Reference")
         fname3 = easyqt.get_file_names("File name with Dark Image")
 
-        fname2 = check_empty_fname(fname2)
-        fname3 = check_empty_fname(fname3)
+        fname2 = _check_empty_fname(fname2)
+        fname3 = _check_empty_fname(fname3)
 
     os.chdir(originalDir)
 
@@ -573,15 +571,6 @@ def gui_load_data_dark_files(directory=''):
     originalDir = os.getcwd()
 
 
-    def check_empty_fname(fname):
-
-
-        if fname == []:
-            return None
-        else:
-            return fname[0]
-
-
     if directory != '':
 
         if os.path.isdir(directory):
@@ -599,13 +588,13 @@ def gui_load_data_dark_files(directory=''):
 
     else:
 
-        fname1 = check_empty_fname(fname1)
+        fname1 = _check_empty_fname(fname1)
 
         os.chdir(fname1.rsplit('/', 1)[0])
 
         fname2 = easyqt.get_file_names("File name with Reference")
 
-        fname2 = check_empty_fname(fname2)
+        fname2 = _check_empty_fname(fname2)
 
     os.chdir(originalDir)
 
@@ -614,6 +603,7 @@ def gui_load_data_dark_files(directory=''):
 
 
     return (dxchange.read_tiff(fname1), dxchange.read_tiff(fname2))
+
 
 def _choose_one_of_this_options(header=None, list_of_options=None):
     """
@@ -1321,7 +1311,9 @@ def plot_slide_colorbar(zmatrix, title='',
     TODO: Write docstring
     '''
 
-
+    zmatrix = zmatrix.astype(float)  # avoid problems wjen masking integer
+                                     # images. necessary because integer NAN
+                                     # doesn't exist
 
     fig, ax = plt.subplots(figsize=(10,9))
     plt.subplots_adjust(left=0.25, bottom=0.25)
