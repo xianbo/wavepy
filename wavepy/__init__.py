@@ -49,6 +49,8 @@
 
 from wavepy.utils import *
 from wavepy.speckletracking import *
+from wavepy.surface_from_grad import *
+
 
 try:
     import pkg_resources
