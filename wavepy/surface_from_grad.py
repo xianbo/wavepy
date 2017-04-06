@@ -170,7 +170,8 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
 
 
 
-    Finally, Frankot-Chellappa method is base in solving the following equation:
+    Finally, Frankot-Chellappa method is base in solving the following
+    equation:
 
 
     .. math::

@@ -50,9 +50,13 @@ Utility functions to help.
 """
 
 import numpy as np
+from scipy import constants
+
+
 import matplotlib.pyplot as plt
 import time
 from tqdm import tqdm  # progress bar
+import glob
 
 import pickle as pl
 
@@ -82,6 +86,11 @@ __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'h5_list_of_groups',
            'progress_bar4pmap', 'load_ini_file']
 
+global hc, deg2rad, rad2deg
+
+hc = constants.value('inverse meter-electron volt relationship')  # hc
+deg2rad = np.deg2rad(1)
+rad2deg = np.rad2deg(1)
 
 def print_color(message, color='red',
                 highlights='on_white', attrs=''):
@@ -437,10 +446,6 @@ def select_file(pattern='*', message_to_print=None):
 
     """
 
-    import glob
-
-
-
     pattern = input('File type: [' + pattern + ']: ') or pattern
 
     list_files = glob.glob(pattern, recursive=True)
@@ -506,24 +511,20 @@ def select_dir(message_to_print=None, pattern='**/'):
     return select_file(pattern=pattern, message_to_print=message_to_print)
 
 
-
 def _check_empty_fname(fname):
-
 
     if fname == []:
         return None
     else:
-        return fname[0]
+        return fname
+
 
 def gui_load_data_ref_dark_files(directory=''):
     '''
         TODO: Write Docstring
     '''
 
-
     originalDir = os.getcwd()
-
-
 
     if directory != '':
 
@@ -542,14 +543,12 @@ def gui_load_data_ref_dark_files(directory=''):
 
     else:
 
-        fname1 = _check_empty_fname(fname1)
-
+        fname1 = fname1[0]  # convert list to string
         os.chdir(fname1.rsplit('/', 1)[0])
 
-        fname2 = easyqt.get_file_names("File name with Reference")
-        fname3 = easyqt.get_file_names("File name with Dark Image")
+        fname2 = easyqt.get_file_names("File name with Reference")[0]
+        fname3 = easyqt.get_file_names("File name with Dark Image")[0]
 
-        fname2 = _check_empty_fname(fname2)
         fname3 = _check_empty_fname(fname3)
 
     os.chdir(originalDir)
@@ -558,18 +557,16 @@ def gui_load_data_ref_dark_files(directory=''):
     print_blue('MESSAGE: Loading ' + fname2)
     print_blue('MESSAGE: Loading ' + fname3)
 
-
     return (dxchange.read_tiff(fname1), dxchange.read_tiff(fname2),
             dxchange.read_tiff(fname3))
+
 
 def gui_load_data_dark_files(directory=''):
     '''
         TODO: Write Docstring
     '''
 
-
     originalDir = os.getcwd()
-
 
     if directory != '':
 
@@ -580,7 +577,6 @@ def gui_load_data_dark_files(directory=''):
             print_blue("MESSAGE: Using current working directory " +
                        originalDir)
 
-
     fname1 = easyqt.get_file_names("File name with Data")
 
     if len(fname1) == 2:
@@ -588,21 +584,81 @@ def gui_load_data_dark_files(directory=''):
 
     else:
 
-        fname1 = _check_empty_fname(fname1)
-
+        fname1 = fname1[0]  # convert list to string
         os.chdir(fname1.rsplit('/', 1)[0])
-
-        fname2 = easyqt.get_file_names("File name with Reference")
-
-        fname2 = _check_empty_fname(fname2)
+        fname2 = easyqt.get_file_names("File name with Reference")[0]
 
     os.chdir(originalDir)
 
     print_blue('MESSAGE: Loading ' + fname1)
     print_blue('MESSAGE: Loading ' + fname2)
 
-
     return (dxchange.read_tiff(fname1), dxchange.read_tiff(fname2))
+
+
+def load_files_scan(samplefileName, split_char='_', suffix='.tif'):
+    '''
+
+    alias for
+
+    >>> glob.glob(samplefileName.rsplit('_', 1)[0] + '*' + suffix)
+
+    '''
+
+    return glob.glob(samplefileName.rsplit('_', 1)[0] + '*' + suffix)
+
+# %%
+
+def gui_list_data_phase_stepping(directory=''):
+    '''
+        TODO: Write Docstring
+    '''
+
+    originalDir = os.getcwd()
+
+    if directory != '':
+
+        if os.path.isdir(directory):
+            os.chdir(directory)
+        else:
+            print_red("WARNING: Directory " + directory + " doesn't exist.")
+            print_blue("MESSAGE: Using current working directory " +
+                       originalDir)
+
+    samplef1 = easyqt.get_file_names("Choose one of the scan " +
+                                     "files with sample")
+
+    if len(samplef1) == 3:
+        [samplef1, samplef2, samplef3] = samplef1
+
+    else:
+
+        samplef1 = samplef1[0]
+        os.chdir(samplef1.rsplit('/', 1)[0])
+
+        samplef2 = easyqt.get_file_names("File name with Reference")[0]
+        samplef3 = easyqt.get_file_names("File name with Dark Image")
+
+        if len(samplef3) == 1:
+            samplef3 = samplef3[0]
+        else:
+            samplef3 = ''
+            print_red('MESSAGE: You choosed to not use dark images')
+
+    print_blue('MESSAGE: Sample files directory: ' +
+               samplef1.rsplit('/', 1)[0])
+
+    samplef1.rsplit('/', 1)[0]
+
+    listf1 = load_files_scan(samplef1)
+    listf2 = load_files_scan(samplef2)
+    listf3 = load_files_scan(samplef3)
+
+    listf1.sort()
+    listf2.sort()
+    listf3.sort()
+
+    return listf1, listf2, listf3
 
 
 def _choose_one_of_this_options(header=None, list_of_options=None):
@@ -1138,7 +1194,8 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None,
     Parameters
     ----------
     xvec, yvec: 1D ndarray
-        vector with the coordinates ``x`` and ``y``
+        vector with the coordinates ``x`` and ``y``. See below how the returned
+        variables change dependnding whether these vectors are provided.
     zmatrix: 2D numpy array
         image to be croped, as an 2D ndarray
     **kargs4graph:
@@ -1147,7 +1204,9 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None,
     Returns
     -------
     1D ndarray, 1D ndarray:
-        cropped coordinate vectors ``x`` and  ``y``
+        cropped coordinate vectors ``x`` and  ``y``. These two vectors are
+        only returned the input vectors ``xvec`` and ``xvec`` are provided
+
     2D ndarray:
         cropped image
     list:
@@ -1161,8 +1220,12 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None,
     >>> xVec = np.arange(0.,101)
     >>> yVec = np.arange(0.,101)
     >>> img = dummy_images('Shapes', size=(101,101), FWHM_x = .5, FWHM_y=1.0)
-    >>> (xVecCroped, yVecCroped, imgCroped, idx4crop) = crop_graphic(xVec, yVec, img)
+    >>> (imgCroped, idx4crop) = crop_graphic(zmatrix=img)
     >>> plt.imshow(imgCroped, cmap='Spectral')
+    >>> (xVecCroped, yVecCroped, imgCroped, idx4crop) = crop_graphic(xVec, yVec, img)
+    >>> plt.imshow(imgCroped, cmap='Spectral',
+    >>>            extent=np.array([xVecCroped[0], xVecCroped[-1],
+    >>>                             yVecCroped[0], yVecCroped[-1]])
 
 
     .. image:: img/graphical_roi_idx_in_action.gif
@@ -1174,9 +1237,9 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None,
     :py:func:`wavepy.utils.graphical_roi_idx`
     """
 
-    idx = graphical_roi_idx(zmatrix, verbose=verbose, **kargs4graph)
+    idx = graphical_roi_idx(zmatrix, verbose=verbose, kargs4graph=kargs4graph)
 
-    if xvec is None:
+    if xvec is None or yvec is None:
         return crop_matrix_at_indexes(zmatrix, idx), idx
 
     else:
@@ -1354,7 +1417,7 @@ def plot_slide_colorbar(zmatrix, title='',
     cmapax = plt.axes([0.025, 0.3, 0.15, 0.25])
     radio1 = RadioButtons(cmapax, ('gray', 'gray_r',
                                    'viridis', 'viridis_r',
-                                   'gnuplot', 'rainbow'), active=2)
+                                   'inferno', 'rainbow'), active=2)
 
     maskFlag = False
     maskax = plt.axes([0.025, 0.15, 0.15, 0.10])
@@ -1436,7 +1499,7 @@ def plot_slide_colorbar(zmatrix, title='',
 
     plt.show(block=True)
 
-    return [scmin.val, scmax.val]
+    return [[scmin.val, scmax.val], radio1.value_selected]
 
 
 def save_figs_with_idx(patternforname='graph', extension='png'):

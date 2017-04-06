@@ -87,11 +87,7 @@ case.
 import numpy as np
 import matplotlib.pyplot as plt
 import wavepy.utils as wpu
-
 from skimage.restoration import unwrap_phase
-
-
-import unwrap as uw
 
 
 __authors__ = "Walan Grizolli"
@@ -380,7 +376,7 @@ def extract_harmonic(img, harmonicPeriod,
               idxPeak_ij[0], idxPeak_ij[1]))
 
     if ((np.abs(del_i) > searchRegion // 2) or
-       (np.abs(del_j) >  searchRegion // 2)):
+       (np.abs(del_j) > searchRegion // 2)):
 
         wpu.print_red("ATTENTION: Harmonic Peak " + harmonic_ij[0] +
                       harmonic_ij[1] + " is too far from theoretical value.")
@@ -410,7 +406,6 @@ def extract_harmonic(img, harmonicPeriod,
 
 
 def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
-
     """
     Takes the FFT of single 2D grating Talbot imaging and plot the grid from
     where we extract the harmonic in a image of the
@@ -438,7 +433,8 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     """
 
     if not isFFT:
-        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img), norm='ortho'))
+        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img),
+                                             norm='ortho'))
     else:
         imgFFT = img
 
@@ -454,7 +450,7 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     if periodHor <= 0 or periodHor is None:
         periodHor = nColumns
 
-    plt.figure()
+    plt.figure(figsize=(10, 6))
     plt.imshow(np.log10(np.abs(imgFFT)), cmap='inferno')
 
     harV_min = -(nRows + 1) // 2 // periodVert
@@ -519,9 +515,9 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
         (``isFFT=True``) or in the real space (``isFFT=False``)
     """
 
-
     if not isFFT:
-        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img), norm='ortho'))
+        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img),
+                                             norm='ortho'))
     else:
         imgFFT = img
 
@@ -529,7 +525,6 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
 
     periodVert = harmonicPeriod[0]
     periodHor = harmonicPeriod[1]
-
 
     # adjusts for 1D grating
     if periodVert <= 0 or periodVert is None:
@@ -579,12 +574,9 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
         plt.savefig(fname)
 
 
-
-
 def single_grating_harmonic_images(img, harmonicPeriod,
                                    searchRegion=10,
                                    plotFlag=False, verbose=False):
-
     """
     Auxiliary function to process the data of single 2D grating Talbot imaging.
     It obtain the (real space) harmonic images  00, 01 and 10.
@@ -692,8 +684,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
 
 
 def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
-                              unwrapFlag=1, plotFlag=True, verbose=False):
-
+                              unwrapFlag=True, plotFlag=True, verbose=False):
     """
     Function to process the data of single 2D grating Talbot imaging. It
     wraps other functions in order to make all the process transparent
@@ -710,31 +701,34 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
         h_img_ref = single_grating_harmonic_images(img_ref, harmonicPeriod,
                                                    plotFlag=plotFlag,
                                                    verbose=verbose)
-    else:
-        h_img_ref = [None, None, None]
-        h_img_ref[0] = np.exp(np.zeros((h_img[0].shape[0], h_img[0].shape[1])))
-        h_img_ref[1] = h_img_ref[2] = h_img_ref[0]
 
-    int00 = np.abs(h_img[0])/np.abs(h_img_ref[0])
-    int01 = np.abs(h_img[1])/np.abs(h_img_ref[1])
-    int10 = np.abs(h_img[2])/np.abs(h_img_ref[2])
+        int00 = np.abs(h_img[0])/np.abs(h_img_ref[0])
+        int01 = np.abs(h_img[1])/np.abs(h_img_ref[1])
+        int10 = np.abs(h_img[2])/np.abs(h_img_ref[2])
+
+        arg01 = np.angle(h_img[1]) - np.angle(h_img_ref[1])
+        arg10 = np.angle(h_img[2]) - np.angle(h_img_ref[2])
+
+    else:
+
+        int00 = np.abs(h_img[0])
+        int01 = np.abs(h_img[1])
+        int10 = np.abs(h_img[2])
+
+        arg01 = np.angle(h_img[1])
+        arg10 = np.angle(h_img[2])
 
     darkField01 = int01/int00
     darkField10 = int10/int00
 
-    arg01 = np.angle(h_img[1]) - np.angle(h_img_ref[1])
-    arg10 = np.angle(h_img[2]) - np.angle(h_img_ref[2])
+    if unwrapFlag is True:
 
-    if unwrapFlag == 1:
-
-        arg01 = unwrap_phase(arg01)
-        arg10 = unwrap_phase(arg10)
+        arg01 = unwrap_phase(arg01, seed=72673)
+        arg10 = unwrap_phase(arg10, seed=72673)
 
     return [int00, int01, int10,
             darkField01, darkField10,
             arg01, arg10]
-
-
 
 
 def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
@@ -794,14 +788,12 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
                                         harmonicPeriod[0], harmonicPeriod[1],
                                         searchRegion)
 
-
-
     peak00 = np.abs(imgFFT[_idxPeak_ij_exp00[0], _idxPeak_ij_exp00[1]])
     peak10 = np.abs(imgFFT[_idxPeak_ij_exp10[0], _idxPeak_ij_exp10[1]])
     peak01 = np.abs(imgFFT[_idxPeak_ij_exp01[0], _idxPeak_ij_exp01[1]])
 
     return (2*peak10/peak00, 2*peak01/peak00)
 
-
-
-
+#
+#
+#
