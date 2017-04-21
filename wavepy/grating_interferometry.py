@@ -209,8 +209,8 @@ def exp_harm_period(img, harmonicPeriod,
         if verbose:
             wpu.print_blue("MESSAGE: Assuming Vertical 1D Grating")
 
-    _check_harmonic_inside_image(harV, harH, nRows, nColumns,
-                                 periodVert, periodHor)
+    #    _check_harmonic_inside_image(harV, harH, nRows, nColumns,
+    #                                 periodVert, periodHor)
 
     if isFFT:
         imgFFT = img
@@ -386,7 +386,7 @@ def extract_harmonic(img, harmonicPeriod,
     if plotFlag:
 
         from matplotlib.patches import Rectangle
-        plt.figure()
+        plt.figure(figsize=(8, 7))
         plt.imshow(np.log10(intensity), cmap='inferno')
 
         plt.gca().add_patch(Rectangle((idxPeak_ij[1] - periodHor//2,
@@ -397,7 +397,7 @@ def extract_harmonic(img, harmonicPeriod,
 
         plt.title('Selected Region ' + harmonic_ij[0] + harmonic_ij[1],
                   fontsize=18, weight='bold')
-        plt.show()
+        plt.show(block=False)
 
     return imgFFT[idxPeak_ij[0] - periodVert//2:
                   idxPeak_ij[0] + periodVert//2,
@@ -450,7 +450,7 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     if periodHor <= 0 or periodHor is None:
         periodHor = nColumns
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(8, 7))
     plt.imshow(np.log10(np.abs(imgFFT)), cmap='inferno')
 
     harV_min = -(nRows + 1) // 2 // periodVert
@@ -533,7 +533,7 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
     if periodHor <= 0 or periodHor is None:
         periodHor = nColumns
 
-    fig = plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(8, 7))
 
     ax1 = fig.add_subplot(121)
 
@@ -649,7 +649,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
         intFFT01 = np.log10(np.abs(imgFFT01))
         intFFT10 = np.log10(np.abs(imgFFT10))
 
-        fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(14, 4))
+        fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(14, 5))
 
         for dat, ax, textTitle in zip([intFFT00, intFFT01, intFFT10],
                                       axes.flat,
@@ -665,7 +665,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
         cax = fig.add_axes([0.92, 0.1, 0.03, 0.8])
         fig.colorbar(im, cax=cax)
         plt.suptitle('FFT subsets - Intensity', fontsize=18, weight='bold')
-        plt.show(block=True)
+        plt.show(block=False)
 
     img00 = np.fft.ifft2(np.fft.ifftshift(imgFFT00), norm='ortho')
 
@@ -696,11 +696,17 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
                                            plotFlag=plotFlag,
                                            verbose=verbose)
 
+    if plotFlag:
+        plt.show(block=True)
+
     if img_ref is not None:
 
         h_img_ref = single_grating_harmonic_images(img_ref, harmonicPeriod,
                                                    plotFlag=plotFlag,
                                                    verbose=verbose)
+
+        if plotFlag:
+            plt.show(block=True)
 
         int00 = np.abs(h_img[0])/np.abs(h_img_ref[0])
         int01 = np.abs(h_img[1])/np.abs(h_img_ref[1])
