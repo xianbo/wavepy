@@ -396,7 +396,7 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
         plt.gcf().text(.8, .75, message, fontsize=14, va='bottom',
                        bbox=dict(facecolor=last_color, alpha=0.5))
 
-        plt.show()
+        plt.draw()
 
         return [_delta_x, _delta_y]
 
@@ -943,7 +943,6 @@ def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
        :width: 350px
 
 
-
     """
 
     if imagetype is None:
@@ -978,7 +977,7 @@ def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
             nLinesV = 1
 
         return np.kron([[1, 0] * nLinesH, [0, 1] * nLinesH] * nLinesV,
-                       np.ones((shape[0] / 2 / nLinesV, shape[1] / 2 / nLinesH)))
+                       np.ones((shape[0]/2/nLinesV, shape[1]/2/nLinesH)))
         # Note that the new dimension is int(shape/p)*p !!!
 
     elif imagetype == 'SumOfHarmonics':
@@ -1020,7 +1019,6 @@ def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
         array[7 * dx:9 * dx, 6 * dy:8 * dy] += square * -1
 
         return array
-
 
     elif imagetype == 'NormalDist':
 
@@ -1143,18 +1141,21 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
             self.canvas.draw()
 
     def toggle_selector(event):
-        if verbose: print(' Key pressed.')
+        if verbose:
+            print(' Key pressed.')
         if event.key in ['Q', 'q'] and toggle_selector.RS.active:
-            if verbose: print(' RectangleSelector deactivated.')
+            if verbose:
+                print(' RectangleSelector deactivated.')
             toggle_selector.RS.set_active(False)
         if event.key in ['A', 'a'] and not toggle_selector.RS.active:
-            if verbose: print(' RectangleSelector activated.')
+            if verbose:
+                print(' RectangleSelector activated.')
             toggle_selector.RS.set_active(True)
 
     fig = plt.figure(facecolor="white",
                      figsize=(10, 8))
 
-    surface = plt.imshow(zmatrix, # origin='lower',
+    surface = plt.imshow(zmatrix,  # origin='lower',
                          **kargs4graph)
 
     plt.xlabel('Pixels')
@@ -1176,11 +1177,14 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
     fig.canvas.mpl_connect('key_press_event', toggle_selector)
     plt.show(block=True)
 
-    if verbose: print(mutable_object_ROI['ROI_i_lim'] + \
-                      mutable_object_ROI['ROI_j_lim'])
+    if verbose:
+        print(mutable_object_ROI['ROI_i_lim'] +
+              mutable_object_ROI['ROI_j_lim'])
 
     return mutable_object_ROI['ROI_i_lim'] + \
-           mutable_object_ROI['ROI_j_lim']  # Note that the + signal concatenates the two lists
+        mutable_object_ROI['ROI_j_lim']
+
+    #  Note that the + signal concatenates the two lists
 
 
 def crop_graphic(xvec=None, yvec=None, zmatrix=None,
@@ -1189,7 +1193,10 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None,
 
     Function to crop an image to the ROI selected using the mouse.
 
-    :py:func:`wavepy.utils.graphical_roi_idx` is first used to plot and select the ROI. The function then returns the croped version of the matrix, the cropped coordinate vectors ``x`` and  ``y``, and the indexes ``[i_min, i_max, j_min,_j_max]``
+    :py:func:`wavepy.utils.graphical_roi_idx` is first used to plot and select
+    the ROI. The function then returns the croped version of the matrix, the
+    cropped coordinate vectors ``x`` and  ``y``, and the
+    indexes ``[i_min, i_max, j_min,_j_max]``
 
     Parameters
     ----------
@@ -1210,7 +1217,8 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None,
     2D ndarray:
         cropped image
     list:
-        indexes of the crop ``[i_min, i_max, j_min,_j_max]``. Useful when the same crop must be applies to other images
+        indexes of the crop ``[i_min, i_max, j_min,_j_max]``. Useful when the
+        same crop must be applies to other images
 
     Examples
     --------
