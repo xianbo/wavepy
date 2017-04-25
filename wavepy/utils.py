@@ -86,11 +86,11 @@ __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'h5_list_of_groups',
            'progress_bar4pmap', 'load_ini_file']
 
-global hc, deg2rad, rad2deg
 
 hc = constants.value('inverse meter-electron volt relationship')  # hc
 deg2rad = np.deg2rad(1)
 rad2deg = np.rad2deg(1)
+
 
 def print_color(message, color='red',
                 highlights='on_white', attrs=''):
@@ -172,15 +172,37 @@ def _fwhm_xy(xvalues, yvalues):
     """
 
     from scipy.interpolate import UnivariateSpline
-    spline = UnivariateSpline(xvalues, yvalues - np.min(yvalues) / 2 - np.max(yvalues) / 2, s=0)
+    spline = UnivariateSpline(xvalues,
+                              yvalues-np.min(yvalues)/2-np.max(yvalues)/2,
+                              s=0)
     # find the roots and return
 
     xvalues = spline.roots().tolist()
-    yvalues = (spline(spline.roots()) + np.min(yvalues) / 2 + np.max(yvalues) / 2).tolist()
+    yvalues = (spline(spline.roots()) + np.min(yvalues)/2 +
+               np.max(yvalues)/2).tolist()
 
     if len(xvalues) == 2:
         return [xvalues, yvalues]
-    else: return[[], []]
+
+    else:
+        return[[], []]
+
+
+def extent_func(img, pixelsize):
+    '''
+    TODO: Write Docstring
+    pixelsize is a list of size 2 as [pixelsize_i, pixelsize_j]
+
+    if pixelsize is a float, then pixelsize_i = pixelsize_j
+    '''
+
+    if isinstance(pixelsize, float):
+        pixelsize = [pixelsize, pixelsize]
+
+    return np.array((-img.shape[1]*pixelsize[1] / 2,
+                     img.shape[1]*pixelsize[1] / 2,
+                     -img.shape[0]*pixelsize[0] / 2,
+                     img.shape[0]*pixelsize[0] / 2))
 
 
 def plot_profile(xmatrix, ymatrix, zmatrix,
@@ -201,8 +223,8 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
         `x` and `y` matrix coordinates generated with :py:func:`numpy.meshgrid`
 
     zmatrix: ndarray
-        Matrix with the data. Note that ``xmatrix``, ``ymatrix`` and ``zmatrix``
-        must have the same shape
+        Matrix with the data. Note that ``xmatrix``, ``ymatrix`` and
+        ``zmatrix`` must have the same shape
 
     xlabel, ylabel, zlabel: str, optional
         Labels for the axes ``x``, ``y`` and ``z``.
@@ -211,9 +233,9 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
         title for the main graph #BUG: sometimes this title disappear
 
     xo, yo: float, optional
-        if equal to ``None``, it allows to use the mouse to choose the vertical and
-        horizontal lines for the profile. If not ``None``, the profiles lines are
-        are centered at ``(xo,yo)``
+        if equal to ``None``, it allows to use the mouse to choose the vertical
+        and horizontal lines for the profile. If not ``None``, the profiles
+        lines are are centered at ``(xo,yo)``
 
     xunit, yunit: str, optional
         String to be shown after the values in the small text box
@@ -279,7 +301,6 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
 
     main_plot = main_subplot.contourf(xmatrix, ymatrix, zmatrix,
                                       256, **arg4main)
-
 
     colorbar_subplot = plt.subplot2grid((4, 20), (1, 0), rowspan=3, colspan=1)
     plt.colorbar(main_plot, cax=colorbar_subplot)
@@ -354,7 +375,7 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
              fwhm_top_y] = _fwhm_xy(xmatrix[(ymatrix == _yo) &
                                             (xmatrix > main_subplot_x_min) &
                                             (xmatrix < main_subplot_x_max)],
-                                            zmatrix[(ymatrix == _yo) &
+                                    zmatrix[(ymatrix == _yo) &
                                             (xmatrix > main_subplot_x_min) &
                                             (xmatrix < main_subplot_x_max)])
 
@@ -362,16 +383,16 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
              fwhm_side_y] = _fwhm_xy(ymatrix[(xmatrix == _xo) &
                                              (ymatrix > main_subplot_y_min) &
                                              (ymatrix < main_subplot_y_max)],
-                                             zmatrix[(xmatrix == _xo) &
+                                     zmatrix[(xmatrix == _xo) &
                                              (ymatrix > main_subplot_y_min) &
                                              (ymatrix < main_subplot_y_max)])
 
             if len(fwhm_top_x) == 2:
                 _delta_x = abs(fwhm_top_x[0] - fwhm_top_x[1])
                 print('fwhm_x: %.4f' % _delta_x)
-                message = message + '\n' + \
-                          r'$FWHM_x = {0:.4g} {1:s}'.format(_delta_x, xunit) + \
-                          '$'
+                message = message + '\n'
+                message += r'$FWHM_x = {0:.4g} {1:s}'.format(_delta_x, xunit)
+                message += '$'
 
                 top_subplot.plot(fwhm_top_x, fwhm_top_y, 'r--+',
                                  lw=1.5, ms=15, mew=1.4)
@@ -379,9 +400,10 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
             if len(fwhm_side_x) == 2:
                 _delta_y = abs(fwhm_side_x[0] - fwhm_side_x[1])
                 print('fwhm_y: %.4f\n' % _delta_y)
-                message = message + '\n' + \
-                          r'$FWHM_y = {0:.4g} {1:s}'.format(_delta_y, yunit) + \
-                          '$'
+                message = message + '\n'
+                message += r'$FWHM_y = {0:.4g} {1:s}'.format(_delta_y, xunit)
+                message += '$'
+
                 side_subplot.plot(fwhm_side_y, fwhm_side_x, 'r--+',
                                   lw=1.5, ms=15, mew=1.4)
 
@@ -455,12 +477,12 @@ def select_file(pattern='*', message_to_print=None):
         print_color("Only one option. Loading " + list_files[0])
         return list_files[0]
     elif len(list_files) == 0:
-        print_color("\n\n\n# ================== ERROR ==========================#")
+        print_color("\n\n\n# ================ ERROR ========================#")
         print_color("No files with pattern '" + pattern + "'")
     else:
 
         if message_to_print is None:
-            print("\n\n\n#===================================================#")
+            print("\n\n\n#===============================================#")
             print('Enter the number of the file to be loaded:\n')
         else:
             print(message_to_print)
@@ -519,10 +541,8 @@ def _check_empty_fname(fname):
         return fname
 
 
-def gui_load_data_ref_dark_files(directory=''):
-    '''
-        TODO: Write Docstring
-    '''
+def gui_load_data_ref_dark_filenames(directory='',
+                                     title="File name with Data"):
 
     originalDir = os.getcwd()
 
@@ -535,11 +555,13 @@ def gui_load_data_ref_dark_files(directory=''):
             print_blue("MESSAGE: Using current working directory " +
                        originalDir)
 
-
-    fname1 = easyqt.get_file_names("File name with Data")
+    fname1 = easyqt.get_file_names(title=title)
 
     if len(fname1) == 3:
         [fname1, fname2, fname3] = fname1
+
+    elif len(fname1) == 0:
+        return [None, None, None]
 
     else:
 
@@ -553,15 +575,29 @@ def gui_load_data_ref_dark_files(directory=''):
 
     os.chdir(originalDir)
 
+    return fname1, fname2, fname3
+
+
+def gui_load_data_ref_dark_files(directory='', title="File name with Data"):
+    '''
+        TODO: Write Docstring
+    '''
+
+    [fname1,
+     fname2,
+     fname3] = gui_load_data_ref_dark_filenames(directory=directory,
+                                                title=title)
+
     print_blue('MESSAGE: Loading ' + fname1)
     print_blue('MESSAGE: Loading ' + fname2)
     print_blue('MESSAGE: Loading ' + fname3)
 
-    return (dxchange.read_tiff(fname1), dxchange.read_tiff(fname2),
+    return (dxchange.read_tiff(fname1),
+            dxchange.read_tiff(fname2),
             dxchange.read_tiff(fname3))
 
 
-def gui_load_data_dark_files(directory=''):
+def gui_load_data_dark_filenames(directory='', title="File name with Data"):
     '''
         TODO: Write Docstring
     '''
@@ -582,6 +618,9 @@ def gui_load_data_dark_files(directory=''):
     if len(fname1) == 2:
         [fname1, fname2] = fname1
 
+    elif len(fname1) == 0:
+        return [None, None]
+
     else:
 
         fname1 = fname1[0]  # convert list to string
@@ -589,6 +628,17 @@ def gui_load_data_dark_files(directory=''):
         fname2 = easyqt.get_file_names("File name with Reference")[0]
 
     os.chdir(originalDir)
+
+    return fname1, fname2
+
+
+def gui_load_data_dark_files(directory='', title="File name with Data"):
+    '''
+        TODO: Write Docstring
+    '''
+
+    fname1, fname2 = gui_load_data_dark_filenames(directory='',
+                                                  title="File name with Data")
 
     print_blue('MESSAGE: Loading ' + fname1)
     print_blue('MESSAGE: Loading ' + fname2)
@@ -607,8 +657,8 @@ def load_files_scan(samplefileName, split_char='_', suffix='.tif'):
 
     return glob.glob(samplefileName.rsplit('_', 1)[0] + '*' + suffix)
 
-# %%
 
+# %%
 def gui_list_data_phase_stepping(directory=''):
     '''
         TODO: Write Docstring
@@ -721,7 +771,8 @@ def nan_mask_threshold(input_matrix, threshold=0.0):
 
         * Also note that this is NOT the same as :py:mod:`numpy.ma`, the
         `masked arrays
-        <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in numpy.
+        <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in
+        numpy.
 
     """
 
@@ -758,8 +809,8 @@ def crop_matrix_at_indexes(input_matrix, list_of_indexes):
         <http://scipy-cookbook.readthedocs.io/items/ViewsVsCopies.html>`_.
     """
 
-
-    if list_of_indexes == [0, -1, 0, -1]: return input_matrix
+    if list_of_indexes == [0, -1, 0, -1]:
+        return input_matrix
 
     return np.copy(input_matrix[list_of_indexes[0]:list_of_indexes[1],
                    list_of_indexes[2]:list_of_indexes[3]])
@@ -803,7 +854,8 @@ def find_nearest_value(input_array, value):
 
     """
 
-    return input_array.flatten()[np.argmin(np.abs(input_array.flatten() - value))]
+    return input_array.flatten()[np.argmin(np.abs(input_array.flatten() -
+                                                  value))]
 
 
 def find_nearest_value_index(input_array, value):
@@ -845,8 +897,6 @@ def find_nearest_value_index(input_array, value):
 
 
     """
-
-
 
     return np.where(input_array == find_nearest_value(input_array, value))
 
@@ -955,13 +1005,13 @@ def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
         if 'nLinesH' in kwargs:
             nLinesH = kwargs['nLinesH']
             return np.kron([[1, 0] * nLinesH],
-                           np.ones((shape[0], shape[1] / 2 / nLinesH)))
+                           np.ones((shape[0], shape[1]/2/nLinesH)))
         elif 'nLinesV':
             nLinesV = kwargs['nLinesV']
             return np.kron([[1], [0]] * nLinesV,
-                           np.ones((shape[0] / 2 / nLinesV, shape[1])))
+                           np.ones((shape[0]/2/nLinesV, shape[1])))
         else:
-            return np.kron([[1], [0]] * 10, np.ones((shape[0] / 2 / 10, shape[1])))
+            return np.kron([[1], [0]] * 10, np.ones((shape[0]/2/10, shape[1])))
 
     elif imagetype == 'Checked':
 
@@ -1004,7 +1054,7 @@ def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
         else:
             noiseAmp = 0.0
 
-        dx, dy = int(shape[0] / 10), int(shape[1] / 10)
+        dx, dy = int(shape[0]/10), int(shape[1]/10)
         square = np.ones((dx * 2, dy * 2))
         triangle = np.tril(square)
 
@@ -1230,7 +1280,9 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None,
     >>> img = dummy_images('Shapes', size=(101,101), FWHM_x = .5, FWHM_y=1.0)
     >>> (imgCroped, idx4crop) = crop_graphic(zmatrix=img)
     >>> plt.imshow(imgCroped, cmap='Spectral')
-    >>> (xVecCroped, yVecCroped, imgCroped, idx4crop) = crop_graphic(xVec, yVec, img)
+    >>> (xVecCroped,
+    >>>  yVecCroped,
+    >>>  imgCroped, idx4crop) = crop_graphic(xVec, yVec, img)
     >>> plt.imshow(imgCroped, cmap='Spectral',
     >>>            extent=np.array([xVecCroped[0], xVecCroped[-1],
     >>>                             yVecCroped[0], yVecCroped[-1]])
@@ -1255,12 +1307,14 @@ def crop_graphic(xvec=None, yvec=None, zmatrix=None,
                yvec[idx[0]:idx[1]], \
                crop_matrix_at_indexes(zmatrix, idx), idx
 
+
 def crop_graphic_image(image, verbose=False, **kargs4graph):
     """
 
-    Similar to :py:func:`wavepy.utils.crop_graphic`, but only for the main matrix
-    (and not for the x and y vectors). The function then returns the croped
-    version of the image and the indexes ``[i_min, i_max, j_min,_j_max]``
+    Similar to :py:func:`wavepy.utils.crop_graphic`, but only for the
+    main matrix (and not for the x and y vectors). The function then returns
+    the croped version of the image and
+    the indexes ``[i_min, i_max, j_min,_j_max]``
 
     Parameters
     ----------
@@ -1275,14 +1329,14 @@ def crop_graphic_image(image, verbose=False, **kargs4graph):
     2D ndarray:
         cropped image
     list:
-        indexes of the crop ``[i_min, i_max, j_min,_j_max]``. Useful when the same crop must be applies to other images
+        indexes of the crop ``[i_min, i_max, j_min,_j_max]``. Useful when
+        the same crop must be applies to other images
 
     See Also
     --------
     :py:func:`wavepy.utils.crop_graphic`
     :py:func:`wavepy.utils.graphical_roi_idx`
     """
-
 
     idx = graphical_roi_idx(image, verbose=verbose, **kargs4graph)
 
@@ -1294,19 +1348,20 @@ def pad_to_make_square(array, mode, **kwargs):
     #TODO: write docs
     '''
 
-
     diff_size = array.shape[0] - array.shape[1]
 
     if diff_size > 0:
 
         print(diff_size)
-        return np.pad(array,((0, 0),(diff_size // 2, diff_size - diff_size // 2)),
+        return np.pad(array, ((0, 0),
+                              (diff_size//2, diff_size - diff_size//2)),
                       mode, **kwargs)
 
     elif diff_size < 0:
         print(diff_size)
-        return np.pad(array,((-diff_size // 2, -diff_size + diff_size // 2), (0, 0)),
-                     mode, **kwargs)
+        return np.pad(array, ((-diff_size//2,
+                               -diff_size + diff_size//2), (0, 0)),
+                      mode, **kwargs)
     else:
         return array
 
@@ -1333,7 +1388,7 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
     plt.grid()
     plt.xlabel('Pixels')
     plt.ylabel('Pixels')
-    plt.title('CHOOSE POINT, CLOSE WHEN DONE\n' +\
+    plt.title('CHOOSE POINT, CLOSE WHEN DONE\n' +
               'Middle Click: Select point\n',
               fontsize=16, color='r', weight='bold')
     plt.colorbar(surface)
@@ -1345,20 +1400,17 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
         if event.button == 2:
             xo, yo = event.xdata, event.ydata
 
-            plt.plot(xo, yo,'r+', ms=20, picker=10)
-            plt.title('CHOOSE POINT, CLOSE WHEN DONE\n' + \
-              'Middle Click: Select point\n' + \
-              'x: {:.0f}, y: {:.0f}'.format(xo, yo),
-              fontsize=16, color='r', weight='bold')
+            plt.plot(xo, yo, 'r+', ms=20, picker=10)
+            plt.title('SELECT ROI, CLOSE WHEN DONE\n' +
+                      'Middle Click: Select point\n' +
+                      'x: {:.0f}, y: {:.0f}'.format(xo, yo),
+                      fontsize=16, color='r', weight='bold')
 
-#            plt.set_xlim([plt.gca().xmin, plt.gca().xmax])
-#            plt.set_ylim([ymin, ymax])
             if verbose:
                 print('x: {:.3f}, y: {:.3f}'.format(xo, yo))
 
             mutable_object_xy['xo'] = xo
             mutable_object_xy['yo'] = yo
-
 
         if event.button == 3:
             plt.lines = []
@@ -1368,7 +1420,6 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
     cursor = Cursor(plt.gca(), useblit=True, color='red', linewidth=2)
     fig.canvas.mpl_connect('button_press_event', onclick)
     plt.show(block=True)
-
 
     return mutable_object_xy['xo'], mutable_object_xy['yo']
 
@@ -1382,11 +1433,11 @@ def plot_slide_colorbar(zmatrix, title='',
     TODO: Write docstring
     '''
 
-    zmatrix = zmatrix.astype(float)  # avoid problems wjen masking integer
-                                     # images. necessary because integer NAN
-                                     # doesn't exist
+    zmatrix = zmatrix.astype(float)
+    # avoid problems when masking integer
+    # images. necessary because integer NAN doesn't exist
 
-    fig, ax = plt.subplots(figsize=(10,9))
+    fig, ax = plt.subplots(figsize=(10, 9))
     plt.subplots_adjust(left=0.25, bottom=0.25)
 
     surf = plt.imshow(zmatrix, cmap='viridis', **kwargs4imshow)
@@ -1432,7 +1483,6 @@ def plot_slide_colorbar(zmatrix, title='',
     chkbtom = CheckButtons(maskax, labels=['Mask'],
                            actives=[maskFlag])
 
-
     def maskfunc(label):
         if chkbtom.lines[0][0].get_visible():
             zmatrix_tmp = np.copy(zmatrix)
@@ -1443,7 +1493,6 @@ def plot_slide_colorbar(zmatrix, title='',
             surf.set_data(zmatrix_tmp)
         else:
             surf.set_data(zmatrix)
-
 
     chkbtom.on_clicked(maskfunc)
 
@@ -1503,8 +1552,6 @@ def plot_slide_colorbar(zmatrix, title='',
         fig.canvas.draw_idle()
     radio2.on_clicked(log_or_lin)
 
-
-
     plt.show(block=True)
 
     return [[scmin.val, scmax.val], radio1.value_selected]
@@ -1527,7 +1574,6 @@ def save_figs_with_idx(patternforname='graph', extension='png'):
 
     '''
 
-
     if '_figCount' not in globals():
 
             from itertools import count
@@ -1536,11 +1582,11 @@ def save_figs_with_idx(patternforname='graph', extension='png'):
             next(_figCount)
 
     figname = str('{:s}_{:02d}.{:s}'.format(patternforname,
-                  next(_figCount),extension))
+                  next(_figCount), extension))
 
     while os.path.isfile(figname):
         figname = str('{:s}_{:02d}.{:s}'.format(patternforname,
-                      next(_figCount),extension))
+                      next(_figCount), extension))
 
     plt.savefig(figname)
     print('MESSAGE: ' + figname + ' SAVED')
@@ -1603,7 +1649,8 @@ def rotate_img_graphical(array2D, order=1, mode='constant', verbose=False):
     2D ndarray:
         cropped image
     list:
-        indexes of the crop ``[i_min, i_max, j_min,_j_max]``. Useful when the same crop must be applies to other images
+        indexes of the crop ``[i_min, i_max, j_min,_j_max]``. Useful
+        when the same crop must be applies to other images
 
     Example
     -------
@@ -1617,7 +1664,6 @@ def rotate_img_graphical(array2D, order=1, mode='constant', verbose=False):
     :py:func:`wavepy.utils.crop_graphic`
     :py:func:`wavepy.utils.graphical_roi_idx`
     '''
-
 
     import skimage.transform
 
@@ -1633,9 +1679,8 @@ def rotate_img_graphical(array2D, order=1, mode='constant', verbose=False):
         jo = int(joio[0])
         io = int(joio[1])
 
-
-
-        rot_ang += np.arctan2(array2D.shape[0]//2 - io, jo - array2D.shape[1]//2)*np.rad2deg(1)
+        rot_ang += np.arctan2(array2D.shape[0]//2 - io,
+                              jo - array2D.shape[1]//2)*rad2deg
         rot_ang = rot_ang % 360
 
         if verbose:
@@ -1654,9 +1699,11 @@ def rotate_img_graphical(array2D, order=1, mode='constant', verbose=False):
 def choose_unit(array):
     """
 
-    Script to choose good(best) units in engineering notation for a ``ndarray``.
+    Script to choose good(best) units in engineering notation
+    for a ``ndarray``.
 
-    For a given input array, the function returns ``factor`` and ``unit`` according to
+    For a given input array, the function returns ``factor`` and ``unit``
+    according to
 
     .. math:: 10^{n} < \max(array) < 10^{n + 3}
 
@@ -1678,7 +1725,8 @@ def choose_unit(array):
     |     +9     |    10^-6             |        ``G``           |
     +------------+----------------------+------------------------+
 
-    ``n=-6`` returns ``\mu`` since this is the latex syntax for micro. See Example.
+    ``n=-6`` returns ``\mu`` since this is the latex syntax for micro.
+    See Example.
 
 
     Parameters
@@ -1701,10 +1749,10 @@ def choose_unit(array):
     >>> plt.xlabel(r'${0} m$'.format(unit1))
     >>> plt.ylabel(r'${0} m$'.format(unit2))
 
-    The syntax ``r'$ string $ '`` is necessary to use latex commands in the :py:mod:`matplotlib` labels.
+    The syntax ``r'$ string $ '`` is necessary to use latex commands in the
+    :py:mod:`matplotlib` labels.
 
     """
-
 
     max_abs = np.max(np.abs(array))
 
@@ -1736,11 +1784,11 @@ def choose_unit(array):
     return factor, unit
 
 
-### time functions
-
+# time functions
 def datetime_now_str():
     """
-    Returns the current date and time as a string in the format YYmmDD_HHMMSS. Alias for ``time.strftime("%Y%m%d_%H%M%S")``.
+    Returns the current date and time as a string in the format YYmmDD_HHMMSS.
+    Alias for ``time.strftime("%Y%m%d_%H%M%S")``.
 
     Return
     ------
@@ -1755,7 +1803,8 @@ def datetime_now_str():
 
 def time_now_str():
     """
-    Returns the current time as a string in the format HHMMSS. Alias for ``time.strftime("%H%M%S")``.
+    Returns the current time as a string in the format HHMMSS. Alias
+    for ``time.strftime("%H%M%S")``.
 
     Return
     ------
@@ -1816,7 +1865,7 @@ def realcoordvec(npoints, delta):
     """
     #    return np.mgrid[-npoints/2.*delta:npoints/2.*delta:npoints*1j]
 
-    return (np.linspace(1, npoints, npoints) - npoints // 2 - 1) * delta
+    return (np.linspace(1, npoints, npoints) - npoints//2 - 1) * delta
 
 
 def realcoordmatrix_fromvec(xvec, yvec):
@@ -1896,6 +1945,15 @@ def realcoordmatrix(npointsx, deltax, npointsy, deltay):
                                    realcoordvec(npointsy, deltay))
 
 
+def grid_coord(array2D, pixelsize):
+
+    if isinstance(pixelsize, float):
+        pixelsize = [pixelsize, pixelsize]
+
+    return realcoordmatrix(array2D.shape[1], pixelsize[1],
+                           array2D.shape[0], pixelsize[0])
+
+
 def reciprocalcoordvec(npoints, delta):
     """
     Create coordinates in the (spatial) frequency domain based on the number of
@@ -1933,9 +1991,7 @@ def reciprocalcoordvec(npoints, delta):
 
     """
 
-#    return np.mgrid[-1/2/delta:1/2/delta-1/npoints/delta:npoints*1j]
-
-    return (np.linspace(0, 1, npoints, endpoint=False) - .5) / delta
+    return (np.linspace(0, 1, npoints, endpoint=False) - .5)/delta
 
 
 def reciprocalcoordmatrix(npointsx, deltax, npointsy, deltay):
@@ -1991,9 +2047,8 @@ def fouriercoordmatrix(npointsx, deltax, npointsy, deltay):
     '''
     return reciprocalcoordmatrix(npointsx, deltax, npointsy, deltay)
 
-# h5 tools
 
-reciprocalcoordvec
+# h5 tools
 def h5_list_of_groups(h5file):
     """
 
@@ -2179,7 +2234,7 @@ def fourier_spline_1d(vec1d, n=2):
 
     fftvec = np.fft.fftshift(np.fft.fft(pad_vec1d))
 
-    fftvec = np.pad(fftvec, pad_width=fftvec.shape[0]*(n-1) // 2,
+    fftvec = np.pad(fftvec, pad_width=fftvec.shape[0]*(n-1)//2,
                     mode='constant', constant_values=0.0)
 
     res = np.fft.ifft(np.fft.ifftshift(fftvec))*n
@@ -2252,8 +2307,6 @@ def shift_subpixel_2d(array2d, frac_of_pixel):
                                                      1::frac_of_pixel]
 
 
-
-
 def _mpl_settings_4_nice_graphs():
     '''
     Settings for latex fonts in the graphs
@@ -2266,9 +2319,9 @@ def _mpl_settings_4_nice_graphs():
     '''
 
     plt.style.use('default')
-    #Direct input
-    plt.rcParams['text.latex.preamble']=[r"\usepackage[utopia]{mathdesign}"]
-    ##Options
+    # Direct input
+    plt.rcParams['text.latex.preamble'] = [r"\usepackage[utopia]{mathdesign}"]
+    # Options
     params = {'text.usetex' : True,
               'font.size' : 16,
               'font.family' : 'utopia',
