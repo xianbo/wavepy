@@ -600,6 +600,8 @@ def single_grating_harmonic_images(img, harmonicPeriod,
         `:py:func:`wavepy.grating_interferometry.plot_harmonic_grid`
 
     plotFlag: boolean
+        Flag to plot the image in the reciprocal space and to show the position
+        of the found peaked and the limits of the harmonic image
 
     verbose: Boolean
         verbose flag.
@@ -665,7 +667,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
         cax = fig.add_axes([0.92, 0.1, 0.03, 0.8])
         fig.colorbar(im, cax=cax)
         plt.suptitle('FFT subsets - Intensity', fontsize=18, weight='bold')
-        plt.show(block=False)
+        plt.show(block=True)
 
     img00 = np.fft.ifft2(np.fft.ifftshift(imgFFT00), norm='ortho')
 
@@ -696,24 +698,27 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
                                            plotFlag=plotFlag,
                                            verbose=verbose)
 
-    if plotFlag:
-        plt.show(block=True)
-
     if img_ref is not None:
 
         h_img_ref = single_grating_harmonic_images(img_ref, harmonicPeriod,
                                                    plotFlag=plotFlag,
                                                    verbose=verbose)
 
-        if plotFlag:
-            plt.show(block=True)
-
         int00 = np.abs(h_img[0])/np.abs(h_img_ref[0])
         int01 = np.abs(h_img[1])/np.abs(h_img_ref[1])
         int10 = np.abs(h_img[2])/np.abs(h_img_ref[2])
 
-        arg01 = np.angle(h_img[1]) - np.angle(h_img_ref[1])
-        arg10 = np.angle(h_img[2]) - np.angle(h_img_ref[2])
+        if unwrapFlag is True:
+
+            arg01 = unwrap_phase(np.angle(h_img[1]), seed=72673) - \
+                    unwrap_phase(np.angle(h_img_ref[1]), seed=72673)
+
+            arg10 = unwrap_phase(np.angle(h_img[2]), seed=72673) - \
+                    unwrap_phase(np.angle(h_img_ref[2]), seed=72673)
+
+        else:
+            arg01 = np.angle(h_img[1]) - np.angle(h_img_ref[1])
+            arg10 = np.angle(h_img[2]) - np.angle(h_img_ref[2])
 
     else:
 
@@ -721,16 +726,16 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
         int01 = np.abs(h_img[1])
         int10 = np.abs(h_img[2])
 
-        arg01 = np.angle(h_img[1])
-        arg10 = np.angle(h_img[2])
+        if unwrapFlag is True:
+
+            arg01 = unwrap_phase(np.angle(h_img[1]), seed=72673)
+            arg10 = unwrap_phase(np.angle(h_img[2]), seed=72673)
+        else:
+            arg01 = np.angle(h_img[1])
+            arg10 = np.angle(h_img[2])
 
     darkField01 = int01/int00
     darkField10 = int10/int00
-
-    if unwrapFlag is True:
-
-        arg01 = unwrap_phase(arg01, seed=72673)
-        arg10 = unwrap_phase(arg10, seed=72673)
 
     return [int00, int01, int10,
             darkField01, darkField10,
