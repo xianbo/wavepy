@@ -188,6 +188,14 @@ def _fwhm_xy(xvalues, yvalues):
         return[[], []]
 
 
+def mean_plus_n_sigma(array, n_sigma=5):
+
+    '''
+    TODO: Write Docstring
+    '''
+    return np.mean(array) + n_sigma*np.std(array)
+
+
 def extent_func(img, pixelsize):
     '''
     TODO: Write Docstring
