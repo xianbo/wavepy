@@ -87,6 +87,7 @@ case.
 import numpy as np
 import matplotlib.pyplot as plt
 import wavepy.utils as wpu
+import wavepy.surface_from_grad as wps
 from skimage.restoration import unwrap_phase
 
 
@@ -805,6 +806,206 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
 
     return (2*peak10/peak00, 2*peak01/peak00)
 
-#
-#
-#
+
+def plot_intensities_harms(int00, int01, int10,
+                           pixelsize, titleStr,
+                           saveFigFlag=False, saveFileSuf='graph'):
+    # Plot Real image (intensity)
+
+    if titleStr is not '':
+        titleStr = ', ' + titleStr
+
+    plt.figure(figsize=(14, 5))
+
+    plt.subplot(131)
+    plt.imshow(int00, cmap='viridis',
+               vmax=wpu.mean_plus_n_sigma(int00, 4),
+               extent=wpu.extent_func(int00, pixelsize)*1e6)
+    plt.xlabel(r'$[\mu m]$')
+    plt.ylabel(r'$[\mu m]$')
+    plt.colorbar(shrink=0.5)
+    plt.title('00', fontsize=18, weight='bold')
+
+    plt.subplot(132)
+    plt.imshow(int01, cmap='viridis',
+               vmax=wpu.mean_plus_n_sigma(int01, 4),
+               extent=wpu.extent_func(int01, pixelsize)*1e6)
+    plt.xlabel(r'$[\mu m]$')
+    plt.ylabel(r'$[\mu m]$')
+    plt.colorbar(shrink=0.5)
+    plt.title('01', fontsize=18, weight='bold')
+
+    plt.subplot(133)
+    plt.imshow(int10, cmap='viridis',
+               vmax=wpu.mean_plus_n_sigma(int10, 4),
+               extent=wpu.extent_func(int10, pixelsize)*1e6)
+    plt.xlabel(r'$[\mu m]$')
+    plt.ylabel(r'$[\mu m]$')
+    plt.colorbar(shrink=0.5)
+    plt.title('10', fontsize=18, weight='bold')
+
+    plt.suptitle('Absorption obtained from the Harmonics' + titleStr,
+                 fontsize=18, weight='bold')
+
+    plt.tight_layout()
+    if saveFigFlag:
+        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+    plt.show(block=True)
+
+
+# %%
+def plot_dark_field(darkField01, darkField10,
+                    pixelsize, titleStr='',
+                    saveFigFlag=False, saveFileSuf='graph'):
+    '''
+    TODO: Write Docstring
+
+    Plot Dark field
+
+    '''
+
+    if titleStr is not '':
+        titleStr = ', ' + titleStr
+
+    plt.figure(figsize=(12, 6))
+
+    plt.subplot(121)
+    plt.imshow(darkField01, cmap='viridis',
+               vmax=wpu.mean_plus_n_sigma(darkField01, 4),
+               extent=wpu.extent_func(darkField01, pixelsize)*1e6)
+    plt.xlabel(r'$[\mu m]$')
+    plt.ylabel(r'$[\mu m]$')
+    plt.colorbar(shrink=0.5)
+    plt.title('01', fontsize=18, weight='bold')
+
+    plt.subplot(122)
+    plt.imshow(darkField10, cmap='viridis',
+               vmax=wpu.mean_plus_n_sigma(darkField01, 4),
+               extent=wpu.extent_func(darkField10, pixelsize)*1e6)
+    plt.xlabel(r'$[\mu m]$')
+    plt.ylabel(r'$[\mu m]$')
+
+    plt.colorbar(shrink=0.5)
+    plt.title('10', fontsize=18, weight='bold')
+
+    plt.suptitle('Dark Field', fontsize=18, weight='bold')
+
+    plt.tight_layout()
+    if saveFigFlag:
+        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+    plt.show(block=True)
+
+
+def plot_DPC(dpc01, dpc10,
+             pixelsize, titleStr='',
+             saveFigFlag=False, saveFileSuf='graph'):
+    '''
+    TODO: Write Docstring
+    Plot differencial phase signal
+    '''
+    if titleStr is not '':
+        titleStr = ', ' + titleStr
+
+    vlim01 = np.max(np.abs(dpc01))
+    vlim10 = np.max(np.abs(dpc10))
+
+    plt.figure(figsize=(12, 6))
+    plt.subplot(121)
+    plt.imshow(dpc01, cmap='RdGy',
+               vmin=-vlim01, vmax=vlim01,
+               extent=wpu.extent_func(dpc01, pixelsize)*1e6)
+    plt.xlabel(r'$[\mu m]$')
+    plt.ylabel(r'$[\mu m]$')
+    plt.colorbar(shrink=0.5)
+    plt.title('01', fontsize=18, weight='bold')
+
+    plt.subplot(122)
+    plt.imshow(dpc10, cmap='RdGy',
+               vmin=-vlim10, vmax=vlim10,
+               extent=wpu.extent_func(dpc10, pixelsize)*1e6)
+    plt.xlabel(r'$[\mu m]$')
+    plt.ylabel(r'$[\mu m]$')
+    plt.colorbar(shrink=0.5)
+    plt.title('10', fontsize=18,
+              weight='bold')
+
+    plt.suptitle('Differential Phase' + titleStr,
+                 fontsize=18, weight='bold')
+
+    plt.tight_layout()
+    if saveFigFlag:
+        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+    plt.show(block=True)
+
+
+def dpc_integration(dpc01, dpc10, pixelsize,
+                    plotErrorIntegration=False, method='FC'):
+    '''
+    TODO: Write Docstring
+
+    Integration of DPC to obtain phase. Currently only supports
+    Frankot Chellappa
+    '''
+
+    _, idx = wpu.crop_graphic_image(dpc01**2+dpc10**2,
+                                    kargs4graph={'cmap': 'viridis'})
+
+    dpc01 = wpu.crop_matrix_at_indexes(dpc01, idx)
+    dpc10 = wpu.crop_matrix_at_indexes(dpc10, idx)
+
+    if method == 'FC':
+
+        phase = wps.frankotchellappa(dpc01*pixelsize[1],
+                                     dpc10*pixelsize[0],
+                                     reflec_pad=True)
+        phase = np.real(phase)
+
+    else:
+        wpu.print_red('ERROR: Unknown integration method' + method)
+
+    if plotErrorIntegration:
+        wps.error_integration(dpc01*pixelsize[1],
+                              dpc10*pixelsize[0],
+                              phase, pixelsize, errors=False,
+                              shifthalfpixel=False, plot_flag=True)
+
+    return phase
+
+
+def plot_integration(integrated, pixelsize,
+                     titleStr='Title', saveFigFlag=False,
+                     saveFileSuf='graph'):
+    '''
+    TODO: Write Docstring
+    '''
+
+    xxGrid, yyGrid = wpu.grid_coord(integrated, pixelsize)
+
+    wpu.plot_profile(xxGrid*1e6, yyGrid*1e6,   integrated[::-1, :],
+                     xlabel=r'$x [\mu m]$', ylabel=r'$y [\mu m]$',
+                     title=titleStr,
+                     xunit='\mu m', yunit='\mu m',
+                     arg4main={'cmap': 'viridis', 'lw': 3})
+
+    # Plot Integration 2
+
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    surf = ax.plot_surface(xxGrid*1e6, yyGrid*1e6,  integrated[::-1, :],
+                           rstride=integrated.shape[0] // 101 + 1,
+                           cstride=integrated.shape[1] // 101 + 1,
+                           cmap='viridis', linewidth=0.1)
+
+    plt.xlabel(r'$x$ [$\mu m$]')
+    plt.ylabel(r'$y$ [$\mu m$]')
+
+    plt.title(titleStr, fontsize=24, weight='bold')
+    plt.colorbar(surf, shrink=.8, aspect=20)
+
+    plt.tight_layout()
+
+    if saveFigFlag:
+        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+
+    plt.show(block=True)
