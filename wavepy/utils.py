@@ -1376,7 +1376,36 @@ def pad_to_make_square(array, mode, **kwargs):
 
 def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
     """
-    Function to define a rectangular region of interest (ROI) in an image.
+
+    Plot a 2D array and allow to pick a point in the image. Returns the last
+    selected position x and y of the choosen point
+
+
+    Parameters
+    ----------
+    zmatrix: 2D numpy array
+        main image
+
+    verbose: Boolean
+        verbose mode
+
+    **kargs4graph:
+        kargs for main graph
+
+    Returns
+    -------
+    int, int:
+        two integers with the point indexes ``x`` and ``y``
+
+    Example
+    -------
+    >>> jo, io = graphical_select_point_idx(array2D)
+    >>> value = array2D[io, jo]
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.graphical_roi_idx`
+
 
     """
 
@@ -1389,9 +1418,8 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
                          cmap='spectral', **kargs4graph)
     plt.autoscale(False)
 
-    plt.plot(zmatrix.shape[1]//2, zmatrix.shape[0]//2, 'k+', ms=30, mew=2)
-    plt.hlines(zmatrix.shape[0]//2, 0, zmatrix.shape[1])
-    plt.vlines(zmatrix.shape[1]//2, 0, zmatrix.shape[0])
+    ax1, = plt.plot(zmatrix.shape[1]//2, zmatrix.shape[0]//2,
+                    'r+', ms=30, picker=10)
 
     plt.grid()
     plt.xlabel('Pixels')
@@ -1408,7 +1436,8 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
         if event.button == 2:
             xo, yo = event.xdata, event.ydata
 
-            plt.plot(xo, yo, 'r+', ms=20, picker=10)
+            ax1.set_xdata(xo)
+            ax1.set_ydata(yo)
             plt.title('SELECT ROI, CLOSE WHEN DONE\n' +
                       'Middle Click: Select point\n' +
                       'x: {:.0f}, y: {:.0f}'.format(xo, yo),
@@ -1421,6 +1450,7 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
             mutable_object_xy['yo'] = yo
 
         if event.button == 3:
+            print('Hi')
             plt.lines = []
             plt.legend_ = None
             plt.draw()
@@ -1429,7 +1459,10 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
     fig.canvas.mpl_connect('button_press_event', onclick)
     plt.show(block=True)
 
-    return mutable_object_xy['xo'], mutable_object_xy['yo']
+    if mutable_object_xy['xo'] is np.nan:
+        return None, None
+    else:
+        return int(mutable_object_xy['xo']), int(mutable_object_xy['yo'])
 
 
 def plot_slide_colorbar(zmatrix, title='',
@@ -1602,18 +1635,26 @@ def save_figs_with_idx(patternforname='graph', extension='png'):
 
 def save_figs_with_idx_pickle(figObj, patternforname='graph'):
     '''
-    Use a counter to save the figures with suffix 1, 2, 3, ..., etc
+    Save figures as pickle. It uses a counter to save the figures with
+    suffix 1, 2, 3, ..., etc, to avoid overwriting existing files.
 
     Parameters
     ----------
 
+    figObj: matplotlib figure object
+        Figure to be pickled
+
     str: patternforname
         Prefix for file name. Accept directories path.
 
-    figObj: matplotlib figure object
 
+    Notes
+    -----
 
-        TODO: WRITE DOCUMENTATION!!!
+    Save matplotlib figures to pickle. Note that not all types of graphs are
+    fully supported. It can load most types of graphs, but it can only extract
+    the functions of few types. It works well with plot and with
+    :py:func:`plt.plot()` and :py:func:`plt.imshow()`
 
     '''
 
@@ -1679,13 +1720,10 @@ def rotate_img_graphical(array2D, order=1, mode='constant', verbose=False):
     _array2D = np.copy(array2D)
 
     while 1:
-        joio = graphical_select_point_idx(_array2D, verbose)
+        jo, io = graphical_select_point_idx(_array2D, verbose)
 
-        if np.isnan(joio[0]):
+        if np.isnan(jo):
             break
-
-        jo = int(joio[0])
-        io = int(joio[1])
 
         rot_ang += np.arctan2(array2D.shape[0]//2 - io,
                               jo - array2D.shape[1]//2)*rad2deg
@@ -2135,16 +2173,19 @@ def progress_bar4pmap(res, sleep_time=1.0):
     print('')
 
 
-def load_ini_file(inifname):
+def load_ini_file_terminal_dialog(inifname):
     """
 
     This function make use of `configparser
-    <https://docs.python.org/3.5/library/configparser.html>`_ to set default
-    option in a ``*.ini`` file.
+    <https://docs.python.org/3.5/library/configparser.html>`_ to set and get
+    default optiona in a ``*.ini`` file.
 
-    In fact this function only update the ``ini`` file. The way to use is to
-    run ``load_ini_file`` at the begining of the script and then load the
-    parameters from the file. See **Examples**.
+    It is a terminal dialog that goes trough all key parameters in the
+    ``ini`` file, ask if a value must be changed, ask the new value
+    and update it in the ``ini`` file.
+
+    Note that this function first update the ``ini`` file and then return the
+    updated paramenters.
 
     The ``ini`` file must contain two sections: ``Files`` and ``Parameters``.
     The ``Files`` section list all files to be loaded. If you don't accept the
@@ -2159,6 +2200,12 @@ def load_ini_file(inifname):
     ----------
     inifname : str
         name of the ``*.ini`` file.
+
+    Return
+    ------
+    configparser object, configparser object, configparser object
+        main configparser objects, configparser objects under
+        section ``Parameters``, configparser objects under section ``Files``
 
 
     Examples
@@ -2184,6 +2231,13 @@ def load_ini_file(inifname):
     >>> ini_pars, ini_file_list = load_ini_file('configfile.ini')
     >>> par1 = float(ini_pars.get('par1'))
     >>> par2 = list(map(int, ini_pars.get('par2').split(',')))
+
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.load_ini_file`,
+    :py:func:`wavepy.utils.get_from_ini_file`,
+    :py:func:`wavepy.utils.set_at_ini_file`.
 
     """
 
@@ -2224,7 +2278,6 @@ def load_ini_file(inifname):
             kb_input = input('\nEnter ' + key + ' value [' +
                              ini_pars.get(key) + '] : ')
             ini_pars[key] = kb_input or ini_pars[key]
-#            if kb_input != '': ini_pars[key] = kb_input
 
         with open(inifname, 'w') as configfile:
             config.write(configfile)
@@ -2233,6 +2286,172 @@ def load_ini_file(inifname):
         print('MESSAGE: Using values from ' + inifname)
 
     return config, ini_pars, ini_file_list
+
+
+def load_ini_file(inifname):
+    '''
+
+    Parameters
+    ----------
+    inifname: str
+        name of the ``*.ini`` file.
+
+    Returns
+    -------
+    configparser objects
+
+
+    Example
+    -------
+
+    Example of ``ini`` file::
+
+        [Files]
+        image_filename = file1.tif
+        ref_filename = file2.tif
+
+        [Parameters]
+        par1 = 10.5e-5
+        par2 = 10, 100, 500, 600
+        par can have long name = 25
+        par3 = the value can be anything
+
+    If we create a file named ``.temp.ini`` with the example above, we can load
+    it as:
+
+    >>> config = load_ini_file('.temp.ini')
+    >>> print(config['Parameters']['Par1'] )
+
+
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.load_ini_file_terminal_dialog`,
+    :py:func:`wavepy.utils.get_from_ini_file`,
+    :py:func:`wavepy.utils.set_at_ini_file`.
+
+
+    '''
+
+    if not os.path.isfile(inifname):
+        raise Warning("File " + inifname + " doesn't exist. You must " +
+                      "create your init file first.")
+        return None, None
+
+    config = configparser.ConfigParser()
+    config.read(inifname)
+
+    return config
+
+
+def get_from_ini_file(inifname, section, key):
+
+    '''
+
+    Parameters
+    ----------
+    inifname: str
+        name of the ``*.ini`` file.
+
+    section: str
+        section where key is placed
+
+
+    key: str
+        key from where to get the value(s)
+
+
+    Returns
+    -------
+    str
+        value of the ``configparser['section']['key']``
+
+    Example
+    -------
+
+    Example of ``ini`` file::
+
+        [Files]
+        image_filename = file1.tif
+        ref_filename = file2.tif
+
+        [Parameters]
+        par1 = 10.5e-5
+        par2 = 10, 100, 500, 600
+        par can have long name = 25
+        par3 = the value can be anything
+
+    If we create a file named ``.temp.ini`` with the example above, we can load
+    it as:
+
+    >>> inifname = '.temp.ini'
+    >>> par = get_from_ini_file(inifname, 'Parameters','Par1')
+    >>> print(par)
+
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.load_ini_file_terminal_dialog`,
+    :py:func:`wavepy.utils.load_ini_file`,
+    :py:func:`wavepy.utils.set_at_ini_file`.
+
+
+    '''
+
+    if not os.path.isfile(inifname):
+        raise Warning("File " + inifname + " doesn't exist. You must " +
+                      "create your init file first.")
+        return None, None
+
+    config = configparser.ConfigParser()
+    config.read(inifname)
+
+    return config[section][key]
+
+
+def set_at_ini_file(inifname, section, key, value):
+
+    '''
+
+    Parameters
+    ----------
+    inifname: str
+        name of the ``*.ini`` file.
+
+    section: str
+        section where the key is placed
+
+
+    key: str
+        key to set the value(s)
+
+
+    Example
+    -------
+    >>> inifname = '.temp.ini'
+    >>> par = set_at_ini_file(inifname, 'Parameters','Par1')
+
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.load_ini_file_terminal_dialog`,
+    :py:func:`wavepy.utils.load_ini_file`,
+    :py:func:`wavepy.utils.get_from_ini_file`.
+
+    '''
+
+    if not os.path.isfile(inifname):
+        raise Warning("File " + inifname + " doesn't exist. You must " +
+                      "create your init file first.")
+        return None, None
+
+    config = configparser.ConfigParser()
+    config.read(inifname)
+
+    config[section][key] = str(value)
+
+    with open(inifname, 'w') as configfile:
+        config.write(configfile)
 
 
 def fourier_spline_1d(vec1d, n=2):
