@@ -328,12 +328,12 @@ def speckleDisplacement(image, image_ref,
     other functions that you are advised to check:  `register_translation <http://scikit-image.org/docs/dev/auto_examples/transform/plot_register_translation.html>`_ and
     see `match_template <http://scikit-image.org/docs/dev/auto_examples/plot_template.html>`_
 
-    See Also
-    --------
+    References
+    ----------
 
     see http://scikit-image.org/docs/dev/auto_examples/transform/plot_register_translation.html
 
-    see http://scikit-image.org/docs/dev/auto_examples/plot_template.html
+    see http://scikit-image.org/docs/dev/auto_examples/features_detection/plot_template.html
     '''
 
 
