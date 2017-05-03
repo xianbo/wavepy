@@ -60,7 +60,6 @@ from multiprocessing import Pool, cpu_count
 
 import wavepy.utils as wpu
 
-from wavepy.cfg import *
 
 __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016, Affiliation"
@@ -323,7 +322,6 @@ def speckleDisplacement(image, image_ref,
                         subpixelResolution=None,
                         ncores=1/2, taskPerCore=100,
                         verbose=False):
-
     '''
     This function track the movements of speckle in an image (with sample)
     related to a reference image (whith no sample). The function relies in two
@@ -337,7 +335,6 @@ def speckleDisplacement(image, image_ref,
 
     see http://scikit-image.org/docs/dev/auto_examples/plot_template.html
     '''
-
 
 
     if halfTemplateSize is None and subpixelResolution is None:
@@ -367,11 +364,11 @@ def speckleDisplacement(image, image_ref,
     if int(cpu_count() * ncores) <= 1:
 
         res = _speckleDisplacementSingleCore(image, image_ref,
-                                            stride=stride,
-                                            halfsubwidth=halfsubwidth,
-                                            halfTemplateSize=halfTemplateSize,
-                                            subpixelResolution=subpixelResolution,
-                                            verbose=verbose)
+                                             stride=stride,
+                                             halfsubwidth=halfsubwidth,
+                                             halfTemplateSize=halfTemplateSize,
+                                             subpixelResolution=subpixelResolution,
+                                             verbose=verbose)
 
 
 

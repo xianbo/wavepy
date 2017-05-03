@@ -70,20 +70,6 @@ case.
 
 """
 
-# import itertools
-# import numpy as np
-# import time
-# from tqdm import tqdm
-#
-# from skimage.feature import register_translation
-#
-# from multiprocessing import Pool, cpu_count
-#
-# import wavepy.utils as wpu
-#
-# from wavepy.cfg import *
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 import wavepy.utils as wpu
