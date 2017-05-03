@@ -815,32 +815,34 @@ def plot_intensities_harms(int00, int01, int10,
     if titleStr is not '':
         titleStr = ', ' + titleStr
 
+    factor, unit_xy = wpu.choose_unit(np.sqrt(int00.size)*pixelsize[0])
+
     plt.figure(figsize=(14, 5))
 
     plt.subplot(131)
     plt.imshow(int00, cmap='viridis',
                vmax=wpu.mean_plus_n_sigma(int00, 4),
-               extent=wpu.extent_func(int00, pixelsize)*1e6)
-    plt.xlabel(r'$[\mu m]$')
-    plt.ylabel(r'$[\mu m]$')
+               extent=wpu.extent_func(int00, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
     plt.title('00', fontsize=18, weight='bold')
 
     plt.subplot(132)
     plt.imshow(int01, cmap='viridis',
                vmax=wpu.mean_plus_n_sigma(int01, 4),
-               extent=wpu.extent_func(int01, pixelsize)*1e6)
-    plt.xlabel(r'$[\mu m]$')
-    plt.ylabel(r'$[\mu m]$')
+               extent=wpu.extent_func(int01, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
     plt.title('01', fontsize=18, weight='bold')
 
     plt.subplot(133)
     plt.imshow(int10, cmap='viridis',
                vmax=wpu.mean_plus_n_sigma(int10, 4),
-               extent=wpu.extent_func(int10, pixelsize)*1e6)
-    plt.xlabel(r'$[\mu m]$')
-    plt.ylabel(r'$[\mu m]$')
+               extent=wpu.extent_func(int10, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
     plt.title('10', fontsize=18, weight='bold')
 
@@ -867,24 +869,25 @@ def plot_dark_field(darkField01, darkField10,
     if titleStr is not '':
         titleStr = ', ' + titleStr
 
+    factor, unit_xy = wpu.choose_unit(np.sqrt(darkField01.size)*pixelsize[0])
+
     plt.figure(figsize=(12, 6))
 
     plt.subplot(121)
     plt.imshow(darkField01, cmap='viridis',
                vmax=wpu.mean_plus_n_sigma(darkField01, 4),
-               extent=wpu.extent_func(darkField01, pixelsize)*1e6)
-    plt.xlabel(r'$[\mu m]$')
-    plt.ylabel(r'$[\mu m]$')
+               extent=wpu.extent_func(darkField01, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
     plt.title('01', fontsize=18, weight='bold')
 
     plt.subplot(122)
     plt.imshow(darkField10, cmap='viridis',
                vmax=wpu.mean_plus_n_sigma(darkField01, 4),
-               extent=wpu.extent_func(darkField10, pixelsize)*1e6)
-    plt.xlabel(r'$[\mu m]$')
-    plt.ylabel(r'$[\mu m]$')
-
+               extent=wpu.extent_func(darkField10, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
     plt.title('10', fontsize=18, weight='bold')
 
@@ -906,25 +909,30 @@ def plot_DPC(dpc01, dpc10,
     if titleStr is not '':
         titleStr = ', ' + titleStr
 
-    vlim01 = np.max(np.abs(dpc01))
-    vlim10 = np.max(np.abs(dpc10))
+    factor, unit_xy = wpu.choose_unit(np.sqrt(dpc01.size)*pixelsize[0])
+
+    vlim01 = np.max((np.abs(wpu.mean_plus_n_sigma(dpc01, -5)),
+                     np.abs(wpu.mean_plus_n_sigma(dpc01, 5))))
+    vlim10 = np.max((np.abs(wpu.mean_plus_n_sigma(dpc10, -5)),
+                     np.abs(wpu.mean_plus_n_sigma(dpc10, 5))))
 
     plt.figure(figsize=(12, 6))
     plt.subplot(121)
     plt.imshow(dpc01, cmap='RdGy',
                vmin=-vlim01, vmax=vlim01,
-               extent=wpu.extent_func(dpc01, pixelsize)*1e6)
-    plt.xlabel(r'$[\mu m]$')
-    plt.ylabel(r'$[\mu m]$')
+               extent=wpu.extent_func(dpc01, pixelsize)*factor)
+
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
     plt.title('01', fontsize=18, weight='bold')
 
     plt.subplot(122)
     plt.imshow(dpc10, cmap='RdGy',
                vmin=-vlim10, vmax=vlim10,
-               extent=wpu.extent_func(dpc10, pixelsize)*1e6)
-    plt.xlabel(r'$[\mu m]$')
-    plt.ylabel(r'$[\mu m]$')
+               extent=wpu.extent_func(dpc10, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
     plt.title('10', fontsize=18,
               weight='bold')
