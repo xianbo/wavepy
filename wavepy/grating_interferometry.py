@@ -933,7 +933,8 @@ def plot_DPC(dpc01, dpc10,
 
 
 def dpc_integration(dpc01, dpc10, pixelsize,
-                    plotErrorIntegration=False, method='FC'):
+                    plotErrorIntegration=False,
+                    shifthalfpixel=False, method='FC'):
     '''
     TODO: Write Docstring
 
@@ -941,8 +942,12 @@ def dpc_integration(dpc01, dpc10, pixelsize,
     Frankot Chellappa
     '''
 
+    vmin = wpu.mean_plus_n_sigma(dpc01**2+dpc10**2, -3)
+    vmax = wpu.mean_plus_n_sigma(dpc01**2+dpc10**2, 3)
     _, idx = wpu.crop_graphic_image(dpc01**2+dpc10**2,
-                                    kargs4graph={'cmap': 'viridis'})
+                                    kargs4graph={'cmap': 'viridis',
+                                                 'vmin': vmin,
+                                                 'vmax': vmax})
 
     dpc01 = wpu.crop_matrix_at_indexes(dpc01, idx)
     dpc10 = wpu.crop_matrix_at_indexes(dpc10, idx)
@@ -961,7 +966,7 @@ def dpc_integration(dpc01, dpc10, pixelsize,
         wps.error_integration(dpc01*pixelsize[1],
                               dpc10*pixelsize[0],
                               phase, pixelsize, errors=False,
-                              shifthalfpixel=False, plot_flag=True)
+                              shifthalfpixel=shifthalfpixel, plot_flag=True)
 
     return phase
 
