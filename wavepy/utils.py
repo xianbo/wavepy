@@ -67,7 +67,7 @@ import dxchange
 
 import configparser
 
-
+from skimage.feature import match_template
 from matplotlib.widgets import Slider, Button, RadioButtons, CheckButtons
 
 __authors__ = "Walan Grizolli"
@@ -824,6 +824,142 @@ def crop_matrix_at_indexes(input_matrix, list_of_indexes):
                    list_of_indexes[2]:list_of_indexes[3]])
 
 
+def align_two_images(img1, img2, option='crop', verbosePlot=True):
+    '''
+    Align two images based in a pattern present in both. It will use the cross
+    correlation of the images to determine the misalignment.
+
+    First, an image will pop up to select the ROI that will be used for the
+    cross correltion. Then it will roll ``img2`` to a new position in order
+    to be aligned with ``img1``.
+
+    After the roll, the edges of ``img2`` will miss data. There are two options
+    defined by setting of the parameter ``option``: ``crop`` or ``pad``, see
+    below
+
+
+    Parameters
+    ----------
+    img1 : ndarray
+        2 dimensional array
+    img2 : ndarray
+        2 dimensional array
+    option: str
+        option to crop both images or to fill the missing data of ``img2``
+
+        'pad'
+            ``img2`` will be padded with zeros to have the same size than img1.
+
+        'crop'
+            both images will be cropped to the size of ROI. Note that ``img2``
+            will be exactally the ROI.
+
+    Returns
+    -------
+    img1, img2
+        two ndarray
+
+    Examples
+    --------
+
+    >>> import wavepy.utils as wpu
+    >>> foo1 = np.pad(wpu.dummy_images('Shapes', (201, 201), noise=1),
+    >>>               ((20, 80), (15, 85)), 'constant')
+    >>>
+    >>>
+    >>> foo1 = np.pad(wpu.dummy_images('Shapes', (201, 201), noise=1.7),
+    >>>               ((90, 10), (85, 15)), 'constant')
+    >>>
+    >>> img1, img2 = align_two_images(foo1, foo2, 'pad')
+    >>>
+    >>>
+    >>> plt.figure()
+    >>> plt.imshow(img1)
+    >>> plt.figure()
+    >>> plt.imshow(img2)
+    >>> plt.show()
+    >>>
+    >>> img1, img2 = wpu.align_two_images(foo1, foo2, 'crop')
+    >>>
+    >>>
+    >>> plt.figure()
+    >>> plt.imshow(img1)
+    >>> plt.figure()
+    >>> plt.imshow(img2)
+    >>> plt.show()
+
+
+
+    '''
+
+    if verbosePlot:
+
+        plt.figure()
+        plt.imshow(img1, vmin=mean_plus_n_sigma(img1, n_sigma=-5),
+                   vmax=mean_plus_n_sigma(img1, n_sigma=5))
+        plt.title('Raw Images - Image 1', fontsize=18, weight='bold')
+
+        plt.figure()
+        plt.imshow(img2, vmin=mean_plus_n_sigma(img2, n_sigma=-5),
+                   vmax=mean_plus_n_sigma(img2, n_sigma=5))
+        plt.title('Raw Images - Image 2', fontsize=18, weight='bold')
+        plt.show(block=True)
+
+    [i_min, i_max, j_min, j_max] = graphical_roi_idx(img2)
+
+    iL = i_max - i_min
+    jL = j_max - j_min
+
+    result = match_template(img1, img2[i_min:i_max, j_min:j_max])
+    ij = np.unravel_index(np.argmax(result), result.shape)
+    pos_x, pos_y = ij[::-1]
+
+    shift_x = pos_x - j_min
+    shift_y = pos_y - i_min
+
+    print_blue('MESSAGE: shift_x, shift_y =' +
+               ' {}, {}'.format(shift_x, shift_y))
+
+    if option == 'crop':
+
+        img1 = img1[pos_y:pos_y + iL,
+                    pos_x:pos_x + jL]
+        img2 = img2[i_min:i_max, j_min:j_max]
+
+    elif option == 'pad':
+
+        if shift_y > 0:
+
+            img2 = np.pad(img2[:-shift_y, :],
+                          ((shift_y, 0), (0, 0)), 'constant')
+        else:
+
+            img2 = np.pad(img2[-shift_y:, :],
+                          ((0, -shift_y), (0, 0)), 'constant')
+
+        if shift_x > 0:
+
+            img2 = np.pad(img2[:, :-shift_x],
+                          ((0, 0), (shift_x, 0)), 'constant')
+        else:
+
+            img2 = np.pad(img2[:, -shift_x:],
+                          ((0, 0), (0, -shift_x)), 'constant')
+
+    if verbosePlot:
+        plt.figure()
+        plt.imshow(img1, vmin=mean_plus_n_sigma(img1, n_sigma=-5),
+                   vmax=mean_plus_n_sigma(img1, n_sigma=5))
+        plt.title('Image 1', fontsize=18, weight='bold')
+        plt.figure()
+        plt.imshow(img2, vmin=mean_plus_n_sigma(img2, n_sigma=-5),
+                   vmax=mean_plus_n_sigma(img2, n_sigma=5))
+        plt.title('Image 2', fontsize=18, weight='bold')
+        plt.show(block=True)
+
+    return img1, img2
+
+
 def find_nearest_value(input_array, value):
     """
 
@@ -909,7 +1045,7 @@ def find_nearest_value_index(input_array, value):
     return np.where(input_array == find_nearest_value(input_array, value))
 
 
-def dummy_images(imagetype='None', shape=(100, 100), **kwargs):
+def dummy_images(imagetype=None, shape=(100, 100), **kwargs):
     """
 
     Dummy images for simple tests.
@@ -1106,7 +1242,7 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
     The image is plotted and, using the mouse, the user select the region of
     interest (ROI). The ROI is ploted as an transparent rectangular region.
     When the image is closed the function returns the indexes
-    ``[i_min, i_max, j_min,_j_max]`` of the ROI.
+    ``[i_min, i_max, j_min, j_max]`` of the ROI.
 
     Parameters
     ----------
@@ -2336,7 +2472,7 @@ def load_ini_file(inifname):
     if not os.path.isfile(inifname):
         raise Warning("File " + inifname + " doesn't exist. You must " +
                       "create your init file first.")
-        return None, None
+        return None
 
     config = configparser.ConfigParser()
     config.read(inifname)
@@ -2380,6 +2516,7 @@ def get_from_ini_file(inifname, section, key):
         par2 = 10, 100, 500, 600
         par can have long name = 25
         par3 = the value can be anything
+
 
     If we create a file named ``.temp.ini`` with the example above, we can load
     it as:
