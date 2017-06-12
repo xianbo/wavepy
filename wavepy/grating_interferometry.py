@@ -89,8 +89,8 @@ __all__ = ['exp_harm_period', 'extract_harmonic',
 
 def _idxPeak_ij(harV, harH, nRows, nColumns, periodVert, periodHor):
     """
-    Calculates the indexes of the peak of the harmonic harV, harH in the main
-    FFT image
+    Calculates the theoretical indexes of the harmonic peak
+    [`harV`, `harH`] in the main FFT image
     """
     return [nRows // 2 + harV * periodVert, nColumns // 2 + harH * periodHor]
 
@@ -685,7 +685,7 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
                                            plotFlag=plotFlag,
                                            verbose=verbose)
 
-    if img_ref is not None:
+    if img_ref is not None:  # relative wavefront
 
         h_img_ref = single_grating_harmonic_images(img_ref, harmonicPeriod,
                                                    plotFlag=plotFlag,
@@ -707,7 +707,7 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
             arg01 = np.angle(h_img[1]) - np.angle(h_img_ref[1])
             arg10 = np.angle(h_img[2]) - np.angle(h_img_ref[2])
 
-    else:
+    else:  # absolute wavefront
 
         int00 = np.abs(h_img[0])
         int01 = np.abs(h_img[1])
@@ -897,16 +897,19 @@ def plot_DPC(dpc01, dpc10,
 
     factor, unit_xy = wpu.choose_unit(np.sqrt(dpc01.size)*pixelsize[0])
 
-    vlim01 = np.max((np.abs(wpu.mean_plus_n_sigma(dpc01, -5)),
-                     np.abs(wpu.mean_plus_n_sigma(dpc01, 5))))
-    vlim10 = np.max((np.abs(wpu.mean_plus_n_sigma(dpc10, -5)),
-                     np.abs(wpu.mean_plus_n_sigma(dpc10, 5))))
+    dpc01_plot=dpc01*pixelsize[1]/np.pi
+    dpc10_plot=dpc10*pixelsize[0]/np.pi
+
+    vlim01 = np.max((np.abs(wpu.mean_plus_n_sigma(dpc01_plot, -5)),
+                     np.abs(wpu.mean_plus_n_sigma(dpc01_plot, 5))))
+    vlim10 = np.max((np.abs(wpu.mean_plus_n_sigma(dpc10_plot, -5)),
+                     np.abs(wpu.mean_plus_n_sigma(dpc10_plot, 5))))
 
     plt.figure(figsize=(12, 6))
     plt.subplot(121)
-    plt.imshow(dpc01, cmap='RdGy',
+    plt.imshow(dpc01_plot, cmap='RdGy',
                vmin=-vlim01, vmax=vlim01,
-               extent=wpu.extent_func(dpc01, pixelsize)*factor)
+               extent=wpu.extent_func(dpc01_plot, pixelsize)*factor)
 
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
     plt.ylabel(r'$[{0} m]$'.format(unit_xy))
@@ -914,16 +917,16 @@ def plot_DPC(dpc01, dpc10,
     plt.title('01', fontsize=18, weight='bold')
 
     plt.subplot(122)
-    plt.imshow(dpc10, cmap='RdGy',
+    plt.imshow(dpc10_plot, cmap='RdGy',
                vmin=-vlim10, vmax=vlim10,
-               extent=wpu.extent_func(dpc10, pixelsize)*factor)
+               extent=wpu.extent_func(dpc10_plot, pixelsize)*factor)
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
     plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
     plt.title('10', fontsize=18,
               weight='bold')
 
-    plt.suptitle('Differential Phase' + titleStr,
+    plt.suptitle('Differential Phase ' + r'[$\pi$ rad]' + titleStr,
                  fontsize=18, weight='bold')
 
     plt.tight_layout()
@@ -932,7 +935,7 @@ def plot_DPC(dpc01, dpc10,
     plt.show(block=True)
 
 
-def dpc_integration(dpc01, dpc10, pixelsize,
+def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
                     plotErrorIntegration=False,
                     shifthalfpixel=False, method='FC'):
     '''
@@ -942,12 +945,16 @@ def dpc_integration(dpc01, dpc10, pixelsize,
     Frankot Chellappa
     '''
 
-    vmin = wpu.mean_plus_n_sigma(dpc01**2+dpc10**2, -3)
-    vmax = wpu.mean_plus_n_sigma(dpc01**2+dpc10**2, 3)
-    _, idx = wpu.crop_graphic_image(dpc01**2+dpc10**2,
-                                    kargs4graph={'cmap': 'viridis',
-                                                 'vmin': vmin,
-                                                 'vmax': vmax})
+    if idx4crop == '':
+
+        vmin = wpu.mean_plus_n_sigma(dpc01**2+dpc10**2, -3)
+        vmax = wpu.mean_plus_n_sigma(dpc01**2+dpc10**2, 3)
+        _, idx = wpu.crop_graphic_image(dpc01**2+dpc10**2,
+                                        kargs4graph={'cmap': 'viridis',
+                                                     'vmin': vmin,
+                                                     'vmax': vmax})
+    else:
+        idx = idx4crop
 
     dpc01 = wpu.crop_matrix_at_indexes(dpc01, idx)
     dpc10 = wpu.crop_matrix_at_indexes(dpc10, idx)
@@ -968,7 +975,7 @@ def dpc_integration(dpc01, dpc10, pixelsize,
                               phase, pixelsize, errors=False,
                               shifthalfpixel=shifthalfpixel, plot_flag=True)
 
-    return phase
+    return phase, idx
 
 
 def plot_integration(integrated, pixelsize,
@@ -980,8 +987,12 @@ def plot_integration(integrated, pixelsize,
 
     xxGrid, yyGrid = wpu.grid_coord(integrated, pixelsize)
 
-    wpu.plot_profile(xxGrid*1e6, yyGrid*1e6,   integrated[::-1, :],
-                     xlabel=r'$x [\mu m]$', ylabel=r'$y [\mu m]$',
+    factor_x, unit_x = wpu.choose_unit(xxGrid)
+    factor_y, unit_y = wpu.choose_unit(yyGrid)
+
+    wpu.plot_profile(xxGrid*factor_x, yyGrid*factor_y,   integrated[::-1, :],
+                     xlabel=r'$x [' + unit_x + ' m]$',
+                     ylabel=r'$y [' + unit_y + ' m]$',
                      title=titleStr,
                      xunit='\mu m', yunit='\mu m',
                      arg4main={'cmap': 'viridis', 'lw': 3})
@@ -991,13 +1002,22 @@ def plot_integration(integrated, pixelsize,
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
 
-    surf = ax.plot_surface(xxGrid*1e6, yyGrid*1e6,  integrated[::-1, :],
-                           rstride=integrated.shape[0] // 101 + 1,
-                           cstride=integrated.shape[1] // 101 + 1,
+    rstride=integrated.shape[0] // 101 + 1
+    cstride=integrated.shape[1] // 101 + 1
+
+    surf = ax.plot_surface(xxGrid*factor_x, yyGrid*factor_y,  integrated[::-1, :],
+                           rstride=rstride,
+                           cstride=cstride,
                            cmap='viridis', linewidth=0.1)
 
-    plt.xlabel(r'$x$ [$\mu m$]')
-    plt.ylabel(r'$y$ [$\mu m$]')
+    ax_lim = np.max([np.abs(xxGrid*factor_x), np.abs(yyGrid*factor_y)])
+    ax.set_xlim3d(-ax_lim, ax_lim)
+    ax.set_ylim3d(-ax_lim, ax_lim)
+
+    plt.xlabel(r'$x [' + unit_x + ' m]$')
+    plt.ylabel(r'$y [' + unit_y + ' m]$')
+
+    titleStr += '\n strides = {}, {}'.format(rstride, cstride)
 
     plt.title(titleStr, fontsize=24, weight='bold')
     plt.colorbar(surf, shrink=.8, aspect=20)
@@ -1007,4 +1027,6 @@ def plot_integration(integrated, pixelsize,
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
 
-    plt.show(block=True)
+    plt.show(block=False)
+
+    return ax
