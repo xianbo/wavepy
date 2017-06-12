@@ -442,10 +442,6 @@ def plot_profile(xmatrix, ymatrix, zmatrix,
     return [ax_main, ax_top, ax_side, delta_x, delta_y]
 
 
-# %%%%%%%%%%%%%%%%%%%%
-# files manipulation
-# %%%%%%%%%%%%%%%%%%%%
-
 def select_file(pattern='*', message_to_print=None):
     """
     List files under the subdirectories of the current working directory,
@@ -666,7 +662,6 @@ def load_files_scan(samplefileName, split_char='_', suffix='.tif'):
     return glob.glob(samplefileName.rsplit('_', 1)[0] + '*' + suffix)
 
 
-# %%
 def gui_list_data_phase_stepping(directory=''):
     '''
         TODO: Write Docstring
@@ -1631,11 +1626,9 @@ def plot_slide_colorbar(zmatrix, title='',
 
     if min_slider_val is None:
         min_slider_val = (9*cmin_o - cmax_o)/8
-        #        min_slider_val = np.mean(zmatrix) - 8*np.std(zmatrix)
 
     if max_slider_val is None:
         max_slider_val = (9*cmax_o - cmin_o)/8
-        #        max_slider_val = np.mean(zmatrix) + 8*np.std(zmatrix)
 
     scmin = Slider(axcmin, 'Min',
                    min_slider_val, max_slider_val,
@@ -1751,20 +1744,8 @@ def save_figs_with_idx(patternforname='graph', extension='png'):
 
     '''
 
-    if '_figCount' not in globals():
 
-            from itertools import count
-            global _figCount
-            _figCount = count()
-            next(_figCount)
-
-    figname = str('{:s}_{:02d}.{:s}'.format(patternforname,
-                  next(_figCount), extension))
-
-    while os.path.isfile(figname):
-        figname = str('{:s}_{:02d}.{:s}'.format(patternforname,
-                      next(_figCount), extension))
-
+    figname = get_unique_filename(patternforname, extension)
     plt.savefig(figname)
     print('MESSAGE: ' + figname + ' SAVED')
 
@@ -1811,6 +1792,42 @@ def save_figs_with_idx_pickle(figObj, patternforname='graph'):
     pl.dump(figObj, open(figname, 'wb'))
 
     print('MESSAGE: ' + figname + ' SAVED')
+
+
+def get_unique_filename(patternforname, extension='txt'):
+    '''
+    Produce a string in the format `patternforname_XX.extension`, where XX is
+    the smalest number in order that the string is a unique filename.
+
+    Parameters
+    ----------
+
+    patternforname: str
+        Main part of the filename. Accept directories path.
+
+    extension: str
+        Sufix for file name.
+
+
+    Notes
+    -----
+
+    This will just return the filename, it will not create any file.
+
+    '''
+
+    from itertools import count
+    _Count_fname = count()
+    next(_Count_fname)
+
+    fname = str('{:s}_{:02d}.'.format(patternforname,
+                                      next(_Count_fname)) + extension)
+
+    while os.path.isfile(fname):
+        fname = str('{:s}_{:02d}.'.format(patternforname,
+                                          next(_Count_fname)) + extension)
+
+    return fname
 
 
 def rotate_img_graphical(array2D, order=1, mode='constant', verbose=False):
@@ -1914,11 +1931,12 @@ def choose_unit(array):
     Parameters
     ----------
     array : ndarray
+        array from where to choose proper unit.
 
     Returns
     -------
-    float :
-    unit :
+    float, unit :
+        Multiplication Factor and strig for unit
 
     Example
     -------
@@ -2261,11 +2279,6 @@ def h5_list_of_groups(h5file):
 
     return list_of_goups
 
-
-if __name__ == '__main__':
-    pass
-
-
 # Progress bar
 
 
@@ -2591,6 +2604,57 @@ def set_at_ini_file(inifname, section, key, value):
         config.write(configfile)
 
 
+def log_this(text='', preffname='', inifname=''):
+    '''
+    Write a variable to the log file. Creates one if there isn't one.
+
+    Parameters
+    ----------
+    text: str
+        text to be appended to the log file
+
+    inifname: str
+        (Optional) name of the inifile to be attached to the log.
+
+
+    '''
+
+    if 'logfilename' not in globals():
+
+        if preffname == '':
+
+            global logfilename
+            from inspect import currentframe, getframeinfo
+
+            cf = currentframe().f_back
+            logfilename = (getframeinfo(cf).filename[:-3] +
+                           '_' + datetime_now_str() + '.log')
+
+        else:
+            logfilename = (preffname +
+                           '_' + datetime_now_str() + '.log')
+
+        print_blue('MESSAGE: LOGFILE name: ' + logfilename)
+
+    if text != '':
+        with open(logfilename, 'a') as file:
+            file.write(text + '\n')
+
+    if os.path.isfile(inifname):
+
+        with open(logfilename, 'a') as outfile:
+            with open(inifname, 'r') as file1:
+                outfile.write('##### START .ini file\n')
+                outfile.write(file1.read())
+                outfile.write('\n##### END .ini file\n')
+
+    elif inifname == '':
+        print_blue('LOG MESSAGE: ' + text)
+
+    else:
+        print_red('WARNING: inifname DOESNT exist.')
+
+
 def fourier_spline_1d(vec1d, n=2):
 
     # reflec pad to avoid discontinuity at the edges
@@ -2671,7 +2735,7 @@ def shift_subpixel_2d(array2d, frac_of_pixel):
                                                      1::frac_of_pixel]
 
 
-def _mpl_settings_4_nice_graphs():
+def _mpl_settings_4_nice_graphs(fs=16):
     '''
     Settings for latex fonts in the graphs
     ATTENTION: This will make the program slow because it will compile all
@@ -2687,7 +2751,7 @@ def _mpl_settings_4_nice_graphs():
     plt.rcParams['text.latex.preamble'] = [r"\usepackage[utopia]{mathdesign}"]
     # Options
     params = {'text.usetex' : True,
-              'font.size' : 16,
+              'font.size' : fs,
               'font.family' : 'utopia',
               'text.latex.unicode': True,
               'figure.facecolor' : 'white'
