@@ -72,6 +72,7 @@ case.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import wavepy.utils as wpu
 import wavepy.surface_from_grad as wps
 from skimage.restoration import unwrap_phase
@@ -1002,8 +1003,8 @@ def plot_integration(integrated, pixelsize,
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
 
-    rstride=integrated.shape[0] // 101 + 1
-    cstride=integrated.shape[1] // 101 + 1
+    rstride = integrated.shape[0] // 101 + 1
+    cstride = integrated.shape[1] // 101 + 1
 
     surf = ax.plot_surface(xxGrid*factor_x, yyGrid*factor_y,  integrated[::-1, :],
                            rstride=rstride,
@@ -1021,9 +1022,9 @@ def plot_integration(integrated, pixelsize,
 
     plt.title(titleStr, fontsize=24, weight='bold')
     plt.colorbar(surf, shrink=.8, aspect=20)
+    fig.tight_layout()
 
     plt.tight_layout()
-
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
 

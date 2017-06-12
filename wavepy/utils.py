@@ -2750,10 +2750,151 @@ def _mpl_settings_4_nice_graphs(fs=16):
     # Direct input
     plt.rcParams['text.latex.preamble'] = [r"\usepackage[utopia]{mathdesign}"]
     # Options
-    params = {'text.usetex' : True,
-              'font.size' : fs,
-              'font.family' : 'utopia',
+    params = {'text.usetex': True,
+              'font.size': fs,
+              'font.family': 'utopia',
               'text.latex.unicode': True,
-              'figure.facecolor' : 'white'
+              'figure.facecolor': 'white'
               }
     plt.rcParams.update(params)
+
+
+def rocking_3d_figure(ax, outfname='out.ogv',
+                      elevAmp=50, azimAmpl=90,
+                      elevOffset=0, azimOffset=0,
+                      dpi=50, npoints=200,
+                      del_tmp_imgs=True):
+    """
+
+    Saves an image at different view angles and join the images
+    to make a short animation. The movement is defined by setting the elevation
+    and azimut angles following a sine function. The frequency of the vertical
+    movement (elevation) is twice of the horizontal (azimute), forming a
+    figure eight movement.
+
+
+    Parameters
+    ==========
+
+    ax : 3D axis object
+        See example below how to create this object. If `None`, this will use
+        the temporary images from a previous run
+
+    outfname : str
+        output file name. Note that the extension defines the file format.
+        This function has been tested for the formats `.gif` (not recomended,
+        big files and poor quality), `.mp4`, `.mkv` and `.ogv`. For
+        LibreOffice, `.ogv` is the recomend format.
+
+    elevAmp : float
+        amplitude of elevation movement, in degrees
+
+    azimAmpl : float
+        amplitude of azimutal movement, in degrees. If negative, the image
+        will continually rotate around the azimute directio (no azimute
+        rocking)
+
+    elevOffset : float
+        offset of elevation movement, in degrees
+
+    azimOffset : float
+        offset of azimutal movement, in degrees
+
+    dpi : float
+        resolution of the individual images
+
+    npoints : int
+        number of intermediary images to form the animation. More images
+        will make the the movement slower and the animation longer.
+
+    remove_images : float
+        the program creates `npoints` temporary images, and this flag defines if
+        these images are deleted or not
+
+    Example
+    =======
+
+
+    >>> fig = plt.figure()
+    >>> ax = fig.add_subplot(111, projection='3d')
+    >>> xx = np.random.rand(npoints)*2-1
+    >>> yy = np.random.rand(npoints)*2-1
+    >>> zz = np.sinc(-(xx**2/.5**2+yy**2/1**2))
+    >>> ax.plot_trisurf(xx, yy, zz, cmap='viridis', linewidth=0.2, alpha = 0.8)
+    >>> plt.show()
+    >>> plt.pause(.5)
+    >>> # this pause is necessary to plot the first image in the main screen
+    >>> rocking_3d_figure(ax, 'out_080.ogv',
+                          elevAmp=45, azimAmpl=45,
+                          elevOffset=0, azimOffset=45, dpi=80)
+    >>> # example of use of the del_tmp_imgs flag
+    >>> rocking_3d_figure(ax, 'out_050.ogv',
+                          elevAmp=60, azimAmpl=60,
+                          elevOffset=10, azimOffset=45,
+                          dpi=50, del_tmp_imgs=False)
+    >>> rocking_3d_figure(None, 'out2_050.gif',
+                          del_tmp_imgs=True)
+
+    """
+
+    plt.pause(.5)
+
+    outfname = get_unique_filename(outfname.split('.')[0],
+                                   outfname.split('.')[-1])
+
+    out_format = outfname.split('.')[-1]
+
+    print_red('WARNING: rocking_3d_figure: making pictures for animation,' +
+              ' them main figure will freeze for a while.')
+
+    if ax is not None:
+        for ii in np.linspace(0, npoints, npoints, dtype=int):
+
+            text = ax.text2D(0.05, 0.95, str('{:d}/{:d}'.format(ii, npoints)),
+                             transform=ax.transAxes)
+
+            if azimAmpl > 0:
+                azim = azimOffset + azimAmpl*np.sin(2*np.pi*ii/npoints)
+            else:
+                azim = azimOffset + 360*ii/npoints
+
+            elev = elevOffset + elevAmp*np.sin(4*np.pi*ii/npoints)
+
+            ax.view_init(elev=elev, azim=azim)
+
+            plt.savefig('.animation_tmp_{:03d}.jpg'.format(ii), dpi=dpi)
+
+            text.remove()
+            if ii % 10 == 0:
+                print(' {:d}/{:d}'.format(ii, npoints), flush=True)
+            else:
+                print('.', end='', flush=True)
+
+        print_blue('MESSAGE: rocking_3d_figure: temp images created')
+
+        ax.view_init(elev=30, azim=-60)
+
+
+    cmd4dic = {'mkv': 'ffmpeg -framerate 25 -i .animation_tmp_%03d.jpg ' +
+                      '-c:v libx264 -vf fps=30 -pix_fmt yuv420p ' + outfname,
+               'gif': 'ffmpeg -framerate 25 -i .animation_tmp_%03d.jpg ' +
+                      '-loop 4 ' + outfname,
+               'mp4': 'ffmpeg -framerate 25 -i .animation_tmp_%03d.jpg ' +
+                      outfname,
+               'ogv': 'ffmpeg -framerate 25 -i .animation_tmp_%03d.jpg ' +
+                      '-c:v libx264 -vf fps=30 -pix_fmt yuv420p ' +
+                      outfname.split('.')[0] + '.mkv' +
+                      '; ffmpeg -i ' + outfname.split('.')[0] + '.mkv' +
+                      ' -codec:v libtheora -qscale:v 7 -codec:a ' +
+                      'libvorbis -qscale:a 5 ' + outfname +
+                      '; rm ' + outfname.split('.')[0] + '.mkv'}
+
+    cmd4dic.setdefault('convert .animation_tmp_%03d.jpg ' + outfname)
+
+    os.system(cmd4dic.get(out_format))
+    print_blue('MESSAGE: rocking_3d_figure: saved ' + outfname)
+
+    if del_tmp_imgs:
+        files = glob.glob('.animation_tmp_*')
+        for file in files:
+            os.remove(file)
