@@ -66,6 +66,7 @@ import os
 import dxchange
 
 import configparser
+import shutil
 
 from skimage.feature import match_template
 from matplotlib.widgets import Slider, Button, RadioButtons, CheckButtons
@@ -84,7 +85,7 @@ __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'realcoordvec', 'realcoordmatrix_fromvec', 'realcoordmatrix',
            'reciprocalcoordvec', 'reciprocalcoordmatrix',
            'h5_list_of_groups',
-           'progress_bar4pmap', 'load_ini_file']
+           'progress_bar4pmap', 'load_ini_file', 'rocking_3d_figure']
 
 
 hc = constants.value('inverse meter-electron volt relationship')  # hc
@@ -1744,7 +1745,6 @@ def save_figs_with_idx(patternforname='graph', extension='png'):
 
     '''
 
-
     figname = get_unique_filename(patternforname, extension)
     plt.savefig(figname)
     print('MESSAGE: ' + figname + ' SAVED')
@@ -2791,7 +2791,7 @@ def rocking_3d_figure(ax, outfname='out.ogv',
 
     azimAmpl : float
         amplitude of azimutal movement, in degrees. If negative, the image
-        will continually rotate around the azimute directio (no azimute
+        will continually rotate around the azimute direction (no azimute
         rocking)
 
     elevOffset : float
@@ -2808,8 +2808,8 @@ def rocking_3d_figure(ax, outfname='out.ogv',
         will make the the movement slower and the animation longer.
 
     remove_images : float
-        the program creates `npoints` temporary images, and this flag defines if
-        these images are deleted or not
+        the program creates `npoints` temporary images, and this flag defines
+        if these images are deleted or not
 
     Example
     =======
@@ -2836,6 +2836,26 @@ def rocking_3d_figure(ax, outfname='out.ogv',
                           del_tmp_imgs=True)
 
     """
+
+    if os.name is 'posix':
+        pass
+
+    else:
+        print_red('ERROR: rocking_3d_figure: ' +
+                  'this function is only implemented for Linux')
+        return -1
+
+    if shutil.which('ffmpeg') is None:
+        print_red('ERROR: rocking_3d_figure: ' +
+                  '"ffmpeg" function is no available. ' +
+                  'Aborting rocking_3d_figure')
+        return -1
+
+    if shutil.which('convert') is None:
+        print_red('ERROR: rocking_3d_figure: ' +
+                  '"convert" function is no available. ' +
+                  'Aborting rocking_3d_figure')
+        return -1
 
     plt.pause(.5)
 
@@ -2874,7 +2894,6 @@ def rocking_3d_figure(ax, outfname='out.ogv',
 
         ax.view_init(elev=30, azim=-60)
 
-
     cmd4dic = {'mkv': 'ffmpeg -framerate 25 -i .animation_tmp_%03d.jpg ' +
                       '-c:v libx264 -vf fps=30 -pix_fmt yuv420p ' + outfname,
                'gif': 'ffmpeg -framerate 25 -i .animation_tmp_%03d.jpg ' +
@@ -2898,3 +2917,5 @@ def rocking_3d_figure(ax, outfname='out.ogv',
         files = glob.glob('.animation_tmp_*')
         for file in files:
             os.remove(file)
+
+    return 1
