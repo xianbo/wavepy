@@ -1599,8 +1599,8 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
 
 def plot_slide_colorbar(zmatrix, title='',
                         xlabel='', ylabel='',
-                        min_slider_val=None,
-                        max_slider_val=None,
+                        cmin_o=None,
+                        cmax_o=None,
                         **kwargs4imshow):
     '''
     TODO: Write docstring
@@ -1622,14 +1622,14 @@ def plot_slide_colorbar(zmatrix, title='',
     axcmin = plt.axes([0.25, 0.1, 0.65, 0.03])
     axcmax = plt.axes([0.25, 0.15, 0.65, 0.03])
 
-    cmin_o = surf.get_clim()[0]
-    cmax_o = surf.get_clim()[1]
+    if cmin_o is None:
+        cmin_o = surf.get_clim()[0]
 
-    if min_slider_val is None:
-        min_slider_val = (9*cmin_o - cmax_o)/8
+    if cmax_o is None:
+        cmax_o = surf.get_clim()[1]
 
-    if max_slider_val is None:
-        max_slider_val = (9*cmax_o - cmin_o)/8
+    min_slider_val = (9*cmin_o - cmax_o)/8
+    max_slider_val = (9*cmax_o - cmin_o)/8
 
     scmin = Slider(axcmin, 'Min',
                    min_slider_val, max_slider_val,
@@ -1641,31 +1641,18 @@ def plot_slide_colorbar(zmatrix, title='',
     resetax = plt.axes([0.8, 0.015, 0.1, 0.04])
     button = Button(resetax, 'Reset', hovercolor='0.975')
 
-    logax = plt.axes([0.025, 0.7, 0.15, 0.15])
-    radio2 = RadioButtons(logax, ('lin', 'log'), active=0)
-
-    cmapax = plt.axes([0.025, 0.3, 0.15, 0.25])
+    cmapax = plt.axes([0.025, 0.2, 0.15, 0.25])
     radio1 = RadioButtons(cmapax, ('gray', 'gray_r',
                                    'viridis', 'viridis_r',
                                    'inferno', 'rainbow'), active=2)
 
-    maskFlag = False
-    maskax = plt.axes([0.025, 0.15, 0.15, 0.10])
-    chkbtom = CheckButtons(maskax, labels=['Mask'],
-                           actives=[maskFlag])
+    powax = plt.axes([0.025, 0.7, 0.15, 0.15])
+    radio2 = RadioButtons(powax, ('lin', 'pow 1/7', 'pow 1/3',
+                                  'pow 3', 'pow 7'), active=0)
 
-    def maskfunc(label):
-        if chkbtom.lines[0][0].get_visible():
-            zmatrix_tmp = np.copy(zmatrix)
-
-            zmatrix_tmp[np.where(zmatrix > scmax.val)] = np.nan
-            zmatrix_tmp[np.where(zmatrix < scmin.val)] = np.nan
-
-            surf.set_data(zmatrix_tmp)
-        else:
-            surf.set_data(zmatrix)
-
-    chkbtom.on_clicked(maskfunc)
+    sparkax = plt.axes([0.025, 0.5, 0.15, 0.15])
+    radio3 = RadioButtons(sparkax, ('none', 'sigma = 1',
+                                    'sigma = 3', 'sigma = 5'), active=0)
 
     def update(val):
         cmin = scmin.val
@@ -1678,27 +1665,16 @@ def plot_slide_colorbar(zmatrix, title='',
             scmin.label.set_text('Max')
             scmax.label.set_text('Min')
 
-        if radio2.value_selected == 'log':
-            cmin = np.log10(cmin)
-            cmax = np.log10(cmax)
-            zmatrix_2plot = np.log10(zmatrix)
-        else:
-            zmatrix_2plot = np.copy(zmatrix)
-
         surf.set_clim(cmax, cmin)
 
-        if chkbtom.lines[0][0].get_visible():
-            zmatrix_2plot[np.where(zmatrix > scmax.val)] = np.nan
-            zmatrix_2plot[np.where(zmatrix < scmin.val)] = np.nan
-            surf.set_data(zmatrix_2plot)
-
-        surf.set_data(zmatrix_2plot)
         fig.canvas.draw_idle()
 
     scmin.on_changed(update)
     scmax.on_changed(update)
 
     def reset(event):
+        scmin.set_val(cmin_o)
+        scmax.set_val(cmax_o)
         scmin.reset()
         scmax.reset()
     button.on_clicked(reset)
@@ -1708,20 +1684,45 @@ def plot_slide_colorbar(zmatrix, title='',
         fig.canvas.draw_idle()
     radio1.on_clicked(colorfunc)
 
-    def log_or_lin(label):
+    def lin_or_pow(label):
+        radio3.set_active(0)
+        filter_sparks('none')
         if label == 'lin':
-            zmatrix_tmp = zmatrix
-        elif label == 'log':
-            zmatrix_tmp = np.log10(zmatrix)
+            n = 1
+        elif label == 'pow 1/3':
+            n = 1/3
+        elif label == 'pow 1/7':
+            n = 1/7
+        elif label == 'pow 3':
+            n = 3
+        elif label == 'pow 7':
+            n = 7
 
-        surf.set_data(zmatrix_tmp)
-        surf.set_clim(zmatrix_tmp.min(), zmatrix_tmp.max())
-        scmin.set_val(zmatrix_tmp.min())
-        scmax.set_val(zmatrix_tmp.max())
-        scmin.reset()
-        scmax.reset()
+        zmatrix_2plot = ((zmatrix-zmatrix.min())**n*np.ptp(zmatrix) /
+                         np.ptp(zmatrix)**n + zmatrix.min())
+        surf.set_data(zmatrix_2plot)
         fig.canvas.draw_idle()
-    radio2.on_clicked(log_or_lin)
+
+    radio2.on_clicked(lin_or_pow)
+
+    def filter_sparks(label):
+        zmatrix_2plot = surf.get_array().data
+        if label == 'none':
+            reset(None)
+            return
+        elif label == 'sigma = 1':
+            sigma = 1
+        elif label == 'sigma = 3':
+            sigma = 3
+        elif label == 'sigma = 5':
+            sigma = 5
+
+        scmin.set_val(mean_plus_n_sigma(zmatrix_2plot, -sigma))
+        scmax.set_val(mean_plus_n_sigma(zmatrix_2plot, sigma))
+        surf.set_clim(mean_plus_n_sigma(zmatrix_2plot, -sigma),
+                      mean_plus_n_sigma(zmatrix_2plot, sigma))
+
+    radio3.on_clicked(filter_sparks)
 
     plt.show(block=True)
 
@@ -2644,9 +2645,9 @@ def log_this(text='', preffname='', inifname=''):
 
         with open(logfilename, 'a') as outfile:
             with open(inifname, 'r') as file1:
-                outfile.write('##### START .ini file\n')
+                outfile.write('\n\n##### START .ini file\n')
                 outfile.write(file1.read())
-                outfile.write('\n##### END .ini file\n')
+                outfile.write('\n##### END .ini file\n\n\n')
 
     elif inifname == '':
         print_blue('LOG MESSAGE: ' + text)
