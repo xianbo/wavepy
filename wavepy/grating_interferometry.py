@@ -70,28 +70,12 @@ case.
 
 """
 
-# import itertools
-# import numpy as np
-# import time
-# from tqdm import tqdm
-#
-# from skimage.feature import register_translation
-#
-# from multiprocessing import Pool, cpu_count
-#
-# import wavepy.utils as wpu
-#
-# from wavepy.cfg import *
-
-
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import wavepy.utils as wpu
-
+import wavepy.surface_from_grad as wps
 from skimage.restoration import unwrap_phase
-
-
-import unwrap as uw
 
 
 __authors__ = "Walan Grizolli"
@@ -106,8 +90,8 @@ __all__ = ['exp_harm_period', 'extract_harmonic',
 
 def _idxPeak_ij(harV, harH, nRows, nColumns, periodVert, periodHor):
     """
-    Calculates the indexes of the peak of the harmonic harV, harH in the main
-    FFT image
+    Calculates the theoretical indexes of the harmonic peak
+    [`harV`, `harH`] in the main FFT image
     """
     return [nRows // 2 + harV * periodVert, nColumns // 2 + harH * periodHor]
 
@@ -213,8 +197,8 @@ def exp_harm_period(img, harmonicPeriod,
         if verbose:
             wpu.print_blue("MESSAGE: Assuming Vertical 1D Grating")
 
-    _check_harmonic_inside_image(harV, harH, nRows, nColumns,
-                                 periodVert, periodHor)
+    #    _check_harmonic_inside_image(harV, harH, nRows, nColumns,
+    #                                 periodVert, periodHor)
 
     if isFFT:
         imgFFT = img
@@ -380,7 +364,7 @@ def extract_harmonic(img, harmonicPeriod,
               idxPeak_ij[0], idxPeak_ij[1]))
 
     if ((np.abs(del_i) > searchRegion // 2) or
-       (np.abs(del_j) >  searchRegion // 2)):
+       (np.abs(del_j) > searchRegion // 2)):
 
         wpu.print_red("ATTENTION: Harmonic Peak " + harmonic_ij[0] +
                       harmonic_ij[1] + " is too far from theoretical value.")
@@ -390,7 +374,7 @@ def extract_harmonic(img, harmonicPeriod,
     if plotFlag:
 
         from matplotlib.patches import Rectangle
-        plt.figure()
+        plt.figure(figsize=(8, 7))
         plt.imshow(np.log10(intensity), cmap='inferno')
 
         plt.gca().add_patch(Rectangle((idxPeak_ij[1] - periodHor//2,
@@ -401,7 +385,7 @@ def extract_harmonic(img, harmonicPeriod,
 
         plt.title('Selected Region ' + harmonic_ij[0] + harmonic_ij[1],
                   fontsize=18, weight='bold')
-        plt.show()
+        plt.show(block=False)
 
     return imgFFT[idxPeak_ij[0] - periodVert//2:
                   idxPeak_ij[0] + periodVert//2,
@@ -410,7 +394,6 @@ def extract_harmonic(img, harmonicPeriod,
 
 
 def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
-
     """
     Takes the FFT of single 2D grating Talbot imaging and plot the grid from
     where we extract the harmonic in a image of the
@@ -438,7 +421,8 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     """
 
     if not isFFT:
-        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img), norm='ortho'))
+        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img),
+                                             norm='ortho'))
     else:
         imgFFT = img
 
@@ -454,7 +438,7 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     if periodHor <= 0 or periodHor is None:
         periodHor = nColumns
 
-    plt.figure()
+    plt.figure(figsize=(8, 7))
     plt.imshow(np.log10(np.abs(imgFFT)), cmap='inferno')
 
     harV_min = -(nRows + 1) // 2 // periodVert
@@ -519,9 +503,9 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
         (``isFFT=True``) or in the real space (``isFFT=False``)
     """
 
-
     if not isFFT:
-        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img), norm='ortho'))
+        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img),
+                                             norm='ortho'))
     else:
         imgFFT = img
 
@@ -530,7 +514,6 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
     periodVert = harmonicPeriod[0]
     periodHor = harmonicPeriod[1]
 
-
     # adjusts for 1D grating
     if periodVert <= 0 or periodVert is None:
         periodVert = nRows
@@ -538,7 +521,7 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
     if periodHor <= 0 or periodHor is None:
         periodHor = nColumns
 
-    fig = plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(8, 7))
 
     ax1 = fig.add_subplot(121)
 
@@ -579,12 +562,9 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
         plt.savefig(fname)
 
 
-
-
 def single_grating_harmonic_images(img, harmonicPeriod,
                                    searchRegion=10,
                                    plotFlag=False, verbose=False):
-
     """
     Auxiliary function to process the data of single 2D grating Talbot imaging.
     It obtain the (real space) harmonic images  00, 01 and 10.
@@ -608,6 +588,8 @@ def single_grating_harmonic_images(img, harmonicPeriod,
         `:py:func:`wavepy.grating_interferometry.plot_harmonic_grid`
 
     plotFlag: boolean
+        Flag to plot the image in the reciprocal space and to show the position
+        of the found peaked and the limits of the harmonic image
 
     verbose: Boolean
         verbose flag.
@@ -657,7 +639,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
         intFFT01 = np.log10(np.abs(imgFFT01))
         intFFT10 = np.log10(np.abs(imgFFT10))
 
-        fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(14, 4))
+        fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(14, 5))
 
         for dat, ax, textTitle in zip([intFFT00, intFFT01, intFFT10],
                                       axes.flat,
@@ -692,8 +674,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
 
 
 def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
-                              unwrapFlag=1, plotFlag=True, verbose=False):
-
+                              unwrapFlag=True, plotFlag=True, verbose=False):
     """
     Function to process the data of single 2D grating Talbot imaging. It
     wraps other functions in order to make all the process transparent
@@ -705,36 +686,48 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
                                            plotFlag=plotFlag,
                                            verbose=verbose)
 
-    if img_ref is not None:
+    if img_ref is not None:  # relative wavefront
 
         h_img_ref = single_grating_harmonic_images(img_ref, harmonicPeriod,
                                                    plotFlag=plotFlag,
                                                    verbose=verbose)
-    else:
-        h_img_ref = [None, None, None]
-        h_img_ref[0] = np.exp(np.zeros((h_img[0].shape[0], h_img[0].shape[1])))
-        h_img_ref[1] = h_img_ref[2] = h_img_ref[0]
 
-    int00 = np.abs(h_img[0])/np.abs(h_img_ref[0])
-    int01 = np.abs(h_img[1])/np.abs(h_img_ref[1])
-    int10 = np.abs(h_img[2])/np.abs(h_img_ref[2])
+        int00 = np.abs(h_img[0])/np.abs(h_img_ref[0])
+        int01 = np.abs(h_img[1])/np.abs(h_img_ref[1])
+        int10 = np.abs(h_img[2])/np.abs(h_img_ref[2])
+
+        if unwrapFlag is True:
+
+            arg01 = unwrap_phase(np.angle(h_img[1]), seed=72673) - \
+                    unwrap_phase(np.angle(h_img_ref[1]), seed=72673)
+
+            arg10 = unwrap_phase(np.angle(h_img[2]), seed=72673) - \
+                    unwrap_phase(np.angle(h_img_ref[2]), seed=72673)
+
+        else:
+            arg01 = np.angle(h_img[1]) - np.angle(h_img_ref[1])
+            arg10 = np.angle(h_img[2]) - np.angle(h_img_ref[2])
+
+    else:  # absolute wavefront
+
+        int00 = np.abs(h_img[0])
+        int01 = np.abs(h_img[1])
+        int10 = np.abs(h_img[2])
+
+        if unwrapFlag is True:
+
+            arg01 = unwrap_phase(np.angle(h_img[1]), seed=72673)
+            arg10 = unwrap_phase(np.angle(h_img[2]), seed=72673)
+        else:
+            arg01 = np.angle(h_img[1])
+            arg10 = np.angle(h_img[2])
 
     darkField01 = int01/int00
     darkField10 = int10/int00
 
-    arg01 = np.angle(h_img[1]) - np.angle(h_img_ref[1])
-    arg10 = np.angle(h_img[2]) - np.angle(h_img_ref[2])
-
-    if unwrapFlag == 1:
-
-        arg01 = unwrap_phase(arg01)
-        arg10 = unwrap_phase(arg10)
-
     return [int00, int01, int10,
             darkField01, darkField10,
             arg01, arg10]
-
-
 
 
 def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
@@ -794,8 +787,6 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
                                         harmonicPeriod[0], harmonicPeriod[1],
                                         searchRegion)
 
-
-
     peak00 = np.abs(imgFFT[_idxPeak_ij_exp00[0], _idxPeak_ij_exp00[1]])
     peak10 = np.abs(imgFFT[_idxPeak_ij_exp10[0], _idxPeak_ij_exp10[1]])
     peak01 = np.abs(imgFFT[_idxPeak_ij_exp01[0], _idxPeak_ij_exp01[1]])
@@ -803,5 +794,240 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
     return (2*peak10/peak00, 2*peak01/peak00)
 
 
+def plot_intensities_harms(int00, int01, int10,
+                           pixelsize, titleStr,
+                           saveFigFlag=False, saveFileSuf='graph'):
+    # Plot Real image (intensity)
+
+    if titleStr is not '':
+        titleStr = ', ' + titleStr
+
+    factor, unit_xy = wpu.choose_unit(np.sqrt(int00.size)*pixelsize[0])
+
+    plt.figure(figsize=(14, 5))
+
+    plt.subplot(131)
+    plt.imshow(int00, cmap='viridis',
+               vmax=wpu.mean_plus_n_sigma(int00, 4),
+               extent=wpu.extent_func(int00, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
+    plt.colorbar(shrink=0.5)
+    plt.title('00', fontsize=18, weight='bold')
+
+    plt.subplot(132)
+    plt.imshow(int01, cmap='viridis',
+               vmax=wpu.mean_plus_n_sigma(int01, 4),
+               extent=wpu.extent_func(int01, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
+    plt.colorbar(shrink=0.5)
+    plt.title('01', fontsize=18, weight='bold')
+
+    plt.subplot(133)
+    plt.imshow(int10, cmap='viridis',
+               vmax=wpu.mean_plus_n_sigma(int10, 4),
+               extent=wpu.extent_func(int10, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
+    plt.colorbar(shrink=0.5)
+    plt.title('10', fontsize=18, weight='bold')
+
+    plt.suptitle('Absorption obtained from the Harmonics' + titleStr,
+                 fontsize=18, weight='bold')
+
+    plt.tight_layout()
+    if saveFigFlag:
+        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+    plt.show(block=True)
 
 
+# %%
+def plot_dark_field(darkField01, darkField10,
+                    pixelsize, titleStr='',
+                    saveFigFlag=False, saveFileSuf='graph'):
+    '''
+    TODO: Write Docstring
+
+    Plot Dark field
+
+    '''
+
+    if titleStr is not '':
+        titleStr = ', ' + titleStr
+
+    factor, unit_xy = wpu.choose_unit(np.sqrt(darkField01.size)*pixelsize[0])
+
+    plt.figure(figsize=(12, 6))
+
+    plt.subplot(121)
+    plt.imshow(darkField01, cmap='viridis',
+               vmax=wpu.mean_plus_n_sigma(darkField01, 4),
+               extent=wpu.extent_func(darkField01, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
+    plt.colorbar(shrink=0.5)
+    plt.title('01', fontsize=18, weight='bold')
+
+    plt.subplot(122)
+    plt.imshow(darkField10, cmap='viridis',
+               vmax=wpu.mean_plus_n_sigma(darkField01, 4),
+               extent=wpu.extent_func(darkField10, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
+    plt.colorbar(shrink=0.5)
+    plt.title('10', fontsize=18, weight='bold')
+
+    plt.suptitle('Dark Field', fontsize=18, weight='bold')
+
+    plt.tight_layout()
+    if saveFigFlag:
+        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+    plt.show(block=True)
+
+
+def plot_DPC(dpc01, dpc10,
+             pixelsize, titleStr='',
+             saveFigFlag=False, saveFileSuf='graph'):
+    '''
+    TODO: Write Docstring
+    Plot differencial phase signal
+    '''
+    if titleStr is not '':
+        titleStr = ', ' + titleStr
+
+    factor, unit_xy = wpu.choose_unit(np.sqrt(dpc01.size)*pixelsize[0])
+
+    dpc01_plot=dpc01*pixelsize[1]/np.pi
+    dpc10_plot=dpc10*pixelsize[0]/np.pi
+
+    vlim01 = np.max((np.abs(wpu.mean_plus_n_sigma(dpc01_plot, -5)),
+                     np.abs(wpu.mean_plus_n_sigma(dpc01_plot, 5))))
+    vlim10 = np.max((np.abs(wpu.mean_plus_n_sigma(dpc10_plot, -5)),
+                     np.abs(wpu.mean_plus_n_sigma(dpc10_plot, 5))))
+
+    plt.figure(figsize=(12, 6))
+    plt.subplot(121)
+    plt.imshow(dpc01_plot, cmap='RdGy',
+               vmin=-vlim01, vmax=vlim01,
+               extent=wpu.extent_func(dpc01_plot, pixelsize)*factor)
+
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
+    plt.colorbar(shrink=0.5)
+    plt.title('01', fontsize=18, weight='bold')
+
+    plt.subplot(122)
+    plt.imshow(dpc10_plot, cmap='RdGy',
+               vmin=-vlim10, vmax=vlim10,
+               extent=wpu.extent_func(dpc10_plot, pixelsize)*factor)
+    plt.xlabel(r'$[{0} m]$'.format(unit_xy))
+    plt.ylabel(r'$[{0} m]$'.format(unit_xy))
+    plt.colorbar(shrink=0.5)
+    plt.title('10', fontsize=18,
+              weight='bold')
+
+    plt.suptitle('Differential Phase ' + r'[$\pi$ rad]' + titleStr,
+                 fontsize=18, weight='bold')
+
+    plt.tight_layout()
+    if saveFigFlag:
+        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+    plt.show(block=True)
+
+
+def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
+                    plotErrorIntegration=False,
+                    shifthalfpixel=False, method='FC'):
+    '''
+    TODO: Write Docstring
+
+    Integration of DPC to obtain phase. Currently only supports
+    Frankot Chellappa
+    '''
+
+    if idx4crop == '':
+
+        vmin = wpu.mean_plus_n_sigma(dpc01**2+dpc10**2, -3)
+        vmax = wpu.mean_plus_n_sigma(dpc01**2+dpc10**2, 3)
+        _, idx = wpu.crop_graphic_image(dpc01**2+dpc10**2,
+                                        kargs4graph={'cmap': 'viridis',
+                                                     'vmin': vmin,
+                                                     'vmax': vmax})
+    else:
+        idx = idx4crop
+
+    dpc01 = wpu.crop_matrix_at_indexes(dpc01, idx)
+    dpc10 = wpu.crop_matrix_at_indexes(dpc10, idx)
+
+    if method == 'FC':
+
+        phase = wps.frankotchellappa(dpc01*pixelsize[1],
+                                     dpc10*pixelsize[0],
+                                     reflec_pad=True)
+        phase = np.real(phase)
+
+    else:
+        wpu.print_red('ERROR: Unknown integration method' + method)
+
+    if plotErrorIntegration:
+        wps.error_integration(dpc01*pixelsize[1],
+                              dpc10*pixelsize[0],
+                              phase, pixelsize, errors=False,
+                              shifthalfpixel=shifthalfpixel, plot_flag=True)
+
+    return phase, idx
+
+
+def plot_integration(integrated, pixelsize,
+                     titleStr='Title', saveFigFlag=False,
+                     saveFileSuf='graph'):
+    '''
+    TODO: Write Docstring
+    '''
+
+    xxGrid, yyGrid = wpu.grid_coord(integrated, pixelsize)
+
+    factor_x, unit_x = wpu.choose_unit(xxGrid)
+    factor_y, unit_y = wpu.choose_unit(yyGrid)
+
+    wpu.plot_profile(xxGrid*factor_x, yyGrid*factor_y,   integrated[::-1, :],
+                     xlabel=r'$x [' + unit_x + ' m]$',
+                     ylabel=r'$y [' + unit_y + ' m]$',
+                     title=titleStr,
+                     xunit='\mu m', yunit='\mu m',
+                     arg4main={'cmap': 'viridis', 'lw': 3})
+
+    # Plot Integration 2
+
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    rstride = integrated.shape[0] // 101 + 1
+    cstride = integrated.shape[1] // 101 + 1
+
+    surf = ax.plot_surface(xxGrid*factor_x, yyGrid*factor_y,  integrated[::-1, :],
+                           rstride=rstride,
+                           cstride=cstride,
+                           cmap='viridis', linewidth=0.1)
+
+    ax_lim = np.max([np.abs(xxGrid*factor_x), np.abs(yyGrid*factor_y)])
+    ax.set_xlim3d(-ax_lim, ax_lim)
+    ax.set_ylim3d(-ax_lim, ax_lim)
+
+    plt.xlabel(r'$x [' + unit_x + ' m]$')
+    plt.ylabel(r'$y [' + unit_y + ' m]$')
+
+    titleStr += '\n strides = {}, {}'.format(rstride, cstride)
+
+    plt.title(titleStr, fontsize=24, weight='bold')
+    plt.colorbar(surf, shrink=.8, aspect=20)
+    fig.tight_layout()
+
+    plt.tight_layout()
+    if saveFigFlag:
+        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+
+    plt.show(block=False)
+
+    return ax

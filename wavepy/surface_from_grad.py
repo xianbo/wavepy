@@ -170,7 +170,8 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
 
 
 
-    Finally, Frankot-Chellappa method is base in solving the following equation:
+    Finally, Frankot-Chellappa method is base in solving the following
+    equation:
 
 
     .. math::
@@ -385,8 +386,8 @@ def error_integration(del_f_del_x, del_f_del_y, func,
     if shifthalfpixel:
         func = wpu.shift_subpixel_2d(func, 2)
 
-    xx, yy = wpu.realcoordmatrix(func.shape[1], pixelsize,
-                                 func.shape[0], pixelsize)
+    xx, yy = wpu.realcoordmatrix(func.shape[1], pixelsize[1],
+                                 func.shape[0], pixelsize[0])
     midleX = xx.shape[0] // 2
     midleY = xx.shape[1] // 2
 
