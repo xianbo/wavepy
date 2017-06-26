@@ -435,7 +435,7 @@ def error_integration(del_f_del_x, del_f_del_y, func,
         ax4.legend()
 
         plt.suptitle('Error integration', fontsize=22)
-        plt.show(block=True)
+        plt.show(block=False)
 
     if errors:
         return error_x, error_y
