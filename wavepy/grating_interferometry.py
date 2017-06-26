@@ -842,7 +842,6 @@ def plot_intensities_harms(int00, int01, int10,
     plt.show(block=True)
 
 
-# %%
 def plot_dark_field(darkField01, darkField10,
                     pixelsize, titleStr='',
                     saveFigFlag=False, saveFileSuf='graph'):
@@ -933,11 +932,12 @@ def plot_DPC(dpc01, dpc10,
     plt.tight_layout()
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
-    plt.show(block=True)
+    plt.show(block=False)
 
 
 def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
                     plotErrorIntegration=False,
+                    saveFileSuf=None,
                     shifthalfpixel=False, method='FC'):
     '''
     TODO: Write Docstring
@@ -968,13 +968,16 @@ def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
         phase = np.real(phase)
 
     else:
-        wpu.print_red('ERROR: Unknown integration method' + method)
+        wpu.print_red('ERROR: Unknown integration method: ' + method)
 
     if plotErrorIntegration:
         wps.error_integration(dpc01*pixelsize[1],
                               dpc10*pixelsize[0],
                               phase, pixelsize, errors=False,
                               shifthalfpixel=shifthalfpixel, plot_flag=True)
+
+    if saveFileSuf is not None:
+        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
 
     return phase, idx
 
@@ -998,6 +1001,23 @@ def plot_integration(integrated, pixelsize,
                      xunit='\mu m', yunit='\mu m',
                      arg4main={'cmap': 'viridis', 'lw': 3})
 
+
+    if saveFigFlag:
+
+        plt.figure(figsize=(10, 8))
+
+        plt.imshow(integrated[::-1, :], cmap='viridis',
+                   extent=wpu.extent_func(integrated, pixelsize)*factor_x)
+
+        plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
+        plt.ylabel(r'$y [' + unit_x + ' m]$', fontsize=24)
+
+        plt.title(titleStr, fontsize=18, weight='bold')
+        plt.colorbar()
+        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+        #        plt.show(block=False)
+        plt.close(plt.gcf())
+
     # Plot Integration 2
 
     fig = plt.figure(figsize=(10, 8))
@@ -1015,10 +1035,11 @@ def plot_integration(integrated, pixelsize,
     ax.set_xlim3d(-ax_lim, ax_lim)
     ax.set_ylim3d(-ax_lim, ax_lim)
 
-    plt.xlabel(r'$x [' + unit_x + ' m]$')
-    plt.ylabel(r'$y [' + unit_y + ' m]$')
+    plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
+    plt.ylabel(r'$y [' + unit_y + ' m]$', fontsize=24)
 
-    titleStr += '\n strides = {}, {}'.format(rstride, cstride)
+    ax.text2D(0.05, 0.9, 'strides = {}, {}'.format(rstride, cstride),
+              transform=ax.transAxes)
 
     plt.title(titleStr, fontsize=24, weight='bold')
     plt.colorbar(surf, shrink=.8, aspect=20)
@@ -1031,3 +1052,4 @@ def plot_integration(integrated, pixelsize,
     plt.show(block=False)
 
     return ax
+
