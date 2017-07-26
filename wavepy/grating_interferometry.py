@@ -963,8 +963,8 @@ def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
     if method == 'FC':
 
         phase = wps.frankotchellappa(dpc01*pixelsize[1],
-                                     dpc10*pixelsize[0],
-                                     reflec_pad=True)
+                                         dpc10*pixelsize[0],
+                                         reflec_pad=True)
         phase = np.real(phase)
 
     else:
@@ -983,7 +983,7 @@ def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
 
 
 def plot_integration(integrated, pixelsize,
-                     titleStr='Title', saveFigFlag=False,
+                     titleStr='Title', ctitle=' ', saveFigFlag=False,
                      saveFileSuf='graph'):
     '''
     TODO: Write Docstring
@@ -1003,6 +1003,7 @@ def plot_integration(integrated, pixelsize,
 
 
     if saveFigFlag:
+        plt.ioff()
 
         plt.figure(figsize=(10, 8))
 
@@ -1013,10 +1014,12 @@ def plot_integration(integrated, pixelsize,
         plt.ylabel(r'$y [' + unit_x + ' m]$', fontsize=24)
 
         plt.title(titleStr, fontsize=18, weight='bold')
-        plt.colorbar()
+        cbar = plt.colorbar()
+        cbar.ax.set_title(ctitle, y=1.01)
         wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
         #        plt.show(block=False)
         plt.close(plt.gcf())
+        plt.ion()
 
     # Plot Integration 2
 
@@ -1026,7 +1029,8 @@ def plot_integration(integrated, pixelsize,
     rstride = integrated.shape[0] // 101 + 1
     cstride = integrated.shape[1] // 101 + 1
 
-    surf = ax.plot_surface(xxGrid*factor_x, yyGrid*factor_y,  integrated[::-1, :],
+    surf = ax.plot_surface(xxGrid*factor_x, yyGrid*factor_y,
+                           integrated[::-1, :],
                            rstride=rstride,
                            cstride=cstride,
                            cmap='viridis', linewidth=0.1)
@@ -1038,16 +1042,18 @@ def plot_integration(integrated, pixelsize,
     plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
     plt.ylabel(r'$y [' + unit_y + ' m]$', fontsize=24)
 
-    ax.text2D(0.05, 0.9, 'strides = {}, {}'.format(rstride, cstride),
-              transform=ax.transAxes)
-
     plt.title(titleStr, fontsize=24, weight='bold')
-    plt.colorbar(surf, shrink=.8, aspect=20)
+    cbar = plt.colorbar(surf, shrink=.8, aspect=20)
+    cbar.ax.set_title(ctitle, y=1.01)
+
     fig.tight_layout()
 
     plt.tight_layout()
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+
+    ax.text2D(0.05, 0.9, 'strides = {}, {}'.format(rstride, cstride),
+              transform=ax.transAxes)
 
     plt.show(block=False)
 
