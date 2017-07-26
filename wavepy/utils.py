@@ -968,8 +968,8 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
 
     Returns
     -------
-    img1, img2
-        two ndarray
+    ndarray, ndarray
+        aligned images
 
     Examples
     --------
@@ -1011,16 +1011,14 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
     '''
 
     if isinstance(idxROI, list):
-        print_red('idxROI is list')
         [i_min, i_max, j_min, j_max] = idxROI
 
     elif isinstance(idxROI, int):
-        print_red('idxROI is integer')
         [i_min, i_max, j_min, j_max] = [idxROI, img1.shape[0] - idxROI,
                                         idxROI, img1.shape[1] - idxROI]
 
-    print_red('[i_min, i_max, j_min, j_max]')
-    print_red([i_min, i_max, j_min, j_max])
+    #    print_red('[i_min, i_max, j_min, j_max]')
+    #    print_red([i_min, i_max, j_min, j_max])
 
     iL = i_max - i_min
     jL = j_max - j_min
@@ -1067,6 +1065,160 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
                           ((0, 0), (0, -shift_x)), 'constant')
 
     return img1, img2
+
+
+def align_many_imgs(samplefileName, idxROI=100, option='crop',
+                    padMarginVal = 0, displayPlots=True):
+    '''
+    How to use
+    ----------
+        Create a folder with all the files you want to align. You may want to
+        include a dark file. You will be asked to select one file which
+        will be the reference, that is, all other files in this folder
+        (with the same extension) will be aligned to the reference.
+
+        Folders with the aligned files will be created inside this same folder.
+
+    TODO: This function can be upgraded to use multiprocessing
+
+    Parameters
+    ----------
+    samplefileName : string
+        2 dimensional array
+
+    idxROI : list or integer
+        ROI list of indexes ``[i_min, i_max, j_min,_j_max]``. If idxROI is an
+        integer, then it is considered that
+        ``[i_min, i_max, j_min,_j_max] = [idxROI, -idxROI, idxROI, -idxROI]``
+
+    option : str
+        option to crop both images or to fill the missing data of ``img2``
+
+        'pad'
+            ``img2`` will be padded with zeros to have the same size than img1.
+
+        'crop'
+            both images will be cropped to the size of ROI. Note that ``img2``
+            will be exactally the ROI.
+
+    displayPlots : boolean
+        Flag to display every aligned image (``displayPlots=True``) of
+        to plot and save in the background (``displayPlots=False``).
+
+
+
+    Returns
+    -------
+    list
+        list with the filenames of the aligned images.
+
+    See Also
+    --------
+        :py:func:`wavepy:utils:align_two_images`,
+        :py:func:`wavepy:utils:gui_align_two_images`
+
+    Examples
+    --------
+
+    >>> import wavepy.utils as wpu
+    >>> samplefileName = easyqt.get_file_names("Choose the reference file " +
+    >>>                                        "for alignment")[0]
+    >>>
+    >>> wpu.align_many_imgs(samplefileName)
+
+
+    ``idxROI`` is the same as in :py:func:`wavepy:utils:align_two_images`:
+
+    >>> import wavepy.utils as wpu
+    >>> samplefileName = easyqt.get_file_names("Choose the reference file " +
+    >>>                                        "for alignment")[0]
+    >>>
+    >>> wpu.align_many_imgs(samplefileName, idxROI=[400, 2100, 300, 2000],
+    >>>                     dontShowPlots=False)
+
+
+    '''
+
+    if displayPlots:
+        plt.ion()
+    else:
+        plt.ioff()
+
+    data_dir = samplefileName.rsplit('/', 1)[0]
+    os.chdir(data_dir)
+
+    os.makedirs('aligned_tiff', exist_ok=True)
+    os.makedirs('aligned_png', exist_ok=True)
+
+    print_blue('MESSAGE: Loading files ' +
+               samplefileName.rsplit('_', 1)[0] + '*.tif')
+
+    listOfDataFiles = glob.glob(data_dir + '/*.tif')
+    listOfDataFiles.sort()
+
+    img_ref = dxchange.read_tiff(samplefileName)
+
+    # Loop over the files in the folder
+
+    outFilesList = []
+
+    if padMarginVal > 0:
+        img_ref = np.pad(img_ref, ((padMarginVal, padMarginVal),
+                                   (padMarginVal, padMarginVal)),
+                         'constant', constant_values=1)
+
+    for imgfname in listOfDataFiles:
+
+        img = dxchange.read_tiff(imgfname)
+
+        print_blue('MESSAGE: aligning ' + imgfname)
+
+        if padMarginVal == 0:
+            img = np.pad(img, ((padMarginVal, padMarginVal),
+                               (padMarginVal, padMarginVal)),
+                         'constant', constant_values=1)
+
+        # note that these two cases are different, with different effects
+        # depending if we want to crop or to pad
+
+        if option == 'pad':
+            print_blue("MESSAGE: function align_many_imgs: using 'pad' mode")
+            _, img_aligned = align_two_images(img_ref, img,
+                                              'pad', idxROI=idxROI)
+        else:
+            print_blue("MESSAGE: function align_many_imgs: using 'crop' mode")
+            img_aligned, _ = align_two_images(img, img_ref,
+                                              'crop', idxROI=idxROI)
+
+        #        if padMarginVal >= 0:
+        #            img_aligned = img_aligned[padMarginVal:-padMarginVal,
+        #                                      padMarginVal:-padMarginVal]
+
+        # save files
+        outfname = 'aligned_tiff/' + \
+                   imgfname.split('.')[0].rsplit('/', 1)[-1] + \
+                   '_aligned.tiff'
+
+        outFilesList.append(outfname)
+
+        dxchange.write_tiff(img_aligned, outfname)
+        print_blue('MESSAGE: file ' + outfname + ' saved.')
+
+        plt.figure(figsize=(8, 7))
+        plt.imshow(img_aligned, cmap='viridis')
+        plt.title('ALIGNED, ' + imgfname.split('/')[-1])
+        plt.savefig(outfname.replace('tiff', 'png'))
+
+        if displayPlots:
+            plt.show(block=False)
+            plt.pause(.1)
+        else:
+            plt.close()
+
+    if not displayPlots:
+        plt.ion()
+
+    return outFilesList
 
 
 def find_nearest_value(input_array, value):
@@ -2810,6 +2962,7 @@ def fourier_spline_2d_axis(array, n=2, axis=0):
                     mode='constant', constant_values=0.0)
 
     res = np.fft.ifft(np.fft.ifftshift(fftvec, axes=axis), axis=axis)*n
+    res = np.real(res)
 
     if axis == 0:
         return res[0:res.shape[0]//2, :]
