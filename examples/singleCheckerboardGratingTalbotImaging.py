@@ -101,9 +101,10 @@ def main_single_gr_Talbot(img, imgRef,
     plt.xlabel(r'$[\mu m]$')
     plt.ylabel(r'$[\mu m]$')
     plt.colorbar()
+
     plt.title('Raw Image with initial Crop', fontsize=18, weight='bold')
 
-    plt.pause(.5)
+    plt.pause(.1)
     # ask if the crop need to be changed
     newCrop = easyqt.get_yes_or_no('New Crop?')
 
@@ -113,17 +114,12 @@ def main_single_gr_Talbot(img, imgRef,
 
     if newCrop:
 
-        colorlimit = [wpu.mean_plus_n_sigma(img, -4),
-                      wpu.mean_plus_n_sigma(img, 4)]
-
         [colorlimit,
          cmap] = wpu.plot_slide_colorbar(img,
                                          title='SELECT COLOR SCALE,\n' +
                                          'Raw Image, No Crop',
                                          xlabel=r'x [$\mu m$ ]',
                                          ylabel=r'y [$\mu m$ ]',
-                                         min_slider_val=colorlimit[0],
-                                         max_slider_val=colorlimit[1],
                                          extent=wpu.extent_func(img,
                                                                 pixelsize)*1e6)
 
@@ -360,7 +356,7 @@ def _load_experimental_pars(argv):
 def _get_delta_gui(phenergy):
 
     choices = ['Diamond, 3.525g/cm^3',
-               'Be, 1.848 g/cm^3',
+               'Beryllium, 1.848 g/cm^3',
                'Manual Input']
 
     menu_choices = [choices[0], choices[1], choices[2]]  # Change order here!
@@ -408,17 +404,18 @@ def _get_delta_gui(phenergy):
 
     return delta, material
 
+
 # %%
 def correct_zero_from_unwrap(angleArray):
 
-    pi_jump = int(np.round(angleArray / np.pi))
+    pi_jump = np.round(angleArray / np.pi)
 
     j_o, i_o = wpu.graphical_select_point_idx(pi_jump)
 
     if j_o is not None:
         angleArray -= pi_jump[i_o, j_o]*np.pi
 
-    return angleArray, pi_jump[i_o, j_o]
+    return angleArray, int(pi_jump[i_o, j_o])
 
 
 def _plot_profile(data, pixelsize, title, arg4main={'cmap': 'viridis'}):
@@ -475,7 +472,7 @@ def correct_zero_DPC(dpc01, dpc10,
 
     factor = distDet2sample*hc/phenergy
 
-    angle = [dpc01/pixelsize[0]*factor, dpc10/pixelsize[1]*factor]
+    angle = [dpc01/pixelsize[1]*factor, dpc10/pixelsize[0]*factor]
     dpc = [dpc01, dpc10]
 
     pi_jump = [0, 0]
@@ -494,17 +491,20 @@ def correct_zero_DPC(dpc01, dpc10,
 
         plt.xlabel(r'Angle [$\pi$rad]')
 
-        plt.title('Correct DPC\n' + r'Angle displacement of fringes $[\pi$ rad]' +
+        plt.title('Correct DPC\n' +
+                  r'Angle displacement of fringes $[\pi$ rad]' +
                   '\n' + r'Calculated jumps $x$ and $y$ : ' +
-                  '{:d}, {:d} $\pi$'.format(pi_jump[1], pi_jump[0]))
+                  '{:d}, {:d} $\pi$'.format(pi_jump[0], pi_jump[1]))
 
         plt.legend(('DPC x', 'DPC y'))
         plt.show(block=False)
         plt.pause(.5)
 
-        if easyqt.get_yes_or_no('Subtract mean value of DPC?'):
-            plt.close(plt.gcf())
-            plt.close(plt.gcf())
+        if pi_jump == [0, 0]:
+            break
+
+        if easyqt.get_yes_or_no('Subtract pi jump of DPC?'):
+            plt.close('all')
 
             angle[0] -= pi_jump[0]*np.pi
             angle[1] -= pi_jump[1]*np.pi
@@ -517,13 +517,34 @@ def correct_zero_DPC(dpc01, dpc10,
                          virtual_pixelsize, saveFigFlag=True,
                          saveFileSuf=saveFileSuf)
         else:
-            plt.close(plt.gcf())
-            plt.close(plt.gcf())
+            plt.close('all')
             iamhappy = True
 
 
+    wpu.print_blue('MESSAGE: mean angle/pi ' +
+                               '0: {:} pi'.format(np.mean(angle[0]/np.pi)))
+    wpu.print_blue('MESSAGE: mean angle/pi ' +
+                               '1: {:} pi'.format(np.mean(angle[1]/np.pi)))
+
+    if easyqt.get_yes_or_no('Subtract mean of DPC?'):
+        plt.close('all')
+
+        angle[0] -= np.mean(angle[0])
+        angle[1] -= np.mean(angle[1])
+
+        dpc01 = angle[0]*pixelsize[0]/factor
+        dpc10 = angle[1]*pixelsize[1]/factor
+        dpc = [dpc01, dpc10]
+
+        wgi.plot_DPC(dpc01, dpc10,
+                     virtual_pixelsize, saveFigFlag=True,
+                     saveFileSuf=saveFileSuf)
+        plt.pause(.1)
+    else:
+        pass
 
     if easyqt.get_yes_or_no('Correct DPC center?'):
+        plt.close('all')
 
         for i in [0, 1]:
 
@@ -532,8 +553,10 @@ def correct_zero_DPC(dpc01, dpc10,
 
                 angle[i], pi_jump[i] = correct_zero_from_unwrap(angle[i])
 
-                wpu.print_blue('VALUES: pi jump ' +
+                wpu.print_blue('MESSAGE: pi jump ' +
                                '{:}: {:} pi'.format(i, pi_jump[i]))
+                wpu.print_blue('MESSAGE: mean angle/pi ' +
+                               '{:}: {:} pi'.format(i, np.mean(angle[i]/np.pi)))
                 plt.figure()
                 plt.hist(angle[i].flatten() / np.pi, 101)
                 plt.title(r'Angle displacement of fringes $[\pi$ rad]')
@@ -555,13 +578,14 @@ def correct_zero_DPC(dpc01, dpc10,
                 plt.xlabel('Pixels')
                 plt.ylabel('Pixels')
 
-                plt.pause(.5)
+                plt.pause(.1)
 
                 iamhappy = easyqt.get_yes_or_no('Happy?')
-                plt.close(plt.gcf())
-                plt.close(plt.gcf())
+                plt.close('all')
 
             dpc[i] = angle[i]*pixelsize[i]/factor
+
+    plt.close('all')
 
     return dpc
 
@@ -651,7 +675,8 @@ if __name__ == '__main__':
 
     if removeLinearFromDPC:
 
-        wpu.log_this('%%% COMMENT: Removed Linear Component from DPC')
+        wpu.log_this('%%% COMMENT: Removed Linear Component from DPC',
+                     saveFileSuf)
 
         def _fit_lin_surface(zz, pixelsize):
 
@@ -721,10 +746,10 @@ if __name__ == '__main__':
                             (wpu.get_from_ini_file(inifname,
                                                    'Parameters',
                                                    'crop integration').split(','))))
-
     phase, idx4crop = wgi.dpc_integration(diffPhase01, diffPhase10,
                                           virtual_pixelsize,
                                           idx4crop=idx4crop,
+                                          saveFileSuf=saveFileSuf,
                                           plotErrorIntegration=True,
                                           shifthalfpixel=True)
 
@@ -732,7 +757,7 @@ if __name__ == '__main__':
                         '{}, {}, {}, {}'.format(idx4crop[0], idx4crop[1],
                                                 idx4crop[2], idx4crop[3]))
 
-    phase -= np.min(phase)  # apply here your favorite offset
+    phase -= np.mean(phase)  # apply here your favorite offset
 
     #
     #    wgi.plot_integration(1/2/np.pi*phase*wavelength*1e9,
@@ -745,15 +770,8 @@ if __name__ == '__main__':
                               titleStr=r'WF $[\lambda$ units $]$',
                               saveFigFlag=True, saveFileSuf=saveFileSuf)
 
-    ax.view_init(elev=30, azim=60)
+    plt.pause(.2)
 
-    makeAnimation = False
-    if makeAnimation is True:
-        wpu.rocking_3d_figure(ax, saveFileSuf + '.ogv',
-                              elevOffset=0, azimOffset=60,
-                              elevAmp=45, azimAmpl=45, dpi=80, npoints=200)
-
-    plt.show(block=True)
 
     #    wgi.plot_integration(phase/2/np.pi, virtual_pixelsize,
     #                         titleStr=r'Phase/2$\pi$ [ radians]',
@@ -768,10 +786,28 @@ if __name__ == '__main__':
     # %%
     thickness = (phase - np.min(phase))/kwave/delta
 
-    wgi.plot_integration(thickness*1e6,
-                         virtual_pixelsize, titleStr=r'Material: ' + material +
-                         ', Thickness $[\mu m]$',
-                         saveFigFlag=True, saveFileSuf=saveFileSuf)
+    ax = wgi.plot_integration(thickness*1e6,
+                              virtual_pixelsize,
+                              titleStr=r'Material: ' + material +
+                              ', Thickness $[\mu m]$',
+                              ctitle=r'$[\mu m]$',
+                              saveFigFlag=True, saveFileSuf=saveFileSuf)
+
+
+    ax.view_init(elev=30, azim=60)
+    plt.show(block=False)
+
+    wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+    plt.show(block=False)
+
+    if easyqt.get_yes_or_no('Make animation of 3D surface?\n' +
+                            '(TAKES A LOT OF TIME)'):
+
+        wpu.rocking_3d_figure(ax, saveFileSuf + '.ogv',
+                              elevOffset=45, azimOffset=60,
+                              elevAmp=30, azimAmpl=-60, dpi=80, npoints=200,
+                              del_tmp_imgs=True)
+    plt.show(block=True)
 
     # %% save thicknes txt
 
@@ -805,21 +841,29 @@ if __name__ == '__main__':
     titleStr = r'Material: ' + material + ', Thickness $[\mu m]$'
     _default_plot_for_pickle(thickness*1e6, pixelsize,
                              patternforpickle=saveFileSuf,
-                             title=titleStr, xlabel=r'$x$', ylabel=r'$y$',
+                             title=titleStr,
+                             xlabel=r'$x [\mu m]$', ylabel=r'$y [\mu m]$',
                              ctitle=r'$[\mu m]$',
                              removeSpark=False, cmap='viridis')
 
-    wpu.log_this('Material = ' + material)
-    wpu.log_this('delta = ' + str('{:.5g}'.format(delta)))
-    wpu.log_this('wavelength [m] = ' + str('{:.5g}'.format(wavelength)))
+    _default_plot_for_pickle(1/2/np.pi*phase, virtual_pixelsize,
+                             patternforpickle=saveFileSuf,
+                             title=r'WF $[\lambda$ units $]$' +
+                                   '\n(removed 2nd order component)',
+                             xlabel=r'$x$', ylabel=r'$y$',
+                             ctitle='', cmap='viridis')
+
+    wpu.log_this('Material = ' + material, saveFileSuf)
+    wpu.log_this('delta = ' + str('{:.5g}'.format(delta)), saveFileSuf)
+    wpu.log_this('wavelength [m] = ' + str('{:.5g}'.format(wavelength)), saveFileSuf)
 
     thickSensitivy100 = virtual_pixelsize[0]**2/distDet2sample/delta/100
     # the 100 means that I arbitrarylly assumed the angular error in
     #  fringe displacement to be 2pi/100 = 3.6 deg
     wpu.log_this('Thickness Sensitivy 100 [m] = ' +
-                 str('{:.5g}'.format(thickSensitivy100)))
+                 str('{:.5g}'.format(thickSensitivy100)), saveFileSuf)
 
-    wpu.log_this('', inifname=inifname)
+    wpu.log_this('', saveFileSuf, inifname=inifname)
 
     # =============================================================================
     # %% sandbox to play
@@ -863,3 +907,36 @@ if __name__ == '__main__':
     #    wpu.save_figs_with_idx_pickle(fig, saveFileSuf + '_thickness')
     #
     #    plt.show(block=True)
+
+
+# %% Hist Phase
+
+
+    plt.figure()
+    plt.hist(1/2/np.pi*phase.flatten(), 201, histtype='step')
+    plt.xlabel(r'$[\lambda$ units $]$', fontsize=18)
+
+    plt.title(r'WF $[\lambda$ units $]$, $\sigma$ = ' +
+              '{:.3f}, '.format(np.std(1/2/np.pi*phase.flatten())) +
+              '1/$\sigma$ = ' +
+              '{:.2f}'.format(1/np.std((1/2/np.pi*phase.flatten()))),
+              fontsize=20)
+
+    wpu.save_figs_with_idx(saveFileSuf)
+
+    plt.show(block=False)
+
+# %% Hist Thickness
+
+
+    plt.figure()
+    plt.hist(thickness.flatten()*1e6, 201, histtype='step')
+    plt.xlabel(r'[$\mu m$]', fontsize=18)
+
+    plt.title('Thickness, $\sigma$ = ' +
+              '{:.3f} $n m$ '.format(np.std(thickness.flatten()*1e9)),
+              fontsize=20)
+
+    wpu.save_figs_with_idx(saveFileSuf)
+
+    plt.show(block=False)
