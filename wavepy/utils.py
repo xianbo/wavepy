@@ -630,7 +630,7 @@ def gui_load_data_dark_filenames(directory='', title="File name with Data"):
 
         fname1 = fname1[0]  # convert list to string
         os.chdir(fname1.rsplit('/', 1)[0])
-        fname2 = easyqt.get_file_names("File name with Reference")[0]
+        fname2 = easyqt.get_file_names("File name with Dark Image")[0]
 
     os.chdir(originalDir)
 
@@ -820,18 +820,13 @@ def crop_matrix_at_indexes(input_matrix, list_of_indexes):
                    list_of_indexes[2]:list_of_indexes[3]])
 
 
-def align_two_images(img1, img2, option='crop', verbosePlot=True):
+def gui_align_two_images(img1, img2, option='crop', verbosePlot=True):
     '''
-    Align two images based in a pattern present in both. It will use the cross
-    correlation of the images to determine the misalignment.
 
-    First, an image will pop up to select the ROI that will be used for the
-    cross correltion. Then it will roll ``img2`` to a new position in order
-    to be aligned with ``img1``.
 
-    After the roll, the edges of ``img2`` will miss data. There are two options
-    defined by setting of the parameter ``option``: ``crop`` or ``pad``, see
-    below
+    GUI for the function :py:func:`wavepy:utils:align_two_images`, where
+    the initial and final images are ploted, and the selection of the ROI is
+    done graphically.
 
 
     Parameters
@@ -849,66 +844,193 @@ def align_two_images(img1, img2, option='crop', verbosePlot=True):
         'crop'
             both images will be cropped to the size of ROI. Note that ``img2``
             will be exactally the ROI.
+    verbose: boolean
+        if ``True``, it plots ``img2`` to select the color scale, and in the
+        end plots the final aligned images
 
     Returns
     -------
     img1, img2
         two ndarray
 
+    See Also
+    --------
+        :py:func:`wavepy:utils:align_two_images`
+
     Examples
     --------
 
     >>> import wavepy.utils as wpu
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+    >>>
+    >>> pad_i = 50
+    >>> pad_j = 50
+    >>>
+    >>>
+    >>> shift_j = -37  # x
+    >>> shift_i = 21  # y
+    >>>
     >>> foo1 = np.pad(wpu.dummy_images('Shapes', (201, 201), noise=1),
-    >>>               ((20, 80), (15, 85)), 'constant')
+    >>>               ((pad_i, pad_i), (pad_j, pad_j)), 'constant')
     >>>
     >>>
-    >>> foo1 = np.pad(wpu.dummy_images('Shapes', (201, 201), noise=1.7),
-    >>>               ((90, 10), (85, 15)), 'constant')
+    >>> foo2 = np.pad(wpu.dummy_images('Shapes', (201, 201), noise=1.7),
+    >>>               ((pad_i + shift_i, pad_i - + shift_i),
+    >>>                (pad_j + shift_j, pad_j - shift_j)), 'constant')
     >>>
-    >>> img1, img2 = align_two_images(foo1, foo2, 'pad')
+    >>> plt.figure()
+    >>> plt.imshow(foo1)
+    >>> plt.figure()
+    >>> plt.imshow(foo2)
+    >>> plt.show(block=True)
     >>>
+    >>> img1, img2 = wpu.gui_align_two_images(foo1, foo2, 'crop')
     >>>
     >>> plt.figure()
     >>> plt.imshow(img1)
     >>> plt.figure()
     >>> plt.imshow(img2)
-    >>> plt.show()
-    >>>
-    >>> img1, img2 = wpu.align_two_images(foo1, foo2, 'crop')
-    >>>
-    >>>
-    >>> plt.figure()
-    >>> plt.imshow(img1)
-    >>> plt.figure()
-    >>> plt.imshow(img2)
-    >>> plt.show()
+    >>> plt.show(block=True)
 
 
 
     '''
 
+    colorlimit = [img2.min(), img2.max()]
+    cmap = 'viridis'
+
     if verbosePlot:
 
-        plt.figure()
-        plt.imshow(img1, vmin=mean_plus_n_sigma(img1, n_sigma=-5),
-                   vmax=mean_plus_n_sigma(img1, n_sigma=5))
-        plt.title('Raw Images - Image 1', fontsize=18, weight='bold')
+        [colorlimit,
+         cmap] = plot_slide_colorbar(np.asarray(img2), title='Image 2',
+                                     cmin_o=colorlimit[0],
+                                     cmax_o=colorlimit[1])
 
-        plt.figure()
-        plt.imshow(img2, vmin=mean_plus_n_sigma(img2, n_sigma=-5),
-                   vmax=mean_plus_n_sigma(img2, n_sigma=5))
-        plt.title('Raw Images - Image 2', fontsize=18, weight='bold')
-        plt.show(block=True)
+    idxROI = graphical_roi_idx(img2, kargs4graph={'cmap': cmap,
+                                                  'vmin': colorlimit[0],
+                                                  'vmax': colorlimit[1]})
 
-    [i_min, i_max, j_min, j_max] = graphical_roi_idx(img2)
+    if idxROI == [0, -1, 0, -1]:
+        print('NO CROP')
+        idxROI = 0
+
+    [img1_aligned,
+     img2_aligned] = align_two_images(img1, img2, option='crop',
+                                      idxROI=idxROI)
+
+    if verbosePlot:
+        plot_slide_colorbar(img1_aligned, title='Image 1',
+                            cmin_o=mean_plus_n_sigma(img1, n_sigma=-5),
+                            cmax_o=mean_plus_n_sigma(img1, n_sigma=+5))
+
+        plot_slide_colorbar(img2_aligned, title='Image 2',
+                            cmin_o=mean_plus_n_sigma(img1, n_sigma=-5),
+                            cmax_o=mean_plus_n_sigma(img1, n_sigma=+5))
+
+    return img1_aligned, img2_aligned
+
+
+def align_two_images(img1, img2, option='crop', idxROI=0):
+
+    '''
+    Align two images by using the cross
+    correlation of the images to determine the misalignment.
+
+    First, a region of interest (ROI) in ``img2`` is searched in ``img1``, and
+    the necessary shift to align ``img2`` is determined. The shift is then
+    applied to ``img2`` by croping it. Because of the shift, ``img2`` will be
+    missing data on the edges, and there are two options to make the two images
+    to have the same size: to crop ``img1`` or to pad ``img2``, as defined by
+    the parameter ``option``.
+
+
+    Parameters
+    ----------
+    img1: ndarray
+        2 dimensional array
+    img2: ndarray
+        2 dimensional array
+    option: str
+        option to crop both images or to fill the missing data of ``img2``
+
+        'pad'
+            ``img2`` will be padded with zeros to have the same size than img1.
+
+        'crop'
+            both images will be cropped to the size of ROI. Note that ``img2``
+            will be exactally the ROI.
+    idxROI: list or integer
+        ROI list of indexes ``[i_min, i_max, j_min,_j_max]``. If idxROI is an
+        integer, then it is considered that
+        ``[i_min, i_max, j_min,_j_max] = [idxROI, -idxROI, idxROI, -idxROI]``
+
+
+    Returns
+    -------
+    ndarray, ndarray
+        aligned images
+
+    Examples
+    --------
+
+    >>> import wavepy.utils as wpu
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+    >>>
+    >>> pad_i = 50
+    >>> pad_j = 50
+    >>>
+    >>>
+    >>> shift_j = -37  # x
+    >>> shift_i = 21  # y
+    >>>
+    >>> foo1 = np.pad(wpu.dummy_images('Shapes', (201, 201), noise=1),
+    >>>               ((pad_i, pad_i), (pad_j, pad_j)), 'constant')
+    >>>
+    >>>
+    >>> foo2 = np.pad(wpu.dummy_images('Shapes', (201, 201), noise=1.7),
+    >>>               ((pad_i + shift_i, pad_i - + shift_i),
+    >>>                (pad_j + shift_j, pad_j - shift_j)), 'constant')
+    >>>
+    >>> plt.figure()
+    >>> plt.imshow(foo1)
+    >>> plt.figure()
+    >>> plt.imshow(foo2)
+    >>> plt.show(block=True)
+    >>>
+    >>> img1, img2 = wpu.align_two_images(foo1, foo2, 'crop', 100)
+    >>>
+    >>> plt.figure()
+    >>> plt.imshow(img1)
+    >>> plt.figure()
+    >>> plt.imshow(img2)
+    >>> plt.show(block=True)
+
+
+    '''
+
+    if isinstance(idxROI, list):
+        [i_min, i_max, j_min, j_max] = idxROI
+
+    elif isinstance(idxROI, int):
+        [i_min, i_max, j_min, j_max] = [idxROI, img1.shape[0] - idxROI,
+                                        idxROI, img1.shape[1] - idxROI]
+
+    #    print_red('[i_min, i_max, j_min, j_max]')
+    #    print_red([i_min, i_max, j_min, j_max])
 
     iL = i_max - i_min
     jL = j_max - j_min
 
+    print_red('WARNING: Calculating image displacement... ' +
+              'PROGRAM MAY FREEZE!!!')
+
     result = match_template(img1, img2[i_min:i_max, j_min:j_max])
     ij = np.unravel_index(np.argmax(result), result.shape)
     pos_x, pos_y = ij[::-1]
+    print_blue('MESSAGE: pos_x, pos_y =' +
+               ' {}, {}'.format(pos_x, pos_y))
 
     shift_x = pos_x - j_min
     shift_y = pos_y - i_min
@@ -922,7 +1044,7 @@ def align_two_images(img1, img2, option='crop', verbosePlot=True):
                     pos_x:pos_x + jL]
         img2 = img2[i_min:i_max, j_min:j_max]
 
-    elif option == 'pad':
+    else:  # for option == 'pad' and fallback option
 
         if shift_y > 0:
 
@@ -942,18 +1064,161 @@ def align_two_images(img1, img2, option='crop', verbosePlot=True):
             img2 = np.pad(img2[:, -shift_x:],
                           ((0, 0), (0, -shift_x)), 'constant')
 
-    if verbosePlot:
-        plt.figure()
-        plt.imshow(img1, vmin=mean_plus_n_sigma(img1, n_sigma=-5),
-                   vmax=mean_plus_n_sigma(img1, n_sigma=5))
-        plt.title('Image 1', fontsize=18, weight='bold')
-        plt.figure()
-        plt.imshow(img2, vmin=mean_plus_n_sigma(img2, n_sigma=-5),
-                   vmax=mean_plus_n_sigma(img2, n_sigma=5))
-        plt.title('Image 2', fontsize=18, weight='bold')
-        plt.show(block=True)
-
     return img1, img2
+
+
+def align_many_imgs(samplefileName, idxROI=100, option='crop',
+                    padMarginVal = 0, displayPlots=True):
+    '''
+    How to use
+    ----------
+        Create a folder with all the files you want to align. You may want to
+        include a dark file. You will be asked to select one file which
+        will be the reference, that is, all other files in this folder
+        (with the same extension) will be aligned to the reference.
+
+        Folders with the aligned files will be created inside this same folder.
+
+    TODO: This function can be upgraded to use multiprocessing
+
+    Parameters
+    ----------
+    samplefileName : string
+        2 dimensional array
+
+    idxROI : list or integer
+        ROI list of indexes ``[i_min, i_max, j_min,_j_max]``. If idxROI is an
+        integer, then it is considered that
+        ``[i_min, i_max, j_min,_j_max] = [idxROI, -idxROI, idxROI, -idxROI]``
+
+    option : str
+        option to crop both images or to fill the missing data of ``img2``
+
+        'pad'
+            ``img2`` will be padded with zeros to have the same size than img1.
+
+        'crop'
+            both images will be cropped to the size of ROI. Note that ``img2``
+            will be exactally the ROI.
+
+    displayPlots : boolean
+        Flag to display every aligned image (``displayPlots=True``) of
+        to plot and save in the background (``displayPlots=False``).
+
+
+
+    Returns
+    -------
+    list
+        list with the filenames of the aligned images.
+
+    See Also
+    --------
+        :py:func:`wavepy:utils:align_two_images`,
+        :py:func:`wavepy:utils:gui_align_two_images`
+
+    Examples
+    --------
+
+    >>> import wavepy.utils as wpu
+    >>> samplefileName = easyqt.get_file_names("Choose the reference file " +
+    >>>                                        "for alignment")[0]
+    >>>
+    >>> wpu.align_many_imgs(samplefileName)
+
+
+    ``idxROI`` is the same as in :py:func:`wavepy:utils:align_two_images`:
+
+    >>> import wavepy.utils as wpu
+    >>> samplefileName = easyqt.get_file_names("Choose the reference file " +
+    >>>                                        "for alignment")[0]
+    >>>
+    >>> wpu.align_many_imgs(samplefileName, idxROI=[400, 2100, 300, 2000],
+    >>>                     dontShowPlots=False)
+
+
+    '''
+
+    if displayPlots:
+        plt.ion()
+    else:
+        plt.ioff()
+
+    data_dir = samplefileName.rsplit('/', 1)[0]
+    os.chdir(data_dir)
+
+    os.makedirs('aligned_tiff', exist_ok=True)
+    os.makedirs('aligned_png', exist_ok=True)
+
+    print_blue('MESSAGE: Loading files ' +
+               samplefileName.rsplit('_', 1)[0] + '*.tif')
+
+    listOfDataFiles = glob.glob(data_dir + '/*.tif')
+    listOfDataFiles.sort()
+
+    img_ref = dxchange.read_tiff(samplefileName)
+
+    # Loop over the files in the folder
+
+    outFilesList = []
+
+    if padMarginVal > 0:
+        img_ref = np.pad(img_ref, ((padMarginVal, padMarginVal),
+                                   (padMarginVal, padMarginVal)),
+                         'constant', constant_values=1)
+
+    for imgfname in listOfDataFiles:
+
+        img = dxchange.read_tiff(imgfname)
+
+        print_blue('MESSAGE: aligning ' + imgfname)
+
+        if padMarginVal == 0:
+            img = np.pad(img, ((padMarginVal, padMarginVal),
+                               (padMarginVal, padMarginVal)),
+                         'constant', constant_values=1)
+
+        # note that these two cases are different, with different effects
+        # depending if we want to crop or to pad
+
+        if option == 'pad':
+            print_blue("MESSAGE: function align_many_imgs: using 'pad' mode")
+            _, img_aligned = align_two_images(img_ref, img,
+                                              'pad', idxROI=idxROI)
+        else:
+            print_blue("MESSAGE: function align_many_imgs: using 'crop' mode")
+            img_aligned, _ = align_two_images(img, img_ref,
+                                              'crop', idxROI=idxROI)
+
+        #        if padMarginVal >= 0:
+        #            img_aligned = img_aligned[padMarginVal:-padMarginVal,
+        #                                      padMarginVal:-padMarginVal]
+
+        # save files
+        outfname = 'aligned_tiff/' + \
+                   imgfname.split('.')[0].rsplit('/', 1)[-1] + \
+                   '_aligned.tiff'
+
+        outFilesList.append(outfname)
+
+        dxchange.write_tiff(img_aligned, outfname)
+        print_blue('MESSAGE: file ' + outfname + ' saved.')
+
+        plt.figure(figsize=(8, 7))
+        plt.imshow(img_aligned, cmap='viridis')
+        plt.title('ALIGNED, ' + imgfname.split('/')[-1])
+        plt.savefig(outfname.replace('tiff', 'png'))
+
+        if displayPlots:
+            plt.show(block=False)
+            plt.pause(.1)
+        else:
+            plt.close()
+
+    if not displayPlots:
+        plt.ion()
+
+    return outFilesList
 
 
 def find_nearest_value(input_array, value):
@@ -2697,6 +2962,7 @@ def fourier_spline_2d_axis(array, n=2, axis=0):
                     mode='constant', constant_values=0.0)
 
     res = np.fft.ifft(np.fft.ifftshift(fftvec, axes=axis), axis=axis)*n
+    res = np.real(res)
 
     if axis == 0:
         return res[0:res.shape[0]//2, :]
