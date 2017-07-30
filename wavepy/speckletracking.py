@@ -65,7 +65,7 @@ import wavepy.utils as wpu
 
 
 __authors__ = "Walan Grizolli"
-__copyright__ = "Copyright (c) 2016, Affiliation"
+__copyright__ = "Copyright (c) 2016-2017, Argonne National Laboratory"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
 __all__ = ['speckleDisplacement']

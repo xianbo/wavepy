@@ -74,7 +74,7 @@ from skimage.feature import match_template
 from matplotlib.widgets import Slider, Button, RadioButtons, CheckButtons
 
 __authors__ = "Walan Grizolli"
-__copyright__ = "Copyright (c) 2016, Affiliation"
+__copyright__ = "Copyright (c) 2016-2017, Argonne National Laboratory"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
 __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',

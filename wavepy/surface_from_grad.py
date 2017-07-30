@@ -128,24 +128,16 @@ References
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
+
 import numpy as np
 import matplotlib.pyplot as plt
-#import wavepy.utils as wpu
+import wavepy.utils as wpu
 
 __authors__ = "Walan Grizolli"
-__copyright__ = "Copyright (c) 2016, Affiliation"
+__copyright__ = "Copyright (c) 2016-2017, Argonne National Laboratory"
 __version__ = "0.1.0"
 __docformat__ = "restructuredtext en"
 __all__ = ['frankotchellappa', 'error_integration']
-
-
-#__authors__ = "First Name Last Name"
-#__copyright__ = "Copyright (c) 2016, Affiliation"
-#__version__ = "0.1.0"
-#__docformat__ = "restructuredtext en"
-#__all__ = ['function_01',
-           #'function_02',
-           #'function_03']
 
 
 def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
