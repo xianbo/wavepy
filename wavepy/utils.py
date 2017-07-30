@@ -49,6 +49,8 @@
 Utility functions to help.
 """
 
+from __future__ import (print_function)
+
 import numpy as np
 from scipy import constants
 
@@ -769,15 +771,9 @@ def nan_mask_threshold(input_matrix, threshold=0.0):
 
     Notes
     -----
-
-        * Note that ``array[mask]`` will return only the values
-        where ``mask == 1``.
-
-        * Also note that this is NOT the same as :py:mod:`numpy.ma`, the
-        `masked arrays
-        <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in
-        numpy.
-
+        - Note that ``array[mask]`` will return only the values where ``mask == 1``.
+        - Also note that this is NOT the same as the `masked arrays <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in numpy.
+    
     """
 
     mask_intensity = np.ones(input_matrix.shape)
@@ -1324,6 +1320,7 @@ def dummy_images(imagetype=None, shape=(100, 100), **kwargs):
 
 
     Image types
+
         * Noise (default):    alias for ``np.random.random(shape)``
 
         * Stripes:            ``kwargs: nLinesH, nLinesV``
@@ -1332,16 +1329,14 @@ def dummy_images(imagetype=None, shape=(100, 100), **kwargs):
           .. math:: \sum_{ij} Amp_{ij} \cos (2 \pi i y) \cos (2 \pi j x).
 
             * Note that ``x`` and ``y`` are assumed to in the range [-1, 1].
-            The keyword ``kwargs: harmAmpl`` is a 2D list that can
-            be used to set the values for Amp_ij, see **Examples**.
+              The keyword ``kwargs: harmAmpl`` is a 2D list that can
+              be used to set the values for Amp_ij, see **Examples**.
 
         * Shapes: see **Examples**. ``kwargs=noise``, amplitude of noise to be
           added to the image
 
         * NormalDist: Normal distribution where it is assumed that ``x`` and
-        ``y`` are in the interval `[-1,1]`. ``keywords: FWHM_x, FWHM_y``
-
-
+          ``y`` are in the interval `[-1,1]`. ``keywords: FWHM_x, FWHM_y``
 
 
     Returns

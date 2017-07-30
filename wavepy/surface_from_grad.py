@@ -151,10 +151,6 @@ __all__ = ['frankotchellappa', 'error_integration']
 def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
     """
 
-    Frankt-Chellappa Algorithm
-    ---------------------------
-
-
     The simplest method is the so-called Frankot-Chelappa method. The idea
     behind this method is to search (calculate) an integrable gradient field
     that best fits the data. Luckly, Frankot Chelappa were able in they article
