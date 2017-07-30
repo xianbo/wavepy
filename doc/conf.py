@@ -322,7 +322,9 @@ class Mock(object):
     def __radd__(self, other):
         return Mock()
 
-MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'matplotlib.widgets', 'skimage', 'skimage.feature', 'tqdm', 'dxchange']
+MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'matplotlib.widgets', 
+                'skimage', 'skimage.feature', 'skimage.restoration', 'tqdm', 'dxchange', 
+                'easygui_qt', 'pl_toolkits', 'pl_toolkits.mplot3d', 'configparser']
 
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
