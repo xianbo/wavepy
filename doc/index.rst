@@ -31,6 +31,18 @@ and tables:
 +---------------+----------------+-----------------------------+
 
 
+Note
+----
+
+Note that, according to Sphinx documentation, when you put math markup in Python docstrings
+read by autodoc, you have to double all backslashes. To obtain the equation above in this
+case we would use:
+
+
+>>> V(x) = \\int_{E_{1}}^{E_{2}} I(\\theta,E) \\cdot F(E)\\,dE \\cdot \\left(\\frac{1-\\eta}{\\sigma\\sqrt{2\\pi}}\\right) \\cdot exp\\left({\\frac{x^2}{2\\sigma^2}}\\right) + \\eta \\cdot \\frac{\\sigma}{2\\pi} \\cdot \\frac{1}{x^2 + \\left(\\frac{\\sigma}{2}\\right)^2}
+
+
+
 Features
 --------
 

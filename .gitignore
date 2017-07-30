@@ -109,6 +109,7 @@ coverage.xml
 *.sublime-project
 *.sublime-workspace
 docs/trunk/*
+.idea
 
 # Francesco's #
 ################
@@ -117,3 +118,11 @@ tmp2/
 validate*
 workingOn/
 #rec_*
+
+
+# Walan's #
+###########
+.directory
+_ignoreme*
+_*
+
