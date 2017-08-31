@@ -840,7 +840,7 @@ def plot_intensities_harms(int00, int01, int10,
 
     plt.tight_layout()
     if saveFigFlag:
-        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+        wpu.save_figs_with_idx(saveFileSuf)
     plt.show(block=True)
 
 
@@ -883,7 +883,7 @@ def plot_dark_field(darkField01, darkField10,
 
     plt.tight_layout()
     if saveFigFlag:
-        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+        wpu.save_figs_with_idx(saveFileSuf)
     plt.show(block=True)
 
 
@@ -933,7 +933,7 @@ def plot_DPC(dpc01, dpc10,
 
     plt.tight_layout()
     if saveFigFlag:
-        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+        wpu.save_figs_with_idx(saveFileSuf)
     plt.show(block=False)
 
 
@@ -979,7 +979,7 @@ def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
                               shifthalfpixel=shifthalfpixel, plot_flag=True)
 
     if saveFileSuf is not None:
-        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+        wpu.save_figs_with_idx(saveFileSuf)
 
     return phase, idx
 
@@ -1018,7 +1018,7 @@ def plot_integration(integrated, pixelsize,
         plt.title(titleStr, fontsize=18, weight='bold')
         cbar = plt.colorbar()
         cbar.ax.set_title(ctitle, y=1.01)
-        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+        wpu.save_figs_with_idx(saveFileSuf)
         #        plt.show(block=False)
         plt.close(plt.gcf())
         plt.ion()
@@ -1052,7 +1052,7 @@ def plot_integration(integrated, pixelsize,
 
     plt.tight_layout()
     if saveFigFlag:
-        wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
+        wpu.save_figs_with_idx(saveFileSuf)
 
     ax.text2D(0.05, 0.9, 'strides = {}, {}'.format(rstride, cstride),
               transform=ax.transAxes)
