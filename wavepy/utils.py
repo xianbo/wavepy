@@ -3021,7 +3021,7 @@ def _mpl_settings_4_nice_graphs(fs=16, latexfonts=False):
     # Direct input
 
     if latexfonts:
-    plt.rcParams['text.latex.preamble'] = [r"\usepackage[utopia]{mathdesign}"]
+        plt.rcParams['text.latex.preamble'] = [r"\usepackage[utopia]{mathdesign}"]
     # Options
     params = {'text.usetex': latexfonts,
               'font.size': fs,
@@ -3192,3 +3192,145 @@ def rocking_3d_figure(ax, outfname='out.ogv',
             os.remove(file)
 
     return 1
+
+
+def save_sdf_file(array, pixelsize, fname='output.sdf'):
+    '''
+    Save an 2D array in the `Surface Data File Format (SDF)
+    <https://physics.nist.gov/VSC/jsp/DataFormat.jsp#a>`_ , which can be
+    viewed
+    with the program `Gwyddion
+    <http://gwyddion.net/documentation/user-guide-en/>`_ .
+    It is also useful because it is a plain
+    ASCII file
+
+
+
+
+
+
+    Parameters
+    ----------
+    array: 2D ndarray
+        data to be saved as ``sdf``
+
+    pixelsize: list
+        list in the format [pixel_size_i, pixel_size_j]
+
+    fname: str
+        output file name
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.load_sdf`
+
+
+    '''
+
+    if len(array.shape) != 2:
+        print_red('ERROR: function save_sdf: array must 2-dimensional')
+        raise TypeError
+
+    header = 'aBCR-0.0\n' + \
+             'ManufacID \t=\t grizolli@anl.gov\n' + \
+             'CreateDate \t=\t ' + \
+             datetime_now_str()[:-2].replace('_', '') + '\n' + \
+             'ModDate \t=\t' + \
+             datetime_now_str()[:-2].replace('_', '') + '\n' + \
+             'NumPoints \t=\t ' + str(array.shape[1]) + '\n' + \
+             'NumProfiles \t=\t ' + str(array.shape[0]) + '\n' + \
+             'Xscale \t=\t ' + str(pixelsize[1]) + '\n' + \
+             'Yscale \t=\t ' + str(pixelsize[0]) + '\n' + \
+             'Zscale \t=\t 1\n' + \
+             'Zresolution \t=\t 0\n' + \
+             'Compression \t=\t 0\n' + \
+             'DataType \t=\t 7 \n' + \
+             'CheckType \t=\t 0\n' + \
+             'NumDataSet \t=\t 1\n' + \
+             'NanPresent \t=\t 0\n' + \
+             '*'
+
+    if array.dtype == 'float64':
+        fmt = '%1.8g'
+
+    elif array.dtype == 'int64':
+        fmt = '%d'
+
+    else:
+        fmt = '%f'
+
+    np.savetxt(fname, array.flatten(), fmt=fmt, header=header, comments='')
+
+    print_blue('MESSAGE: ' + fname + ' saved!')
+
+
+def load_sdf_file(fname):
+    '''
+    Load an 2D array in the `Surface Data File Format (SDF)
+    <https://physics.nist.gov/VSC/jsp/DataFormat.jsp#a>`_ . The SDF format
+    is useful because it can be viewed with the program `Gwyddion
+    <http://gwyddion.net/documentation/user-guide-en/>`_ .
+    It is also useful because it is a plain
+    ASCII file
+
+    Parameters
+    ----------
+
+    fname: str
+        output file name
+
+    Returns
+    -------
+
+    array: 2D ndarray
+        data loaded from the ``sdf`` file
+
+    pixelsize: list
+        list in the format [pixel_size_i, pixel_size_j]
+
+    Example
+    -------
+
+    >>> import wavepy.utils as wpu
+    >>> data, pixelsize = wpu.load_sdf('test_file.sdf')
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.save_sdf`
+
+
+    '''
+
+    with open(fname) as input_file:
+        nline = 0
+        print('########## HEADER from ' + fname)
+        for line in input_file:
+            nline += 1
+
+            print(line, end='')
+
+            if 'NumPoints' in line:
+                xpoints = int(line.split('=')[-1])
+
+            if 'NumProfiles' in line:
+                ypoints = int(line.split('=')[-1])
+
+            if 'Xscale' in line:
+                xscale = float(line.split('=')[-1])
+
+            if 'Yscale' in line:
+                yscale = float(line.split('=')[-1])
+
+            if 'Zscale' in line:
+                zscale = float(line.split('=')[-1])
+
+            if '*' in line:
+                break
+
+    print('########## END HEADER from ' + fname)
+
+    data = np.loadtxt(fname, skiprows=nline)
+
+    data = data.reshape(ypoints, xpoints)*zscale
+
+    return data, [yscale, xscale]
