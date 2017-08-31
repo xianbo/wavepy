@@ -161,11 +161,18 @@ def main_single_gr_Talbot(img, imgRef,
     # Obtain harmonic periods from images
 
     (period_harm_Vert,
-     period_harm_Hor) = wgi.exp_harm_period(img, [period_harm_Vert,
-                                            period_harm_Hor],
-                                            harmonic_ij=['1', '1'],
-                                            searchRegion=10,
-                                            isFFT=False, verbose=True)
+     _) = wgi.exp_harm_period(img, [period_harm_Vert,
+                                    period_harm_Hor],
+                                    harmonic_ij=['1', '0'],
+                                    searchRegion=20,
+                                    isFFT=False, verbose=True)
+
+    (_,
+     period_harm_Horz) = wgi.exp_harm_period(img, [period_harm_Vert,
+                                             period_harm_Hor],
+                                             harmonic_ij=['0', '1'],
+                                             searchRegion=20,
+                                             isFFT=False, verbose=True)
 
     # Calculate everything
 
@@ -447,7 +454,7 @@ def _default_plot_for_pickle(data, pixelsize, patternforpickle='graph',
     fig = plt.figure(figsize=(12, 9.5))
 
     plt.imshow(data,
-               extent=wpu.extent_func(data, virtual_pixelsize)*1e6,
+               extent=wpu.extent_func(data, pixelsize)*1e6,
                cmap=cmap, vmin=vmin, vmax=vmax)
 
     plt.xlabel(xlabel, fontsize=24)
@@ -715,28 +722,12 @@ if __name__ == '__main__':
     vlim01 = np.max(np.abs(diffPhase01))
     vlim10 = np.max(np.abs(diffPhase10))
 
-    #    np.savetxt('dpc_x.dat', diffPhase01, '%.8g',
-    #               header='values in meter, pixel size i,j = ' +
-    #                      '{:.6g} meters, '.format(virtual_pixelsize[0]) +
-    #                      '{:.6g} meters'.format(virtual_pixelsize[1]))
-    #
-    #    np.savetxt('dpc_y.dat', diffPhase10, '%.8g',
-    #               header='values in meter, pixel size i,j = ' +
-    #                      '{:.6g} meters, '.format(virtual_pixelsize[0]) +
-    #                      '{:.6g} meters'.format(virtual_pixelsize[1]))
-
-    #    _plot_profile(diffPhase01, virtual_pixelsize, title='DPC x',
-    #                  arg4main={'cmap': 'RdGy', 'vmin': -vlim01, 'vmax': vlim01})
-    #
-    #    _plot_profile(diffPhase10, virtual_pixelsize, title='DPC y',
-    #                  arg4main={'cmap': 'RdGy', 'vmin': -vlim10, 'vmax': vlim10})
-
     # ==========================================================================
     # %% Integration
     # ==========================================================================
 
-    if easyqt.get_yes_or_no('New Crop for Integration? ' +
-                            "(If 'No', the values from last run are used.)"):
+    if easyqt.get_yes_or_no('New Crop for Integration?\n' +
+                            "(If 'No', the values from last run are used)"):
 
         idx4crop = ''
 
@@ -759,11 +750,6 @@ if __name__ == '__main__':
 
     phase -= np.mean(phase)  # apply here your favorite offset
 
-    #
-    #    wgi.plot_integration(1/2/np.pi*phase*wavelength*1e9,
-    #                         virtual_pixelsize,
-    #                         titleStr=r'WF $[nm]$', saveFigFlag=True,
-    #                         saveFigFlag=True, saveFileSuf=saveFileSuf)
 
     # %%
     ax = wgi.plot_integration(1/2/np.pi*phase, virtual_pixelsize,
@@ -773,9 +759,6 @@ if __name__ == '__main__':
     plt.pause(.2)
 
 
-    #    wgi.plot_integration(phase/2/np.pi, virtual_pixelsize,
-    #                         titleStr=r'Phase/2$\pi$ [ radians]',
-    #                         saveFigFlag=True, saveFileSuf=saveFileSuf)
 
     # ==========================================================================
     # %% Thickness
@@ -800,15 +783,6 @@ if __name__ == '__main__':
     wpu.save_figs_with_idx(saveFileSuf + '_Talbot_image')
     plt.show(block=False)
 
-    if easyqt.get_yes_or_no('Make animation of 3D surface?\n' +
-                            '(TAKES A LOT OF TIME)'):
-
-        wpu.rocking_3d_figure(ax, saveFileSuf + '.ogv',
-                              elevOffset=45, azimOffset=60,
-                              elevAmp=30, azimAmpl=-60, dpi=80, npoints=200,
-                              del_tmp_imgs=True)
-    plt.show(block=True)
-
     # %% save thicknes txt
 
     saveFileSuf += '_thickness_' + material
@@ -819,39 +793,15 @@ if __name__ == '__main__':
 
     # %% Plot thickness and save as pickle
 
-    #    fig = plt.figure(figsize=(12, 9.5))
-    #
-    #    plt.imshow(thickness*1e6,
-    #               extent=wpu.extent_func(thickness, virtual_pixelsize)*1e6,
-    #               cmap='viridis')
-    #
-    #    plt.xlabel(r'$x$ [$\mu m$]', fontsize=24)
-    #    plt.ylabel(r'$y$ [$\mu m$]', fontsize=24)
-    #
-    #    cbar = plt.colorbar(shrink=0.9)
-    #    cbar.ax.set_title(r'$[nm]$', y=1.01)
-    #
-    #    plt.title(,
-    #              fontsize=24, weight='bold', y=1.01)
-    #
-    #    wpu.save_figs_with_idx_pickle(fig, )
-    #
-    #    plt.show(block=True)
 
     titleStr = r'Material: ' + material + ', Thickness $[\mu m]$'
     _default_plot_for_pickle(thickness*1e6, pixelsize,
-                             patternforpickle=saveFileSuf,
+                             patternforpickle=saveFileSuf + '_thickness',
                              title=titleStr,
                              xlabel=r'$x [\mu m]$', ylabel=r'$y [\mu m]$',
                              ctitle=r'$[\mu m]$',
                              removeSpark=False, cmap='viridis')
 
-    _default_plot_for_pickle(1/2/np.pi*phase, virtual_pixelsize,
-                             patternforpickle=saveFileSuf,
-                             title=r'WF $[\lambda$ units $]$' +
-                                   '\n(removed 2nd order component)',
-                             xlabel=r'$x$', ylabel=r'$y$',
-                             ctitle='', cmap='viridis')
 
     wpu.log_this('Material = ' + material, saveFileSuf)
     wpu.log_this('delta = ' + str('{:.5g}'.format(delta)), saveFileSuf)
@@ -864,79 +814,3 @@ if __name__ == '__main__':
                  str('{:.5g}'.format(thickSensitivy100)), saveFileSuf)
 
     wpu.log_this('', saveFileSuf, inifname=inifname)
-
-    # =============================================================================
-    # %% sandbox to play
-    # =============================================================================
-
-    # %%
-    # Plot WF in nm
-    #    fig = plt.figure(figsize=(12, 9.5))
-    #    plt.imshow(1/2/np.pi*phase*wavelength*1e9,
-    #               extent=wpu.extent_func(phase, virtual_pixelsize)*1e6,
-    #               cmap='viridis')
-    #
-    #    plt.xlabel(r'$x$ [$\mu m$]', fontsize=24)
-    #    plt.ylabel(r'$y$ [$\mu m$]', fontsize=24)
-    #
-    #    cbar = plt.colorbar(shrink=0.9)
-    #    cbar.ax.set_title(r'$[nm]$',
-    #                      fontsize=24, weight='bold', y=1.01)
-    #
-    #    plt.title(r'Wavefront', y=1.01)
-    #
-    #    wpu.save_figs_with_idx_pickle(fig, saveFileSuf + '_WF')
-    #
-    #    plt.show(block=True)
-    #
-    #    # %% Plot thickness as contourf
-    #    fig = plt.figure(figsize=(12, 9.5))
-    #    plt.imshow(thickness*1e6,
-    #               extent=wpu.extent_func(phase, virtual_pixelsize)*1e6,
-    #               cmap='viridis')
-    #
-    #    plt.xlabel(r'$x$ [$\mu m$]', fontsize=24)
-    #    plt.ylabel(r'$y$ [$\mu m$]', fontsize=24)
-    #
-    #    cbar = plt.colorbar(shrink=0.9)
-    #    cbar.ax.set_title(r'$[\mu m]$', y=1.01)
-    #
-    #    plt.title(r'Thickness $[\mu m]$',
-    #              fontsize=24, weight='bold', y=1.01)
-    #
-    #    wpu.save_figs_with_idx_pickle(fig, saveFileSuf + '_thickness')
-    #
-    #    plt.show(block=True)
-
-
-# %% Hist Phase
-
-
-    plt.figure()
-    plt.hist(1/2/np.pi*phase.flatten(), 201, histtype='step')
-    plt.xlabel(r'$[\lambda$ units $]$', fontsize=18)
-
-    plt.title(r'WF $[\lambda$ units $]$, $\sigma$ = ' +
-              '{:.3f}, '.format(np.std(1/2/np.pi*phase.flatten())) +
-              '1/$\sigma$ = ' +
-              '{:.2f}'.format(1/np.std((1/2/np.pi*phase.flatten()))),
-              fontsize=20)
-
-    wpu.save_figs_with_idx(saveFileSuf)
-
-    plt.show(block=False)
-
-# %% Hist Thickness
-
-
-    plt.figure()
-    plt.hist(thickness.flatten()*1e6, 201, histtype='step')
-    plt.xlabel(r'[$\mu m$]', fontsize=18)
-
-    plt.title('Thickness, $\sigma$ = ' +
-              '{:.3f} $n m$ '.format(np.std(thickness.flatten()*1e9)),
-              fontsize=20)
-
-    wpu.save_figs_with_idx(saveFileSuf)
-
-    plt.show(block=False)
