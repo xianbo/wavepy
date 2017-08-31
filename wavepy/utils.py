@@ -2082,15 +2082,18 @@ def get_unique_filename(patternforname, extension='txt'):
 
     '''
 
+    if '.' not in extension:
+        extension = '.' + extension
+
     from itertools import count
     _Count_fname = count()
     next(_Count_fname)
 
-    fname = str('{:s}_{:02d}.'.format(patternforname,
+    fname = str('{:s}_{:02d}'.format(patternforname,
                                       next(_Count_fname)) + extension)
 
     while os.path.isfile(fname):
-        fname = str('{:s}_{:02d}.'.format(patternforname,
+        fname = str('{:s}_{:02d}'.format(patternforname,
                                           next(_Count_fname)) + extension)
 
     return fname
@@ -3002,7 +3005,7 @@ def shift_subpixel_2d(array2d, frac_of_pixel):
                                                      1::frac_of_pixel]
 
 
-def _mpl_settings_4_nice_graphs(fs=16):
+def _mpl_settings_4_nice_graphs(fs=16, latexfonts=False):
     '''
     Settings for latex fonts in the graphs
     ATTENTION: This will make the program slow because it will compile all
@@ -3014,13 +3017,16 @@ def _mpl_settings_4_nice_graphs(fs=16):
     '''
 
     plt.style.use('default')
+
     # Direct input
+
+    if latexfonts:
     plt.rcParams['text.latex.preamble'] = [r"\usepackage[utopia]{mathdesign}"]
     # Options
-    params = {'text.usetex': True,
+    params = {'text.usetex': latexfonts,
               'font.size': fs,
               'font.family': 'utopia',
-              'text.latex.unicode': True,
+              'text.latex.unicode': latexfonts,
               'figure.facecolor': 'white'
               }
     plt.rcParams.update(params)
