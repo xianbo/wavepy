@@ -773,7 +773,7 @@ def nan_mask_threshold(input_matrix, threshold=0.0):
     -----
         - Note that ``array[mask]`` will return only the values where ``mask == 1``.
         - Also note that this is NOT the same as the `masked arrays <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in numpy.
-    
+
     """
 
     mask_intensity = np.ones(input_matrix.shape)
@@ -3000,30 +3000,24 @@ def shift_subpixel_2d(array2d, frac_of_pixel):
                                                      1::frac_of_pixel]
 
 
-def _mpl_settings_4_nice_graphs(fs=16, latexfonts=False):
+def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia'):
     '''
-    Settings for latex fonts in the graphs
-    ATTENTION: This will make the program slow because it will compile all
-    latex text. This means that you also need latex and any latex package
-    you want to use. I suggest to only use this when you want produce final
-    graphs to publish or to make public. The latex dependecies are not taken
-    care  by the installation scripts. You are by your own to solve these
-    dependencies.
+
+    Note: a older version used latex. However if you have the fonts
+    for Utopia (Regular, Bold and Italic), then latex is not necessary.
+    install the fonts somewhere like:
+    $CONDA_ENV_DIR/site-packages/matplotlib/mpl-data/fonts/ttf/
     '''
 
     plt.style.use('default')
 
     # Direct input
 
-    if latexfonts:
-        plt.rcParams['text.latex.preamble'] = [r"\usepackage[utopia]{mathdesign}"]
-    # Options
-    params = {'text.usetex': latexfonts,
-              'font.size': fs,
-              'font.family': 'utopia',
-              'text.latex.unicode': latexfonts,
+    params = {'font.size': fs,
+              'font.family': fontfamily,
               'figure.facecolor': 'white'
               }
+
     plt.rcParams.update(params)
 
 
