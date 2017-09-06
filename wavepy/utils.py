@@ -1097,6 +1097,9 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
             both images will be cropped to the size of ROI. Note that ``img2``
             will be exactally the ROI.
 
+    padMarginVal : int
+        Value to pad ``img2`` when option is to pad.
+
     displayPlots : boolean
         Flag to display every aligned image (``displayPlots=True``) of
         to plot and save in the background (``displayPlots=False``).
