@@ -3005,13 +3005,36 @@ def shift_subpixel_2d(array2d, frac_of_pixel):
                                                      1::frac_of_pixel]
 
 
-def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia'):
+def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
     '''
 
-    Note: a older version used latex. However if you have the fonts
+    Edit and update *matplotlib rcParams*.
+
+    Parameters
+    ----------
+
+    fs : int
+        font size
+
+    fontfamily : str
+        Name of font family
+
+    otheroptions : dict
+        dictionary with other options for *rcParams*
+
+
+    Note
+    ----
+
+    An older version used latex. However if you have the fonts
     for Utopia (Regular, Bold and Italic), then latex is not necessary.
     install the fonts somewhere like:
     $CONDA_ENV_DIR/site-packages/matplotlib/mpl-data/fonts/ttf/
+
+
+    See also
+    --------
+    `Customizing matplotlib <http://matplotlib.org/users/customizing.html>`_
     '''
 
     plt.style.use('default')
@@ -3020,10 +3043,18 @@ def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia'):
 
     params = {'font.size': fs,
               'font.family': fontfamily,
-              'figure.facecolor': 'white'
+              'figure.facecolor': 'white',
+              'axes.grid': True
               }
 
+
+
+    params.update(otheroptions)
+
     plt.rcParams.update(params)
+    plt.rcParams['axes.prop_cycle'] = plt.cycler(color=['#4C72B0', '#55A868',
+                                                        '#C44E52', '#8172B2',
+                                                        '#CCB974', '#64B5CD'])
 
 
 def rocking_3d_figure(ax, outfname='out.ogv',
@@ -3041,7 +3072,7 @@ def rocking_3d_figure(ax, outfname='out.ogv',
 
 
     Parameters
-    ==========
+    ----------
 
     ax : 3D axis object
         See example below how to create this object. If `None`, this will use
@@ -3079,7 +3110,7 @@ def rocking_3d_figure(ax, outfname='out.ogv',
         if these images are deleted or not
 
     Example
-    =======
+    -------
 
 
     >>> fig = plt.figure()
