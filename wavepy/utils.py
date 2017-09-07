@@ -1077,6 +1077,8 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
 
     TODO: This function can be upgraded to use multiprocessing
 
+
+
     Parameters
     ----------
     samplefileName : string
@@ -3186,7 +3188,7 @@ def rocking_3d_figure(ax, outfname='out.ogv',
     return 1
 
 
-def save_sdf_file(array, pixelsize, fname='output.sdf'):
+def save_sdf_file(array, pixelsize, fname='output.sdf', extraHeader={}):
     '''
     Save an 2D array in the `Surface Data File Format (SDF)
     <https://physics.nist.gov/VSC/jsp/DataFormat.jsp#a>`_ , which can be
@@ -3197,20 +3199,23 @@ def save_sdf_file(array, pixelsize, fname='output.sdf'):
     ASCII file
 
 
-
-
-
-
     Parameters
     ----------
     array: 2D ndarray
-        data to be saved as ``sdf``
+        data to be saved as *sdf*
 
     pixelsize: list
         list in the format [pixel_size_i, pixel_size_j]
 
     fname: str
         output file name
+
+    extraHeader: dict
+        dictionary with extra fields to be added to the header. Note that this
+        extra header have not effect when using Gwyddion. It is used only for
+        the asc file and when loaded by :py:func:`wavepy.utils.load_sdf`
+        as *headerdic*.
+
 
     See Also
     --------
@@ -3224,23 +3229,27 @@ def save_sdf_file(array, pixelsize, fname='output.sdf'):
         raise TypeError
 
     header = 'aBCR-0.0\n' + \
-             'ManufacID \t=\t grizolli@anl.gov\n' + \
-             'CreateDate \t=\t ' + \
+             'ManufacID\t=\tgrizolli@anl.gov\n' + \
+             'CreateDate\t=\t' + \
              datetime_now_str()[:-2].replace('_', '') + '\n' + \
-             'ModDate \t=\t' + \
+             'ModDate\t=\t' + \
              datetime_now_str()[:-2].replace('_', '') + '\n' + \
-             'NumPoints \t=\t ' + str(array.shape[1]) + '\n' + \
-             'NumProfiles \t=\t ' + str(array.shape[0]) + '\n' + \
-             'Xscale \t=\t ' + str(pixelsize[1]) + '\n' + \
-             'Yscale \t=\t ' + str(pixelsize[0]) + '\n' + \
-             'Zscale \t=\t 1\n' + \
-             'Zresolution \t=\t 0\n' + \
-             'Compression \t=\t 0\n' + \
-             'DataType \t=\t 7 \n' + \
-             'CheckType \t=\t 0\n' + \
-             'NumDataSet \t=\t 1\n' + \
-             'NanPresent \t=\t 0\n' + \
-             '*'
+             'NumPoints\t=\t' + str(array.shape[1]) + '\n' + \
+             'NumProfiles\t=\t' + str(array.shape[0]) + '\n' + \
+             'Xscale\t=\t' + str(pixelsize[1]) + '\n' + \
+             'Yscale\t=\t' + str(pixelsize[0]) + '\n' + \
+             'Zscale\t=\t1\n' + \
+             'Zresolution\t=\t0\n' + \
+             'Compression\t=\t0\n' + \
+             'DataType\t=\t7 \n' + \
+             'CheckType\t=\t0\n' + \
+             'NumDataSet\t=\t1\n' + \
+             'NanPresent\t=\t0\n'
+
+    for key in extraHeader.keys():
+        header += key + '\t=\t' + extraHeader[key] + '\n'
+
+    header += '*'
 
     if array.dtype == 'float64':
         fmt = '%1.8g'
@@ -3280,6 +3289,9 @@ def load_sdf_file(fname):
     pixelsize: list
         list in the format [pixel_size_i, pixel_size_j]
 
+    headerdic
+        dictionary with the header
+
     Example
     -------
 
@@ -3295,10 +3307,11 @@ def load_sdf_file(fname):
 
     with open(fname) as input_file:
         nline = 0
+        header = ''
         print('########## HEADER from ' + fname)
+
         for line in input_file:
             nline += 1
-
             print(line, end='')
 
             if 'NumPoints' in line:
@@ -3318,11 +3331,23 @@ def load_sdf_file(fname):
 
             if '*' in line:
                 break
+            else:
+                header += line
 
     print('########## END HEADER from ' + fname)
 
+    # Load data as numpy array
     data = np.loadtxt(fname, skiprows=nline)
 
     data = data.reshape(ypoints, xpoints)*zscale
 
-    return data, [yscale, xscale]
+    # Load header as a dictionary
+    headerdic = {}
+    header = header.replace('\t', '')
+
+    for item in header.split('\n'):
+        items = item.split('=')
+        if len(items) > 1:
+            headerdic[items[0]] = items[1]
+
+    return data, [yscale, xscale], headerdic
