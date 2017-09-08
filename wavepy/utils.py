@@ -3056,6 +3056,39 @@ def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
                                                         '#C44E52', '#8172B2',
                                                         '#CCB974', '#64B5CD'])
 
+def line_style_cycle(ls=['-', '--', ':'], ms=['s', 'o', '^', 'd'],
+                     ncurves=2, cmap_str='jet'):
+    '''
+    Generate a list with cycle of linestyles for plots. See
+    `here <http://matplotlib.org/api/pyplot_api.html?highlight=plot#matplotlib.pyplot.plot>`_
+    for imformation about the syntax of the styles.
+
+    Example
+    -------
+
+    >>> ls_cycle, lc_cycle = line_style_cycle()
+    >>> x = np.linspace(0, 100, 10)
+    >>> for i in range (10):
+    >>>     plt.plot(x, i*x, ls_cycle[i], color=lc_cycle[i], label=str(i))
+    >>> plt.legend()
+    >>> plt.show()
+
+    '''
+
+
+    import itertools
+
+    ls_cycle = list(a[0] + a[1] for a in itertools.product(ls, ms))
+
+    for _ in range(0, ncurves//len(ls_cycle)):
+        ls_cycle += ls_cycle
+
+    #    lc_jet = [ plt.cm.jet(x) for x in np.linspace(0, 1, ncurves) ]
+    cmap = plt.get_cmap(cmap_str)
+    lc_jet = [ cmap(x) for x in np.linspace(0, 1, ncurves) ]
+
+    return ls_cycle[0:ncurves], lc_jet
+
 
 def rocking_3d_figure(ax, outfname='out.ogv',
                       elevAmp=50, azimAmpl=90,
