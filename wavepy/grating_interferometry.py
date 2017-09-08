@@ -700,11 +700,11 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
 
         if unwrapFlag is True:
 
-            arg01 = unwrap_phase(np.angle(h_img[1]), seed=72673) - \
-                    unwrap_phase(np.angle(h_img_ref[1]), seed=72673)
+            arg01 = (unwrap_phase(np.angle(h_img[1]), seed=72673) -
+                     unwrap_phase(np.angle(h_img_ref[1]), seed=72673))
 
-            arg10 = unwrap_phase(np.angle(h_img[2]), seed=72673) - \
-                    unwrap_phase(np.angle(h_img_ref[2]), seed=72673)
+            arg10 = (unwrap_phase(np.angle(h_img[2]), seed=72673) -
+                     unwrap_phase(np.angle(h_img_ref[2]), seed=72673))
 
         else:
             arg01 = np.angle(h_img[1]) - np.angle(h_img_ref[1])
@@ -899,8 +899,8 @@ def plot_DPC(dpc01, dpc10,
 
     factor, unit_xy = wpu.choose_unit(np.sqrt(dpc01.size)*pixelsize[0])
 
-    dpc01_plot=dpc01*pixelsize[1]/np.pi
-    dpc10_plot=dpc10*pixelsize[0]/np.pi
+    dpc01_plot = dpc01*pixelsize[1]/np.pi
+    dpc10_plot = dpc10*pixelsize[0]/np.pi
 
     vlim01 = np.max((np.abs(wpu.mean_plus_n_sigma(dpc01_plot, -5)),
                      np.abs(wpu.mean_plus_n_sigma(dpc01_plot, 5))))
@@ -965,8 +965,8 @@ def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
     if method == 'FC':
 
         phase = wps.frankotchellappa(dpc01*pixelsize[1],
-                                         dpc10*pixelsize[0],
-                                         reflec_pad=True)
+                                     dpc10*pixelsize[0],
+                                     reflec_pad=True)
         phase = np.real(phase)
 
     else:
@@ -1002,7 +1002,6 @@ def plot_integration(integrated, pixelsize,
                      title=titleStr,
                      xunit='\mu m', yunit='\mu m',
                      arg4main={'cmap': 'viridis', 'lw': 3})
-
 
     if saveFigFlag:
         plt.ioff()
