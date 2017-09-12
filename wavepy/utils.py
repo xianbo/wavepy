@@ -3419,3 +3419,107 @@ def load_sdf_file(fname):
 
     return data, [yscale, xscale], headerdic
 
+
+def save_csv_file(arrayList, fname='output.sdf', headerList=[]):
+    '''
+    Save an 2D array as a *comma separeted values* file. This is appropriated
+    to save several 1D curves. For 2D data use :py:func:`wavepy.utils.save_sdf`
+
+
+    Parameters
+    ----------
+    array: 2D ndarray
+        data to be saved as *sdf*
+
+    fname: str
+        output file name
+
+    headerList: dict
+        dictionary with fields to be added to the header.
+
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.load_csv_file`
+
+    '''
+
+    header = ''
+
+    for item in headerList:
+
+        header += item + ', '
+
+    header = header[:-2]  # remove last comma
+
+    if isinstance(arrayList, list):
+
+        data2save = np.c_[arrayList[0], arrayList[1]]
+
+        for array in arrayList[2:]:
+            data2save = np.c_[data2save, array]
+
+    if data2save.dtype == 'float64':
+        fmt = '%1.8g'
+
+    elif data2save.dtype == 'int64':
+        fmt = '%d'
+    else:
+        fmt = '%f'
+
+    np.savetxt(fname, data2save, fmt=fmt, header=header, delimiter=',')
+
+    print_blue('MESSAGE: ' + fname + ' saved!')
+
+
+def load_csv_file(fname):
+    '''
+    Load a generic csv file.
+
+    Parameters
+    ----------
+
+    fname: str
+        output file name
+
+    Returns
+    -------
+
+    array: 2D ndarray
+        data loaded from the ``csv`` file
+
+    headerdic
+        dictionary with the header
+
+    Example
+    -------
+
+    >>> import wavepy.utils as wpu
+    >>> data, headerdic = wpu.load_csv_file('test_file.sdf')
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.save_sdf`
+
+
+    '''
+
+    with open(fname) as input_file:
+
+        for line in input_file:
+
+            if '#' in line:
+                header = line[2:-1]  # remove # and \n
+            else:
+                break
+
+    # Load data as numpy array
+    data = np.loadtxt(fname, delimiter=',')
+
+    # Load header as a dictionary
+
+    headerlist = []
+    for item in header.split(', '):
+        headerlist.append(item)
+
+    return data, headerlist
