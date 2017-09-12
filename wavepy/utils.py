@@ -912,7 +912,7 @@ def gui_align_two_images(img1, img2, option='crop', verbosePlot=True):
         idxROI = 0
 
     [img1_aligned,
-     img2_aligned] = align_two_images(img1, img2, option='crop',
+     img2_aligned] = align_two_images(img1, img2, option=option,
                                       idxROI=idxROI)
 
     if verbosePlot:
@@ -2016,7 +2016,7 @@ def save_figs_with_idx(patternforname='graph', extension='png'):
     print('MESSAGE: ' + figname + ' SAVED')
 
 
-def save_figs_with_idx_pickle(figObj, patternforname='graph'):
+def save_figs_with_idx_pickle(figObj='', patternforname='graph'):
     '''
     Save figures as pickle. It uses a counter to save the figures with
     suffix 1, 2, 3, ..., etc, to avoid overwriting existing files.
@@ -2054,6 +2054,9 @@ def save_figs_with_idx_pickle(figObj, patternforname='graph'):
     while os.path.isfile(figname):
         figname = str('{:s}_{:02d}.pickle'.format(patternforname,
                                                   next(_figCount_pickle)))
+
+    if figObj == '':
+        figObj = plt.gcf()
 
     pl.dump(figObj, open(figname, 'wb'))
 
@@ -3289,7 +3292,7 @@ def save_sdf_file(array, pixelsize, fname='output.sdf', extraHeader={}):
     '''
 
     if len(array.shape) != 2:
-        print_red('ERROR: function save_sdf: array must 2-dimensional')
+        print_red('ERROR: function save_sdf: array must be 2-dimensional')
         raise TypeError
 
     header = 'aBCR-0.0\n' + \
@@ -3360,7 +3363,7 @@ def load_sdf_file(fname):
     -------
 
     >>> import wavepy.utils as wpu
-    >>> data, pixelsize = wpu.load_sdf('test_file.sdf')
+    >>> data, pixelsize, headerdic = wpu.load_sdf('test_file.sdf')
 
     See Also
     --------
@@ -3415,3 +3418,4 @@ def load_sdf_file(fname):
             headerdic[items[0]] = items[1]
 
     return data, [yscale, xscale], headerdic
+
