@@ -3459,6 +3459,12 @@ def save_csv_file(arrayList, fname='output.sdf', headerList=[]):
         for array in arrayList[2:]:
             data2save = np.c_[data2save, array]
 
+    elif isinstance(arrayList, np.ndarray):
+        data2save = arrayList
+
+    else:
+        raise TypeError
+
     if data2save.dtype == 'float64':
         fmt = '%1.8g'
 
