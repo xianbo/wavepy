@@ -773,7 +773,7 @@ def nan_mask_threshold(input_matrix, threshold=0.0):
     -----
         - Note that ``array[mask]`` will return only the values where ``mask == 1``.
         - Also note that this is NOT the same as the `masked arrays <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in numpy.
-    
+
     """
 
     mask_intensity = np.ones(input_matrix.shape)
@@ -912,7 +912,7 @@ def gui_align_two_images(img1, img2, option='crop', verbosePlot=True):
         idxROI = 0
 
     [img1_aligned,
-     img2_aligned] = align_two_images(img1, img2, option='crop',
+     img2_aligned] = align_two_images(img1, img2, option=option,
                                       idxROI=idxROI)
 
     if verbosePlot:
@@ -1077,6 +1077,8 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
 
     TODO: This function can be upgraded to use multiprocessing
 
+
+
     Parameters
     ----------
     samplefileName : string
@@ -1096,6 +1098,9 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
         'crop'
             both images will be cropped to the size of ROI. Note that ``img2``
             will be exactally the ROI.
+
+    padMarginVal : int
+        Value to pad ``img2`` when option is to pad.
 
     displayPlots : boolean
         Flag to display every aligned image (``displayPlots=True``) of
@@ -2011,7 +2016,7 @@ def save_figs_with_idx(patternforname='graph', extension='png'):
     print('MESSAGE: ' + figname + ' SAVED')
 
 
-def save_figs_with_idx_pickle(figObj, patternforname='graph'):
+def save_figs_with_idx_pickle(figObj='', patternforname='graph'):
     '''
     Save figures as pickle. It uses a counter to save the figures with
     suffix 1, 2, 3, ..., etc, to avoid overwriting existing files.
@@ -2050,6 +2055,9 @@ def save_figs_with_idx_pickle(figObj, patternforname='graph'):
         figname = str('{:s}_{:02d}.pickle'.format(patternforname,
                                                   next(_figCount_pickle)))
 
+    if figObj == '':
+        figObj = plt.gcf()
+
     pl.dump(figObj, open(figname, 'wb'))
 
     print('MESSAGE: ' + figname + ' SAVED')
@@ -2077,15 +2085,18 @@ def get_unique_filename(patternforname, extension='txt'):
 
     '''
 
+    if '.' not in extension:
+        extension = '.' + extension
+
     from itertools import count
     _Count_fname = count()
     next(_Count_fname)
 
-    fname = str('{:s}_{:02d}.'.format(patternforname,
+    fname = str('{:s}_{:02d}'.format(patternforname,
                                       next(_Count_fname)) + extension)
 
     while os.path.isfile(fname):
-        fname = str('{:s}_{:02d}.'.format(patternforname,
+        fname = str('{:s}_{:02d}'.format(patternforname,
                                           next(_Count_fname)) + extension)
 
     return fname
@@ -2997,28 +3008,89 @@ def shift_subpixel_2d(array2d, frac_of_pixel):
                                                      1::frac_of_pixel]
 
 
-def _mpl_settings_4_nice_graphs(fs=16):
+def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
     '''
-    Settings for latex fonts in the graphs
-    ATTENTION: This will make the program slow because it will compile all
-    latex text. This means that you also need latex and any latex package
-    you want to use. I suggest to only use this when you want produce final
-    graphs to publish or to make public. The latex dependecies are not taken
-    care  by the installation scripts. You are by your own to solve these
-    dependencies.
+
+    Edit and update *matplotlib rcParams*.
+
+    Parameters
+    ----------
+
+    fs : int
+        font size
+
+    fontfamily : str
+        Name of font family
+
+    otheroptions : dict
+        dictionary with other options for *rcParams*
+
+
+    Note
+    ----
+
+    An older version used latex. However if you have the fonts
+    for Utopia (Regular, Bold and Italic), then latex is not necessary.
+    install the fonts somewhere like:
+    $CONDA_ENV_DIR/site-packages/matplotlib/mpl-data/fonts/ttf/
+
+
+    See also
+    --------
+    `Customizing matplotlib <http://matplotlib.org/users/customizing.html>`_
     '''
 
     plt.style.use('default')
+
     # Direct input
-    plt.rcParams['text.latex.preamble'] = [r"\usepackage[utopia]{mathdesign}"]
-    # Options
-    params = {'text.usetex': True,
-              'font.size': fs,
-              'font.family': 'utopia',
-              'text.latex.unicode': True,
-              'figure.facecolor': 'white'
+
+    params = {'font.size': fs,
+              'font.family': fontfamily,
+              'figure.facecolor': 'white',
+              'axes.grid': True
               }
+
+
+
+    params.update(otheroptions)
+
     plt.rcParams.update(params)
+    plt.rcParams['axes.prop_cycle'] = plt.cycler(color=['#4C72B0', '#55A868',
+                                                        '#C44E52', '#8172B2',
+                                                        '#CCB974', '#64B5CD'])
+
+def line_style_cycle(ls=['-', '--', ':'], ms=['s', 'o', '^', 'd'],
+                     ncurves=2, cmap_str='jet'):
+    '''
+    Generate a list with cycle of linestyles for plots. See
+    `here <http://matplotlib.org/api/pyplot_api.html?highlight=plot#matplotlib.pyplot.plot>`_
+    for imformation about the syntax of the styles.
+
+    Example
+    -------
+
+    >>> ls_cycle, lc_cycle = line_style_cycle()
+    >>> x = np.linspace(0, 100, 10)
+    >>> for i in range (10):
+    >>>     plt.plot(x, i*x, ls_cycle[i], color=lc_cycle[i], label=str(i))
+    >>> plt.legend()
+    >>> plt.show()
+
+    '''
+
+
+    import itertools
+
+    ls_cycle = list(a[0] + a[1] for a in itertools.product(ls, ms))
+
+    for _ in range(0, ncurves//len(ls_cycle)):
+        ls_cycle += ls_cycle
+
+    #    lc_jet = [ plt.cm.jet(x) for x in np.linspace(0, 1, ncurves) ]
+    cmap = plt.get_cmap(cmap_str)
+    lc_jet = [ cmap(x) for x in np.linspace(0, 1, ncurves) ]
+
+    return ls_cycle[0:ncurves], lc_jet
 
 
 def rocking_3d_figure(ax, outfname='out.ogv',
@@ -3036,7 +3108,7 @@ def rocking_3d_figure(ax, outfname='out.ogv',
 
 
     Parameters
-    ==========
+    ----------
 
     ax : 3D axis object
         See example below how to create this object. If `None`, this will use
@@ -3074,7 +3146,7 @@ def rocking_3d_figure(ax, outfname='out.ogv',
         if these images are deleted or not
 
     Example
-    =======
+    -------
 
 
     >>> fig = plt.figure()
@@ -3181,3 +3253,273 @@ def rocking_3d_figure(ax, outfname='out.ogv',
             os.remove(file)
 
     return 1
+
+
+def save_sdf_file(array, pixelsize, fname='output.sdf', extraHeader={}):
+    '''
+    Save an 2D array in the `Surface Data File Format (SDF)
+    <https://physics.nist.gov/VSC/jsp/DataFormat.jsp#a>`_ , which can be
+    viewed
+    with the program `Gwyddion
+    <http://gwyddion.net/documentation/user-guide-en/>`_ .
+    It is also useful because it is a plain
+    ASCII file
+
+
+    Parameters
+    ----------
+    array: 2D ndarray
+        data to be saved as *sdf*
+
+    pixelsize: list
+        list in the format [pixel_size_i, pixel_size_j]
+
+    fname: str
+        output file name
+
+    extraHeader: dict
+        dictionary with extra fields to be added to the header. Note that this
+        extra header have not effect when using Gwyddion. It is used only for
+        the asc file and when loaded by :py:func:`wavepy.utils.load_sdf`
+        as *headerdic*.
+
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.load_sdf`
+
+
+    '''
+
+    if len(array.shape) != 2:
+        print_red('ERROR: function save_sdf: array must be 2-dimensional')
+        raise TypeError
+
+    header = 'aBCR-0.0\n' + \
+             'ManufacID\t=\tgrizolli@anl.gov\n' + \
+             'CreateDate\t=\t' + \
+             datetime_now_str()[:-2].replace('_', '') + '\n' + \
+             'ModDate\t=\t' + \
+             datetime_now_str()[:-2].replace('_', '') + '\n' + \
+             'NumPoints\t=\t' + str(array.shape[1]) + '\n' + \
+             'NumProfiles\t=\t' + str(array.shape[0]) + '\n' + \
+             'Xscale\t=\t' + str(pixelsize[1]) + '\n' + \
+             'Yscale\t=\t' + str(pixelsize[0]) + '\n' + \
+             'Zscale\t=\t1\n' + \
+             'Zresolution\t=\t0\n' + \
+             'Compression\t=\t0\n' + \
+             'DataType\t=\t7 \n' + \
+             'CheckType\t=\t0\n' + \
+             'NumDataSet\t=\t1\n' + \
+             'NanPresent\t=\t0\n'
+
+    for key in extraHeader.keys():
+        header += key + '\t=\t' + extraHeader[key] + '\n'
+
+    header += '*'
+
+    if array.dtype == 'float64':
+        fmt = '%1.8g'
+
+    elif array.dtype == 'int64':
+        fmt = '%d'
+
+    else:
+        fmt = '%f'
+
+    np.savetxt(fname, array.flatten(), fmt=fmt, header=header, comments='')
+
+    print_blue('MESSAGE: ' + fname + ' saved!')
+
+
+def load_sdf_file(fname):
+    '''
+    Load an 2D array in the `Surface Data File Format (SDF)
+    <https://physics.nist.gov/VSC/jsp/DataFormat.jsp#a>`_ . The SDF format
+    is useful because it can be viewed with the program `Gwyddion
+    <http://gwyddion.net/documentation/user-guide-en/>`_ .
+    It is also useful because it is a plain
+    ASCII file
+
+    Parameters
+    ----------
+
+    fname: str
+        output file name
+
+    Returns
+    -------
+
+    array: 2D ndarray
+        data loaded from the ``sdf`` file
+
+    pixelsize: list
+        list in the format [pixel_size_i, pixel_size_j]
+
+    headerdic
+        dictionary with the header
+
+    Example
+    -------
+
+    >>> import wavepy.utils as wpu
+    >>> data, pixelsize, headerdic = wpu.load_sdf('test_file.sdf')
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.save_sdf`
+
+
+    '''
+
+    with open(fname) as input_file:
+        nline = 0
+        header = ''
+        print('########## HEADER from ' + fname)
+
+        for line in input_file:
+            nline += 1
+            print(line, end='')
+
+            if 'NumPoints' in line:
+                xpoints = int(line.split('=')[-1])
+
+            if 'NumProfiles' in line:
+                ypoints = int(line.split('=')[-1])
+
+            if 'Xscale' in line:
+                xscale = float(line.split('=')[-1])
+
+            if 'Yscale' in line:
+                yscale = float(line.split('=')[-1])
+
+            if 'Zscale' in line:
+                zscale = float(line.split('=')[-1])
+
+            if '*' in line:
+                break
+            else:
+                header += line
+
+    print('########## END HEADER from ' + fname)
+
+    # Load data as numpy array
+    data = np.loadtxt(fname, skiprows=nline)
+
+    data = data.reshape(ypoints, xpoints)*zscale
+
+    # Load header as a dictionary
+    headerdic = {}
+    header = header.replace('\t', '')
+
+    for item in header.split('\n'):
+        items = item.split('=')
+        if len(items) > 1:
+            headerdic[items[0]] = items[1]
+
+    return data, [yscale, xscale], headerdic
+
+
+def save_csv_file(arrayList, fname='output.sdf', headerList=[]):
+    '''
+    Save an 2D array as a *comma separeted values* file. This is appropriated
+    to save several 1D curves. For 2D data use :py:func:`wavepy.utils.save_sdf`
+
+
+    Parameters
+    ----------
+    array: 2D ndarray
+        data to be saved as *sdf*
+
+    fname: str
+        output file name
+
+    headerList: dict
+        dictionary with fields to be added to the header.
+
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.load_csv_file`
+
+    '''
+
+    header = ''
+
+    for item in headerList:
+
+        header += item + ', '
+
+    header = header[:-2]  # remove last comma
+
+    if isinstance(arrayList, list):
+
+        data2save = np.c_[arrayList[0], arrayList[1]]
+
+        for array in arrayList[2:]:
+            data2save = np.c_[data2save, array]
+
+    if data2save.dtype == 'float64':
+        fmt = '%1.8g'
+
+    elif data2save.dtype == 'int64':
+        fmt = '%d'
+    else:
+        fmt = '%f'
+
+    np.savetxt(fname, data2save, fmt=fmt, header=header, delimiter=',')
+
+    print_blue('MESSAGE: ' + fname + ' saved!')
+
+
+def load_csv_file(fname):
+    '''
+    Load a generic csv file.
+
+    Parameters
+    ----------
+
+    fname: str
+        output file name
+
+    Returns
+    -------
+
+    array: 2D ndarray
+        data loaded from the ``csv`` file
+
+    headerdic
+        dictionary with the header
+
+    Example
+    -------
+
+    >>> import wavepy.utils as wpu
+    >>> data, headerdic = wpu.load_csv_file('test_file.sdf')
+
+    See Also
+    --------
+    :py:func:`wavepy.utils.save_sdf`
+
+
+    '''
+
+    with open(fname) as input_file:
+
+        for line in input_file:
+
+            if '#' in line:
+                header = line[2:-1]  # remove # and \n
+            else:
+                break
+
+    # Load data as numpy array
+    data = np.loadtxt(fname, delimiter=',')
+
+    # Load header as a dictionary
+
+    headerlist = []
+    for item in header.split(', '):
+        headerlist.append(item)
+
+    return data, headerlist
