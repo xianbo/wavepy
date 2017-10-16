@@ -1,5 +1,5 @@
-Example Speckle Analyses 
-========================
+Speckle Analyses 
+================
 
 
 The analyses of the speckle tracking data is split in three steps:
@@ -14,29 +14,28 @@ The analyses of the speckle tracking data is split in three steps:
         Perform additional steps to the physical data, like integration, mask, filtering and unwrap. At this point some information about the sample may be required. It must produce graphics and results to be presented to others.
         
 
-The two files below present examples of speckle tracking data analyses. The first is ``speckleAnalyses.py`` and it perfrom basic pre processing (interactive crop), data analyses, and save the result in ``hfd5`` format.
+The two files below present examples of speckle tracking data analyses. The first is :download:`speckleAnalyses.py
+<../../../examples/speckleAnalyses.py>` and it perfrom basic pre processing (interactive crop), data analyses, and save the result in 
+`hdf5 <https://www.hdfgroup.org/>`_ format.
 
-Then ``speckleAnalyses_postProcessing.py`` loads the results obtained with ``speckleAnalyses.py``, and perform operations like undersampling, mask, integration and extra calculations to obtain the final desired result, in this case thisckness of the sample. It also plot the results in a meaninful manner.
-
-Download file with pre-precessing and data analyses: :download:`speckleAnalyses.py
-<../../../doc/demo/speckleAnalyses.py>`
-
-
-Download file with post processing and plot of results: :download:`speckleAnalyses_postProcessing.py
-<../../../doc/demo/speckleAnalyses_postProcessing.py>`
+Then :download:`speckleAnalyses_postProcessing.py
+<../../../examples/speckleAnalyses_postProcessing.py>` loads the results obtained with :download:`speckleAnalyses.py
+<../../../examples/speckleAnalyses.py>`, and perform operations like undersampling, mask, integration and extra calculations to obtain the final desired result, in this case thisckness of the sample. It also plot the results in a meaninful manner.
 
 
+Code
+----
 
-Code for Speckle Tracking Analyses.py
-=====================================
+Speckle Tracking Analyses
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This section contains the speckleAnalyses script.
 
 Download file: :download:`speckleAnalyses.py
-<../../../doc/demo/speckleAnalyses.py>`
+<../../../examples/speckleAnalyses.py>`
 
 
-.. literalinclude:: ../../../doc/demo/speckleAnalyses.py
+.. literalinclude:: ../../../examples/speckleAnalyses.py
     :tab-width: 4
     :linenos:
     :language: guess
@@ -45,14 +44,14 @@ Download file: :download:`speckleAnalyses.py
 
 
 Speckle Analyses Post Processing
-================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This section contains the speckleAnalyses_postProcessing script.
 
 Download file: :download:`speckleAnalyses_postProcessing.py
-<../../../doc/demo/speckleAnalyses_postProcessing.py>`
+<../../../examples/speckleAnalyses_postProcessing.py>`
 
-.. literalinclude:: ../../../doc/demo/speckleAnalyses_postProcessing.py
+.. literalinclude:: ../../../examples/speckleAnalyses_postProcessing.py
     :tab-width: 4
     :linenos:
     :language: guess
