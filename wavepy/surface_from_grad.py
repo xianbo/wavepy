@@ -92,37 +92,14 @@ this is done in the current library. See for instance the use of
 
 It is the goal for this library to add few different methods, since it is
 clear that different methods have different strenghts and weakness
-(precision, processing time, memory requirements, etc).
-
+(precision, processing time, memory requirements, etc). 
 
 
 References
 ----------
 
-    `Frankot, R. T., & Chellappa, R. (1988). A method for enforcing
-    integrability in shape from shading algorithms
-    <https://doi.org/10.1109/34.3909>`_.
-
-    `Agrawal, A. et al (2006). What Is the Range of Surface Reconstructions
-    from a Gradient Field?
-    <https://doi.org/10.1007/11744023_45>`_.
-
-    `Harker, M. et al (2008). Least squares surface reconstruction from
-    measured gradient fields
-    <https://doi.org/10.1109/CVPR.2008.4587414>`_.
-
-    `Sevcenco, I. S. et al (2015). A wavelet based method for image
-    reconstruction from gradient data with applications
-    <https://doi.org/10.1007/s11045-013-0262-3>`_.
-
-    `Harker, M. et al (2015). MATLAB toolbox for the regularized surface
-    reconstruction from gradients
-    <https://doi.org/10.1117/12.2182827>`_.
-
-    `Huang, L .et al (2015). Comparison of two-dimensional integration
-    methods for shape reconstruction from gradient data
-    <https://doi.org/10.1016/j.optlaseng.2014.07.002>`_.
-
+:cite:`Frankot88`, :cite:`Agrawal06`, :cite:`Harker08`, :cite:`Sevcenco15`, 
+:cite:`Harker15`, :cite:`Huang15`.
 
 """
 
@@ -195,6 +172,10 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
     for MATLAB.
 
 
+    References
+    ----------
+
+        :cite:`Frankot88`. The padding we use here is :cite:`Huang15`.
 
 
 
@@ -282,16 +263,6 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
         modulus or the real part of the result. But it
         is recomended to use the real part.
 
-
-    See Also
-    --------
-        `Original Frankt-Chellappa Algorithm
-        paper <http://dx.doi.org/10.1109/34.3909l>`_.
-
-        The padding we use here is `Huang, L .et al (2015). Comparison of
-        two-dimensional integration
-        methods for shape reconstruction from gradient data
-        <https://doi.org/10.1016/j.optlaseng.2014.07.002>`_.
 
 
     """
