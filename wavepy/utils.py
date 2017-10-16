@@ -2041,19 +2041,7 @@ def save_figs_with_idx_pickle(figObj='', patternforname='graph'):
 
     '''
 
-    if '_figCount_pickle' not in globals():
-
-            from itertools import count
-            global _figCount_pickle
-            _figCount_pickle = count()
-            next(_figCount_pickle)
-
-    figname = str('{:s}_{:02d}.pickle'.format(patternforname,
-                                              next(_figCount_pickle)))
-
-    while os.path.isfile(figname):
-        figname = str('{:s}_{:02d}.pickle'.format(patternforname,
-                                                  next(_figCount_pickle)))
+    figname = get_unique_filename(patternforname, 'pickle')
 
     if figObj == '':
         figObj = plt.gcf()
@@ -3088,9 +3076,9 @@ def line_style_cycle(ls=['-', '--', ':'], ms=['s', 'o', '^', 'd'],
 
     #    lc_jet = [ plt.cm.jet(x) for x in np.linspace(0, 1, ncurves) ]
     cmap = plt.get_cmap(cmap_str)
-    lc_jet = [ cmap(x) for x in np.linspace(0, 1, ncurves) ]
+    lc_cycle = [ cmap(x) for x in np.linspace(0, 1, ncurves) ]
 
-    return ls_cycle[0:ncurves], lc_jet
+    return ls_cycle[0:ncurves], lc_cycle
 
 
 def rocking_3d_figure(ax, outfname='out.ogv',
