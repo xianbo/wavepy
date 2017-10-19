@@ -789,8 +789,6 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
                                         harmonicPeriod[0], harmonicPeriod[1],
                                         searchRegion)
 
-    peaks_idx = [_idxPeak_ij_exp00, _idxPeak_ij_exp10, _idxPeak_ij_exp01]
-
     peak00 = np.abs(imgFFT[_idxPeak_ij_exp00[0], _idxPeak_ij_exp00[1]])
     peak10 = np.abs(imgFFT[_idxPeak_ij_exp10[0], _idxPeak_ij_exp10[1]])
     peak01 = np.abs(imgFFT[_idxPeak_ij_exp01[0], _idxPeak_ij_exp01[1]])
