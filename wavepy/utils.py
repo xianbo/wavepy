@@ -3038,9 +3038,8 @@ def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
               'axes.grid': True
               }
 
-
-
-    params.update(otheroptions)
+    if otheroptions != {}:
+        params.update(otheroptions)
 
     plt.rcParams.update(params)
     plt.rcParams['axes.prop_cycle'] = plt.cycler(color=['#1f77b4', '#ff7f0e',
@@ -3050,7 +3049,7 @@ def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
                                                         '#bcbd22', '#17becf'])
 
 def line_style_cycle(ls=['-', '--'], ms=['s', 'o', '^', 'd'],
-                     ncurves=2, cmap_str='jet'):
+                     ncurves=2, cmap_str='default'):
     '''
     Generate a list with cycle of linestyles for plots. See
     `here <http://matplotlib.org/api/pyplot_api.html?highlight=plot#matplotlib.pyplot.plot>`_
@@ -3075,8 +3074,15 @@ def line_style_cycle(ls=['-', '--'], ms=['s', 'o', '^', 'd'],
 
     ls_cycle = itertools.cycle(list_ls[0:ncurves])
 
-    cmap = plt.get_cmap(cmap_str)
-    lc_list = [ cmap(x) for x in np.linspace(0, 1, ncurves) ]
+
+    if cmap_str == 'default':
+        lc_list = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
+                   '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
+                   '#bcbd22', '#17becf']
+
+    else:
+        cmap = plt.get_cmap(cmap_str)
+        lc_list = [ cmap(x) for x in np.linspace(0, 1, ncurves) ]
 
     lc_cycle = itertools.cycle(lc_list)
 
