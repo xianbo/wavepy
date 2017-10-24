@@ -3042,7 +3042,10 @@ def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
         params.update(otheroptions)
 
     plt.rcParams.update(params)
-    plt.rcParams['axes.prop_cycle'] = plt.cycler(color=['#1f77b4', '#ff7f0e',
+    plt.rcParams['axes.prop_cycle'] = plt.cycler(color=['#4C72B0', '#55A868',
+                                                        '#C44E52', '#8172B2',
+                                                        '#CCB974', '#64B5CD'
+                                                        '#1f77b4', '#ff7f0e',
                                                         '#2ca02c', '#d62728',
                                                         '#9467bd', '#8c564b',
                                                         '#e377c2', '#7f7f7f',
@@ -3076,9 +3079,10 @@ def line_style_cycle(ls=['-', '--'], ms=['s', 'o', '^', 'd'],
 
 
     if cmap_str == 'default':
-        lc_list = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
-                   '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
-                   '#bcbd22', '#17becf']
+        lc_list = ['#4C72B0', '#55A868', '#C44E52', '#8172B2',
+                   '#CCB974', '#64B5CD', '#1f77b4', '#ff7f0e',
+                   '#2ca02c', '#d62728', '#9467bd', '#8c564b',
+                   '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
     else:
         cmap = plt.get_cmap(cmap_str)
@@ -3461,7 +3465,7 @@ def save_csv_file(arrayList, fname='output.sdf', headerList=[]):
 
     else:
         raise TypeError
-
+wavepy/utils.py
     if data2save.dtype == 'float64':
         fmt = '%1.8g'
 
