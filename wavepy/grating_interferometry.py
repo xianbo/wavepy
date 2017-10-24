@@ -868,7 +868,7 @@ def plot_dark_field(darkField01, darkField10,
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
     plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
-    plt.title('01', fontsize=18, weight='bold')
+    plt.title('Horizontal', fontsize=18, weight='bold')  # 01
 
     plt.subplot(122)
     plt.imshow(darkField10, cmap='viridis',
@@ -877,7 +877,7 @@ def plot_dark_field(darkField01, darkField10,
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
     plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
-    plt.title('10', fontsize=18, weight='bold')
+    plt.title('Vertical', fontsize=18, weight='bold')  # 10
 
     plt.suptitle('Dark Field', fontsize=18, weight='bold')
 
@@ -916,7 +916,7 @@ def plot_DPC(dpc01, dpc10,
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
     plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
-    plt.title('01', fontsize=18, weight='bold')
+    plt.title('DPC - Horizontal', fontsize=18, weight='bold')  # 01
 
     plt.subplot(122)
     plt.imshow(dpc10_plot, cmap='RdGy',
@@ -925,7 +925,7 @@ def plot_DPC(dpc01, dpc10,
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
     plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
-    plt.title('10', fontsize=18,
+    plt.title('DPC - Vertical', fontsize=18,
               weight='bold')
 
     plt.suptitle('Differential Phase ' + r'[$\pi$ rad]' + titleStr,
@@ -983,7 +983,7 @@ def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
 
     return phase, idx
 
-
+# %%
 def plot_integration(integrated, pixelsize,
                      titleStr='Title', ctitle=' ', saveFigFlag=False,
                      saveFileSuf='graph'):
@@ -1002,6 +1002,7 @@ def plot_integration(integrated, pixelsize,
                      title=titleStr,
                      xunit='\mu m', yunit='\mu m',
                      arg4main={'cmap': 'viridis', 'lw': 3})
+    plt.show(block=True)
 
     if saveFigFlag:
         plt.ioff()
