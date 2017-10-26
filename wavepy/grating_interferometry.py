@@ -985,7 +985,11 @@ def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
 
 # %%
 def plot_integration(integrated, pixelsize,
-                     titleStr='Title', ctitle=' ', saveFigFlag=False,
+                     titleStr='Title', ctitle=' ',
+                     max3d_grid_points=101,
+                     plotProfile=True,
+                     plot3dFlag=True,
+                     saveFigFlag=False,
                      saveFileSuf='graph'):
     '''
     TODO: Write Docstring
@@ -996,13 +1000,14 @@ def plot_integration(integrated, pixelsize,
     factor_x, unit_x = wpu.choose_unit(xxGrid)
     factor_y, unit_y = wpu.choose_unit(yyGrid)
 
-    wpu.plot_profile(xxGrid*factor_x, yyGrid*factor_y,   integrated[::-1, :],
-                     xlabel=r'$x [' + unit_x + ' m]$',
-                     ylabel=r'$y [' + unit_y + ' m]$',
-                     title=titleStr,
-                     xunit='\mu m', yunit='\mu m',
-                     arg4main={'cmap': 'viridis', 'lw': 3})
-    plt.show(block=True)
+    if plotProfile:
+        wpu.plot_profile(xxGrid*factor_x, yyGrid*factor_y,   integrated[::-1, :],
+                         xlabel=r'$x [' + unit_x + ' m]$',
+                         ylabel=r'$y [' + unit_y + ' m]$',
+                         title=titleStr,
+                         xunit='\mu m', yunit='\mu m',
+                         arg4main={'cmap': 'viridis', 'lw': 3})
+        plt.show(block=True)
 
     if saveFigFlag:
         plt.ioff()
@@ -1025,39 +1030,44 @@ def plot_integration(integrated, pixelsize,
 
     # Plot Integration 2
 
-    fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection='3d')
+    if plot3dFlag:
 
-    rstride = integrated.shape[0] // 101 + 1
-    cstride = integrated.shape[1] // 101 + 1
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
 
-    surf = ax.plot_surface(xxGrid*factor_x, yyGrid*factor_y,
-                           integrated[::-1, :],
-                           rstride=rstride,
-                           cstride=cstride,
-                           cmap='viridis', linewidth=0.1)
+        rstride = integrated.shape[0] // max3d_grid_points + 1
+        cstride = integrated.shape[1] // max3d_grid_points + 1
 
-    ax_lim = np.max([np.abs(xxGrid*factor_x), np.abs(yyGrid*factor_y)])
-    ax.set_xlim3d(-ax_lim, ax_lim)
-    ax.set_ylim3d(-ax_lim, ax_lim)
+        surf = ax.plot_surface(xxGrid*factor_x, yyGrid*factor_y,
+                               integrated[::-1, :],
+                               rstride=rstride,
+                               cstride=cstride,
+                               cmap='viridis', linewidth=0.1)
 
-    plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
-    plt.ylabel(r'$y [' + unit_y + ' m]$', fontsize=24)
+        ax_lim = np.max([np.abs(xxGrid*factor_x), np.abs(yyGrid*factor_y)])
+        ax.set_xlim3d(-ax_lim, ax_lim)
+        ax.set_ylim3d(-ax_lim, ax_lim)
 
-    plt.title(titleStr, fontsize=24, weight='bold')
-    cbar = plt.colorbar(surf, shrink=.8, aspect=20)
-    cbar.ax.set_title(ctitle, y=1.01)
+        plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
+        plt.ylabel(r'$y [' + unit_y + ' m]$', fontsize=24)
 
-    fig.tight_layout()
+        plt.title(titleStr, fontsize=24, weight='bold')
+        cbar = plt.colorbar(surf, shrink=.8, aspect=20)
+        cbar.ax.set_title(ctitle, y=1.01)
 
-    plt.tight_layout()
-    if saveFigFlag:
-        wpu.save_figs_with_idx(saveFileSuf)
+        fig.tight_layout()
 
-    ax.text2D(0.05, 0.9, 'strides = {}, {}'.format(rstride, cstride),
-              transform=ax.transAxes)
+        plt.tight_layout()
 
-    plt.show(block=False)
+        ax.text2D(0.05, 0.9, 'strides = {}, {}'.format(rstride, cstride),
+                  transform=ax.transAxes)
 
-    return ax
+        if saveFigFlag:
+            wpu.save_figs_with_idx(saveFileSuf)
+
+        plt.show(block=False)
+
+        return ax
+
+    return None
 
