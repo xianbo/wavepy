@@ -789,8 +789,6 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
                                         harmonicPeriod[0], harmonicPeriod[1],
                                         searchRegion)
 
-    peaks_idx = [_idxPeak_ij_exp00, _idxPeak_ij_exp10, _idxPeak_ij_exp01]
-
     peak00 = np.abs(imgFFT[_idxPeak_ij_exp00[0], _idxPeak_ij_exp00[1]])
     peak10 = np.abs(imgFFT[_idxPeak_ij_exp10[0], _idxPeak_ij_exp10[1]])
     peak01 = np.abs(imgFFT[_idxPeak_ij_exp01[0], _idxPeak_ij_exp01[1]])
@@ -808,7 +806,7 @@ def plot_intensities_harms(int00, int01, int10,
 
     factor, unit_xy = wpu.choose_unit(np.sqrt(int00.size)*pixelsize[0])
 
-    plt.figure(figsize=(14, 5))
+    plt.figure(figsize=(14, 6))
 
     plt.subplot(131)
     plt.imshow(int00, cmap='viridis',
@@ -861,7 +859,7 @@ def plot_dark_field(darkField01, darkField10,
 
     factor, unit_xy = wpu.choose_unit(np.sqrt(darkField01.size)*pixelsize[0])
 
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(14, 6))
 
     plt.subplot(121)
     plt.imshow(darkField01, cmap='viridis',
@@ -870,7 +868,7 @@ def plot_dark_field(darkField01, darkField10,
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
     plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
-    plt.title('01', fontsize=18, weight='bold')
+    plt.title('Horizontal', fontsize=18, weight='bold')  # 01
 
     plt.subplot(122)
     plt.imshow(darkField10, cmap='viridis',
@@ -879,7 +877,7 @@ def plot_dark_field(darkField01, darkField10,
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
     plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
-    plt.title('10', fontsize=18, weight='bold')
+    plt.title('Vertical', fontsize=18, weight='bold')  # 10
 
     plt.suptitle('Dark Field', fontsize=18, weight='bold')
 
@@ -918,7 +916,7 @@ def plot_DPC(dpc01, dpc10,
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
     plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
-    plt.title('01', fontsize=18, weight='bold')
+    plt.title('DPC - Horizontal', fontsize=18, weight='bold')  # 01
 
     plt.subplot(122)
     plt.imshow(dpc10_plot, cmap='RdGy',
@@ -927,7 +925,7 @@ def plot_DPC(dpc01, dpc10,
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
     plt.ylabel(r'$[{0} m]$'.format(unit_xy))
     plt.colorbar(shrink=0.5)
-    plt.title('10', fontsize=18,
+    plt.title('DPC - Vertical', fontsize=18,
               weight='bold')
 
     plt.suptitle('Differential Phase ' + r'[$\pi$ rad]' + titleStr,
@@ -985,10 +983,15 @@ def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
 
     return phase, idx
 
-
+# %%
 def plot_integration(integrated, pixelsize,
-                     titleStr='Title', ctitle=' ', saveFigFlag=False,
-                     saveFileSuf='graph'):
+                     titleStr='Title', ctitle=' ',
+                     max3d_grid_points=101,
+                     plotProfile=True,
+                     plot3dFlag=True,
+                     saveFigFlag=False,
+                     saveFileSuf='graph',
+                     **kwarg4surf):
     '''
     TODO: Write Docstring
     '''
@@ -998,20 +1001,22 @@ def plot_integration(integrated, pixelsize,
     factor_x, unit_x = wpu.choose_unit(xxGrid)
     factor_y, unit_y = wpu.choose_unit(yyGrid)
 
-    wpu.plot_profile(xxGrid*factor_x, yyGrid*factor_y,   integrated[::-1, :],
-                     xlabel=r'$x [' + unit_x + ' m]$',
-                     ylabel=r'$y [' + unit_y + ' m]$',
-                     title=titleStr,
-                     xunit='\mu m', yunit='\mu m',
-                     arg4main={'cmap': 'viridis', 'lw': 3})
+    if plotProfile:
+        wpu.plot_profile(xxGrid*factor_x, yyGrid*factor_y,   integrated[::-1, :],
+                         xlabel=r'$x [' + unit_x + ' m]$',
+                         ylabel=r'$y [' + unit_y + ' m]$',
+                         title=titleStr,
+                         xunit='\mu m', yunit='\mu m',
+                         arg4main={'cmap': 'viridis', 'lw': 3})
+        plt.show(block=True)
 
     if saveFigFlag:
-        plt.ioff()
 
         plt.figure(figsize=(10, 8))
 
         plt.imshow(integrated[::-1, :], cmap='viridis',
-                   extent=wpu.extent_func(integrated, pixelsize)*factor_x)
+                   extent=wpu.extent_func(integrated, pixelsize)*factor_x,
+                   **kwarg4surf)
 
         plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
         plt.ylabel(r'$y [' + unit_x + ' m]$', fontsize=24)
@@ -1022,43 +1027,52 @@ def plot_integration(integrated, pixelsize,
         wpu.save_figs_with_idx(saveFileSuf)
         #        plt.show(block=False)
         plt.close(plt.gcf())
-        plt.ion()
 
     # Plot Integration 2
 
-    fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection='3d')
+    if plot3dFlag:
 
-    rstride = integrated.shape[0] // 101 + 1
-    cstride = integrated.shape[1] // 101 + 1
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
 
-    surf = ax.plot_surface(xxGrid*factor_x, yyGrid*factor_y,
-                           integrated[::-1, :],
-                           rstride=rstride,
-                           cstride=cstride,
-                           cmap='viridis', linewidth=0.1)
+        rstride = integrated.shape[0] // max3d_grid_points + 1
+        cstride = integrated.shape[1] // max3d_grid_points + 1
 
-    ax_lim = np.max([np.abs(xxGrid*factor_x), np.abs(yyGrid*factor_y)])
-    ax.set_xlim3d(-ax_lim, ax_lim)
-    ax.set_ylim3d(-ax_lim, ax_lim)
+        surf = ax.plot_surface(xxGrid*factor_x, yyGrid*factor_y,
+                               integrated[::-1, :],
+                               rstride=rstride,
+                               cstride=cstride,
+                               cmap='viridis', linewidth=0.1, **kwarg4surf)
 
-    plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
-    plt.ylabel(r'$y [' + unit_y + ' m]$', fontsize=24)
+        ax_lim = np.max([np.abs(xxGrid*factor_x), np.abs(yyGrid*factor_y)])
+        ax.set_xlim3d(-ax_lim, ax_lim)
+        ax.set_ylim3d(-ax_lim, ax_lim)
 
-    plt.title(titleStr, fontsize=24, weight='bold')
-    cbar = plt.colorbar(surf, shrink=.8, aspect=20)
-    cbar.ax.set_title(ctitle, y=1.01)
+        if 'vmin' in kwarg4surf:
+            ax.set_zlim3d(bottom=kwarg4surf['vmin'])
+        if 'vmax' in kwarg4surf:
+            ax.set_zlim3d(top=kwarg4surf['vmax'])
 
-    fig.tight_layout()
+        plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
+        plt.ylabel(r'$y [' + unit_y + ' m]$', fontsize=24)
 
-    plt.tight_layout()
-    if saveFigFlag:
-        wpu.save_figs_with_idx(saveFileSuf)
+        plt.title(titleStr, fontsize=24, weight='bold')
+        cbar = plt.colorbar(surf, shrink=.8, aspect=20)
+        cbar.ax.set_title(ctitle, y=1.01)
 
-    ax.text2D(0.05, 0.9, 'strides = {}, {}'.format(rstride, cstride),
-              transform=ax.transAxes)
+        fig.tight_layout()
 
-    plt.show(block=False)
+        plt.tight_layout()
 
-    return ax
+        ax.text2D(0.05, 0.9, 'strides = {}, {}'.format(rstride, cstride),
+                  transform=ax.transAxes)
+
+        if saveFigFlag:
+            wpu.save_figs_with_idx(saveFileSuf)
+
+        plt.show(block=False)
+
+        return ax
+
+    return None
 

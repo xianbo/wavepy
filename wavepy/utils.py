@@ -3038,17 +3038,21 @@ def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
               'axes.grid': True
               }
 
-
-
-    params.update(otheroptions)
+    if otheroptions != {}:
+        params.update(otheroptions)
 
     plt.rcParams.update(params)
     plt.rcParams['axes.prop_cycle'] = plt.cycler(color=['#4C72B0', '#55A868',
                                                         '#C44E52', '#8172B2',
-                                                        '#CCB974', '#64B5CD'])
+                                                        '#CCB974', '#64B5CD'
+                                                        '#1f77b4', '#ff7f0e',
+                                                        '#2ca02c', '#d62728',
+                                                        '#9467bd', '#8c564b',
+                                                        '#e377c2', '#7f7f7f',
+                                                        '#bcbd22', '#17becf'])
 
-def line_style_cycle(ls=['-', '--', ':'], ms=['s', 'o', '^', 'd'],
-                     ncurves=2, cmap_str='jet'):
+def line_style_cycle(ls=['-', '--'], ms=['s', 'o', '^', 'd'],
+                     ncurves=2, cmap_str='default'):
     '''
     Generate a list with cycle of linestyles for plots. See
     `here <http://matplotlib.org/api/pyplot_api.html?highlight=plot#matplotlib.pyplot.plot>`_
@@ -3057,10 +3061,10 @@ def line_style_cycle(ls=['-', '--', ':'], ms=['s', 'o', '^', 'd'],
     Example
     -------
 
-    >>> ls_cycle, lc_cycle = line_style_cycle()
+    >>> ls_cycle, lc_cycle = line_style_cycle(ncurves=10)
     >>> x = np.linspace(0, 100, 10)
     >>> for i in range (10):
-    >>>     plt.plot(x, i*x, ls_cycle[i], color=lc_cycle[i], label=str(i))
+    >>>     plt.plot(x, i*x, next(ls_cycle), color=next(lc_cycle), label=str(i))
     >>> plt.legend()
     >>> plt.show()
 
@@ -3069,16 +3073,25 @@ def line_style_cycle(ls=['-', '--', ':'], ms=['s', 'o', '^', 'd'],
 
     import itertools
 
-    ls_cycle = list(a[0] + a[1] for a in itertools.product(ls, ms))
+    list_ls = list(a[0] + a[1] for a in itertools.product(ls, ms))
 
-    for _ in range(0, ncurves//len(ls_cycle)):
-        ls_cycle += ls_cycle
+    ls_cycle = itertools.cycle(list_ls[0:ncurves])
 
-    #    lc_jet = [ plt.cm.jet(x) for x in np.linspace(0, 1, ncurves) ]
-    cmap = plt.get_cmap(cmap_str)
-    lc_cycle = [ cmap(x) for x in np.linspace(0, 1, ncurves) ]
 
-    return ls_cycle[0:ncurves], lc_cycle
+    if cmap_str == 'default':
+        lc_list = ['#4C72B0', '#55A868', '#C44E52', '#8172B2',
+                   '#CCB974', '#64B5CD', '#1f77b4', '#ff7f0e',
+                   '#2ca02c', '#d62728', '#9467bd', '#8c564b',
+                   '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+
+    else:
+        cmap = plt.get_cmap(cmap_str)
+        lc_list = [ cmap(x) for x in np.linspace(0, 1, ncurves) ]
+
+    lc_cycle = itertools.cycle(lc_list)
+
+    return ls_cycle, lc_cycle
+
 
 
 def rocking_3d_figure(ax, outfname='out.ogv',
@@ -3461,7 +3474,7 @@ def save_csv_file(arrayList, fname='output.sdf', headerList=[]):
     else:
         fmt = '%f'
 
-    np.savetxt(fname, data2save, fmt=fmt, header=header, delimiter=',')
+    np.savetxt(fname, data2save, fmt=fmt, header=header, delimiter=', ')
 
     print_blue('MESSAGE: ' + fname + ' saved!')
 
