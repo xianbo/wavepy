@@ -806,7 +806,7 @@ def plot_intensities_harms(int00, int01, int10,
 
     factor, unit_xy = wpu.choose_unit(np.sqrt(int00.size)*pixelsize[0])
 
-    plt.figure(figsize=(14, 5))
+    plt.figure(figsize=(14, 6))
 
     plt.subplot(131)
     plt.imshow(int00, cmap='viridis',
@@ -859,7 +859,7 @@ def plot_dark_field(darkField01, darkField10,
 
     factor, unit_xy = wpu.choose_unit(np.sqrt(darkField01.size)*pixelsize[0])
 
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(14, 6))
 
     plt.subplot(121)
     plt.imshow(darkField01, cmap='viridis',
@@ -990,7 +990,8 @@ def plot_integration(integrated, pixelsize,
                      plotProfile=True,
                      plot3dFlag=True,
                      saveFigFlag=False,
-                     saveFileSuf='graph'):
+                     saveFileSuf='graph',
+                     **kwarg4surf):
     '''
     TODO: Write Docstring
     '''
@@ -1010,12 +1011,12 @@ def plot_integration(integrated, pixelsize,
         plt.show(block=True)
 
     if saveFigFlag:
-        plt.ioff()
 
         plt.figure(figsize=(10, 8))
 
         plt.imshow(integrated[::-1, :], cmap='viridis',
-                   extent=wpu.extent_func(integrated, pixelsize)*factor_x)
+                   extent=wpu.extent_func(integrated, pixelsize)*factor_x,
+                   **kwarg4surf)
 
         plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
         plt.ylabel(r'$y [' + unit_x + ' m]$', fontsize=24)
@@ -1026,7 +1027,6 @@ def plot_integration(integrated, pixelsize,
         wpu.save_figs_with_idx(saveFileSuf)
         #        plt.show(block=False)
         plt.close(plt.gcf())
-        plt.ion()
 
     # Plot Integration 2
 
@@ -1042,11 +1042,16 @@ def plot_integration(integrated, pixelsize,
                                integrated[::-1, :],
                                rstride=rstride,
                                cstride=cstride,
-                               cmap='viridis', linewidth=0.1)
+                               cmap='viridis', linewidth=0.1, **kwarg4surf)
 
         ax_lim = np.max([np.abs(xxGrid*factor_x), np.abs(yyGrid*factor_y)])
         ax.set_xlim3d(-ax_lim, ax_lim)
         ax.set_ylim3d(-ax_lim, ax_lim)
+
+        if 'vmin' in kwarg4surf:
+            ax.set_zlim3d(bottom=kwarg4surf['vmin'])
+        if 'vmax' in kwarg4surf:
+            ax.set_zlim3d(top=kwarg4surf['vmax'])
 
         plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
         plt.ylabel(r'$y [' + unit_y + ' m]$', fontsize=24)
