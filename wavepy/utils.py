@@ -3333,7 +3333,7 @@ def save_sdf_file(array, pixelsize, fname='output.sdf', extraHeader={}):
     print_blue('MESSAGE: ' + fname + ' saved!')
 
 
-def load_sdf_file(fname):
+def load_sdf_file(fname, printHeader=False):
     '''
     Load an 2D array in the `Surface Data File Format (SDF)
     <https://physics.nist.gov/VSC/jsp/DataFormat.jsp#a>`_ . The SDF format
@@ -3376,11 +3376,14 @@ def load_sdf_file(fname):
     with open(fname) as input_file:
         nline = 0
         header = ''
-        print('########## HEADER from ' + fname)
+        if printHeader:
+            print('########## HEADER from ' + fname)
 
         for line in input_file:
             nline += 1
-            print(line, end='')
+
+            if printHeader:
+                print(line, end='')
 
             if 'NumPoints' in line:
                 xpoints = int(line.split('=')[-1])
@@ -3402,7 +3405,8 @@ def load_sdf_file(fname):
             else:
                 header += line
 
-    print('########## END HEADER from ' + fname)
+    if printHeader:
+        print('########## END HEADER from ' + fname)
 
     # Load data as numpy array
     data = np.loadtxt(fname, skiprows=nline)
