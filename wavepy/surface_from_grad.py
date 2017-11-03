@@ -92,13 +92,13 @@ this is done in the current library. See for instance the use of
 
 It is the goal for this library to add few different methods, since it is
 clear that different methods have different strenghts and weakness
-(precision, processing time, memory requirements, etc). 
+(precision, processing time, memory requirements, etc).
 
 
 References
 ----------
 
-:cite:`Frankot88`, :cite:`Agrawal06`, :cite:`Harker08`, :cite:`Sevcenco15`, 
+:cite:`Frankot88`, :cite:`Agrawal06`, :cite:`Harker08`, :cite:`Sevcenco15`,
 :cite:`Harker15`, :cite:`Huang15`.
 
 """
@@ -382,26 +382,26 @@ def error_integration(del_f_del_x, del_f_del_y, func,
                  markersize=10, label='dx data')
         ax1.plot(xx[midleX, :], grad_x[midleX, :], '-r+',
                  markersize=10, label='dx reconstructed')
-        ax1.legend()
+        ax1.legend(loc=0)
 
         ax2 = plt.subplot(223, sharex=ax1)
         ax2.plot(xx[midleX, :],
                  error_x[midleX, :], '-g.', label='error x')
         plt.title(r'$\mu$ = {:.2g}'.format(np.mean(error_x[midleX, :])))
-        ax2.legend()
+        ax2.legend(loc=0)
 
         ax3 = plt.subplot(222, sharex=ax1, sharey=ax1)
         ax3.plot(yy[:, midleY], del_f_del_y[:, midleY], '-kx',
                  markersize=10, label='dy data')
         ax3.plot(yy[:, midleY], grad_y[:, midleY], '-r+',
                  markersize=10, label='dy reconstructed')
-        ax3.legend()
+        ax3.legend(loc=0)
 
         ax4 = plt.subplot(224, sharex=ax1, sharey=ax2)
         ax4.plot(yy[:, midleY],
                  error_y[:, midleY], '-g.', label='error y')
         plt.title(r'$\mu$ = {:.2g}'.format(np.mean(error_y[:, midleY])))
-        ax4.legend()
+        ax4.legend(loc=0)
 
         plt.suptitle('Error integration', fontsize=22)
         plt.show(block=False)
