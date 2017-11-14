@@ -1994,7 +1994,7 @@ def plot_slide_colorbar(zmatrix, title='',
     return [[scmin.val, scmax.val], radio1.value_selected]
 
 
-def save_figs_with_idx(patternforname='graph', extension='png'):
+def save_figs_with_idx(patternforname='graph', extension='png',  **kwargs):
     '''
     Use a counter to save the figures with suffix 1, 2, 3, ..., etc
 
@@ -2012,7 +2012,7 @@ def save_figs_with_idx(patternforname='graph', extension='png'):
     '''
 
     figname = get_unique_filename(patternforname, extension)
-    plt.savefig(figname)
+    plt.savefig(figname, **kwargs)
     print('MESSAGE: ' + figname + ' SAVED')
 
 
@@ -2878,6 +2878,10 @@ def log_this(text='', preffname='', inifname=''):
     text: str
         text to be appended to the log file
 
+    preffname: str
+        prefix for log file name. If empty, a default name will be
+        chosen (recommended)
+
     inifname: str
         (Optional) name of the inifile to be attached to the log.
 
@@ -3049,7 +3053,7 @@ def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
     plt.rcParams.update(params)
     plt.rcParams['axes.prop_cycle'] = plt.cycler(color=['#4C72B0', '#55A868',
                                                         '#C44E52', '#8172B2',
-                                                        '#CCB974', '#64B5CD'
+                                                        '#CCB974', '#64B5CD',
                                                         '#1f77b4', '#ff7f0e',
                                                         '#2ca02c', '#d62728',
                                                         '#9467bd', '#8c564b',
@@ -3430,7 +3434,8 @@ def load_sdf_file(fname, printHeader=False):
     return data, [yscale, xscale], headerdic
 
 
-def save_csv_file(arrayList, fname='output.sdf', headerList=[]):
+def save_csv_file(arrayList, fname='output.csv', headerList=[],
+                  comments=''):
     '''
     Save an 2D array as a *comma separeted values* file. This is appropriated
     to save several 1D curves. For 2D data use :py:func:`wavepy.utils.save_sdf`
@@ -3456,11 +3461,14 @@ def save_csv_file(arrayList, fname='output.sdf', headerList=[]):
 
     header = ''
 
-    for item in headerList:
+    if headerList != []:
+        for item in headerList:
+            header += item + ', '
 
-        header += item + ', '
+        header = header[:-2]  # remove last comma
 
-    header = header[:-2]  # remove last comma
+    if comments != '':
+        header = comments + '\n' + header
 
     if isinstance(arrayList, list):
 
@@ -3505,7 +3513,10 @@ def load_csv_file(fname):
         data loaded from the ``csv`` file
 
     headerdic
-        dictionary with the header
+        list with the header
+
+    comments
+        list with the comments, each line as list element
 
     Example
     -------
@@ -3522,9 +3533,12 @@ def load_csv_file(fname):
 
     with open(fname) as input_file:
 
+        comments = []
         for line in input_file:
 
+
             if '#' in line:
+                comments.append(line[2:-1])
                 header = line[2:-1]  # remove # and \n
             else:
                 break
@@ -3538,4 +3552,4 @@ def load_csv_file(fname):
     for item in header.split(', '):
         headerlist.append(item)
 
-    return data, headerlist
+    return data, headerlist, comments
