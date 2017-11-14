@@ -64,9 +64,8 @@ import pickle as pl
 
 import easygui_qt as easyqt
 import os
-
+import xraylib
 import dxchange
-
 import configparser
 import shutil
 
@@ -523,7 +522,8 @@ def select_dir(message_to_print=None, pattern='**/'):
     Parameters
     ----------
 
-    message_to_print:str, optional
+    message_to_print : str
+        optional
 
     Returns
     -------
@@ -651,6 +651,132 @@ def gui_load_data_dark_files(directory='', title="File name with Data"):
     print_blue('MESSAGE: Loading ' + fname2)
 
     return (dxchange.read_tiff(fname1), dxchange.read_tiff(fname2))
+
+
+def get_delta(phenergy, choice_idx=-1,
+              material=None, density=None,
+              gui_mode=True):
+    """
+    Get value of delta (refractive index `n = 1 - delta + i*beta`) for few
+    common materials. It also wors as an interface to `xraylib`, using the same
+    syntax for materials names.
+    This function can be expanded by including more materials
+    to the (internal) list.
+
+
+    Parameters
+    ----------
+    phenergy : float
+        Photon energy in eV to obtain delta
+
+    choice_idx : int
+        Options to be used in non-gui mode.
+        Only used if ``gui_mode`` is `False`.
+
+        - 1 : 'Diamond, 3.525g/cm^3'\n
+        - 2 : 'Beryllium, 1.848 g/cm^3'
+        - 3 : 'Manual Input'
+
+    material : string
+        Material string as used by xraylib.
+        Only used if ``gui_mode`` is `False`.
+
+    density : float
+        Material density. Only used if ``gui_mode`` is `False`.
+
+    gui_mode : Boolean
+        If `True`, it uses dialogs pop-ups to get input values.
+
+
+    Returns
+    -------
+    float, str
+        delta value and material string
+
+
+    Example
+    -------
+
+
+
+        >>> get_delta(8000)
+
+        will start the dialogs to input the required paremeters.
+
+        Alternativally
+
+        >>> get_delta(8000, material='Be', gui_mode=False)
+        >>> MESSAGE: Getting value of delta for: Manual Input
+        >>> MESSAGE: Using default value of density: 1.848 [g/cm^3]
+        >>> (5.3276849026895334e-06, 'Be')
+
+        returns the value of delta with default density.
+
+    """
+
+    choices = ['Diamond, 3.525g/cm^3',
+               'Beryllium, 1.848 g/cm^3',
+               'Manual Input']
+
+    menu_choices = [choices[0], choices[1], choices[2]]  # Change order here!
+
+    if gui_mode:
+        # this ovwerride the choice_idx option
+        choice = easyqt.get_choice(message='Select Sample Material',
+                                   title='Title',
+                                   choices=menu_choices)
+        if choice is None:
+                choice = menu_choices[0]
+
+    else:
+        choice = choices[choice_idx]
+
+    print_blue('MESSAGE: Getting value of delta for: ' + choice)
+
+    if choice == choices[0]:
+        # delta Diamond, density from wikipedia:
+        # delta at 8KeV: 1.146095341e-05
+        delta = 1 - xraylib.Refractive_Index_Re("C", phenergy/1e3, 3.525)
+        material = 'Diamond'
+
+    elif choice == choices[1]:
+        # delta at 8KeV = 5.3265E-06
+        delta = 1 - xraylib.Refractive_Index_Re("Be", phenergy/1e3,
+                                                xraylib.ElementDensity(4))
+        material = 'Beryllium'
+
+    elif choice == choices[-1]:
+
+        if gui_mode:
+            # Use gui to ask for the values
+            material = easyqt.get_string('Enter symbol of material ' +
+                                         '(if compounds, you need to' +
+                                         ' provide the density):',
+                                         title='Thickness Calculation',
+                                         default_response='C')
+
+            elementZnumber = xraylib.SymbolToAtomicNumber(material)
+            density = xraylib.ElementDensity(elementZnumber)
+
+            density = easyqt.get_float('Density [g/cm^3] ' +
+                                       '(Enter for default value)',
+                                       title='Thickness Calculation',
+                                       default_value=density)
+
+        elif density is None:
+
+            elementZnumber = xraylib.SymbolToAtomicNumber(material)
+            density = xraylib.ElementDensity(elementZnumber)
+            print_blue('MESSAGE: Using default value of ' +
+                       'density: {} [g/cm^3] '.format(density))
+
+        delta = 1 - xraylib.Refractive_Index_Re(material,
+                                                phenergy/1e3, density)
+
+    else:
+        print_red('ERROR: unknown option')
+
+    return delta, material
 
 
 def load_files_scan(samplefileName, split_char='_', suffix='.tif'):
