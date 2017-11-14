@@ -838,7 +838,7 @@ def plot_intensities_harms(int00, int01, int10,
     plt.suptitle('Absorption obtained from the Harmonics' + titleStr,
                  fontsize=18, weight='bold')
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 1])
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf)
     plt.show(block=True)
@@ -881,7 +881,7 @@ def plot_dark_field(darkField01, darkField10,
 
     plt.suptitle('Dark Field', fontsize=18, weight='bold')
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 1])
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf)
     plt.show(block=True)
@@ -931,7 +931,7 @@ def plot_DPC(dpc01, dpc10,
     plt.suptitle('Differential Phase ' + r'[$\pi$ rad]' + titleStr,
                  fontsize=18, weight='bold')
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 1])
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf)
     plt.show(block=False)
@@ -1060,9 +1060,7 @@ def plot_integration(integrated, pixelsize,
         cbar = plt.colorbar(surf, shrink=.8, aspect=20)
         cbar.ax.set_title(ctitle, y=1.01)
 
-        fig.tight_layout()
-
-        plt.tight_layout()
+        plt.tight_layout(rect=[0, 0, 1, 1])
 
         ax.text2D(0.05, 0.9, 'strides = {}, {}'.format(rstride, cstride),
                   transform=ax.transAxes)
