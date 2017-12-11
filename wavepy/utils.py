@@ -2627,14 +2627,14 @@ def reciprocalcoordmatrix(npointsx, deltax, npointsy, deltay):
 
 def fouriercoordvec(npoints, delta):
     '''
-    For back compability
+    For back compability. Use :py:func:`wavepy.utils.reciprocalcoordvec`
     '''
     return reciprocalcoordvec(npoints, delta)
 
 
 def fouriercoordmatrix(npointsx, deltax, npointsy, deltay):
     '''
-    For back compability
+    For back compability. Use :py:func:`wavepy.utils.reciprocalcoordmatrix`
     '''
     return reciprocalcoordmatrix(npointsx, deltax, npointsy, deltay)
 
