@@ -198,9 +198,10 @@ def mean_plus_n_sigma(array, n_sigma=5):
     return np.mean(array) + n_sigma*np.std(array)
 
 
-def extent_func(img, pixelsize):
+def extent_func(img, pixelsize=[1, 1]):
     '''
     TODO: Write Docstring
+
     pixelsize is a list of size 2 as [pixelsize_i, pixelsize_j]
 
     if pixelsize is a float, then pixelsize_i = pixelsize_j
@@ -209,10 +210,10 @@ def extent_func(img, pixelsize):
     if isinstance(pixelsize, float):
         pixelsize = [pixelsize, pixelsize]
 
-    return np.array((-img.shape[1]*pixelsize[1] / 2,
-                     img.shape[1]*pixelsize[1] / 2,
-                     -img.shape[0]*pixelsize[0] / 2,
-                     img.shape[0]*pixelsize[0] / 2))
+    return np.array((-img.shape[1] // 2 * pixelsize[1],
+                     (img.shape[1] - img.shape[1] // 2) * pixelsize[1],
+                     -img.shape[0] // 2 * pixelsize[0],
+                     (img.shape[0] - img.shape[0] // 2) * pixelsize[0]))
 
 
 def plot_profile(xmatrix, ymatrix, zmatrix,
@@ -3391,7 +3392,7 @@ def rocking_3d_figure(ax, outfname='out.ogv',
     return 1
 
 
-def save_sdf_file(array, pixelsize, fname='output.sdf', extraHeader={}):
+def save_sdf_file(array, pixelsize=[1,1], fname='output.sdf', extraHeader={}):
     '''
     Save an 2D array in the `Surface Data File Format (SDF)
     <https://physics.nist.gov/VSC/jsp/DataFormat.jsp#a>`_ , which can be
