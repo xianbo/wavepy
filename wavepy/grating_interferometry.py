@@ -156,8 +156,6 @@ def _error_harmonic_peak(imgFFT, harV, harH,
     the provided theoretical value
     """
 
-    (nRows, nColumns) = imgFFT.shape
-
     #  Estimate harmonic positions
 
     idxPeak_ij = _idxPeak_ij(harV, harH, imgFFT.shape[0], imgFFT.shape[1],
@@ -380,8 +378,10 @@ def extract_harmonic(img, harmonicPeriod,
         plt.imshow(np.log10(intensity), cmap='inferno',
                    extent=wpu.extent_func(intensity))
 
-        plt.gca().add_patch(Rectangle((idxPeak_ij[1] - periodHor//2,
-                                      idxPeak_ij[0] - periodVert//2),
+        wdt = idxPeak_ij[1] - periodHor//2 - nColumns//2
+        lgth = idxPeak_ij[0] - periodVert//2 - nRows//2
+
+        plt.gca().add_patch(Rectangle((wdt, lgth),
                                       periodHor, periodVert,
                                       lw=2, ls='--', color='red',
                                       fill=None, alpha=1))
@@ -429,7 +429,7 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     else:
         imgFFT = img
 
-    (nRows, nColumns) = img.shape
+    (nRows, nColumns) = imgFFT.shape
 
     periodVert = harmonicPeriod[0]
     periodHor = harmonicPeriod[1]
@@ -442,7 +442,8 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
         periodHor = nColumns
 
     plt.figure(figsize=(8, 7))
-    plt.imshow(np.log10(np.abs(imgFFT)), cmap='inferno')
+    plt.imshow(np.log10(np.abs(imgFFT)), cmap='inferno',
+               extent=wpu.extent_func(imgFFT))
 
     harV_min = -(nRows + 1) // 2 // periodVert
     harV_max = (nRows + 1) // 2 // periodVert
@@ -455,13 +456,15 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
         idxPeak_ij = _idxPeak_ij(harV, 0, nRows, nColumns,
                                  periodVert, periodHor)
 
-        plt.axhline(idxPeak_ij[0] - periodVert//2, lw=2, color='r')
+        plt.axhline(idxPeak_ij[0] - periodVert//2 - nRows//2,
+                    lw=2, color='r')
 
     for harH in range(harH_min + 1, harH_max + 2):
 
         idxPeak_ij = _idxPeak_ij(0, harH, nRows, nColumns,
                                  periodVert, periodHor)
-        plt.axvline(idxPeak_ij[1] - periodHor // 2, lw=2, color='r')
+        plt.axvline(idxPeak_ij[1] - periodHor // 2 - nColumns//2,
+                    lw=2, color='r')
 
     for harV in range(harV_min, harV_max + 1):
         for harH in range(harH_min, harH_max + 1):
@@ -470,15 +473,17 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
                                      nRows, nColumns,
                                      periodVert, periodHor)
 
-            plt.plot(idxPeak_ij[1], idxPeak_ij[0],
-                     'ko', mew=2, mfc="None", ms=15)
+            plt.plot(idxPeak_ij[1] - nColumns//2,
+                     idxPeak_ij[0] - nRows//2,
+                    'ko', mew=2, mfc="None", ms=15)
 
             plt.annotate('{:d}{:d}'.format(harV, harH),
-                         (idxPeak_ij[1], idxPeak_ij[0]),
+                         (idxPeak_ij[1] - nColumns//2,
+                          idxPeak_ij[0] - nRows//2,),
                          color='red', fontsize=20)
 
-    plt.xlim(0, nColumns)
-    plt.ylim(nRows, 0)
+    plt.xlim(-nColumns//2, nColumns - nColumns//2)
+    plt.ylim(-nRows//2, nRows - nRows//2)
     plt.title('log scale FFT magnitude, Hamonics Subsets and Indexes',
               fontsize=16, weight='bold')
 
@@ -562,7 +567,7 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
     plt.show(block=False)
 
     if fname is not None:
-        plt.savefig(fname)
+        plt.savefig(fname, transparent=True)
 
 
 def single_grating_harmonic_images(img, harmonicPeriod,
@@ -659,7 +664,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
         cax = fig.add_axes([0.92, 0.1, 0.03, 0.8])
         fig.colorbar(im, cax=cax)
         plt.suptitle('FFT subsets - Intensity', fontsize=18, weight='bold')
-        plt.show(block=True)
+        plt.show(block=False)
 
     img00 = np.fft.ifft2(np.fft.ifftshift(imgFFT00), norm='ortho')
 
@@ -843,7 +848,7 @@ def plot_intensities_harms(int00, int01, int10,
     plt.tight_layout(rect=[0, 0, 1, 1])
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf)
-    plt.show(block=True)
+    plt.show(block=False)
 
 
 def plot_dark_field(darkField01, darkField10,
@@ -886,7 +891,7 @@ def plot_dark_field(darkField01, darkField10,
     plt.tight_layout(rect=[0, 0, 1, 1])
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf)
-    plt.show(block=True)
+    plt.show(block=False)
 
 
 def plot_DPC(dpc01, dpc10,
@@ -1010,7 +1015,7 @@ def plot_integration(integrated, pixelsize,
                          title=titleStr,
                          xunit='\mu m', yunit='\mu m',
                          arg4main={'cmap': 'viridis', 'lw': 3})
-        plt.show(block=True)
+        plt.show(block=False)
 
     if saveFigFlag:
 
