@@ -1960,6 +1960,9 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
         if event.button == 2:
             xo, yo = event.xdata, event.ydata
 
+            print_blue('Middle Click: Select point:\t' +
+                       'x: {:.0f}, y: {:.0f}'.format(xo, yo))
+
             ax1.set_xdata(xo)
             ax1.set_ydata(yo)
             plt.title('SELECT ROI, CLOSE WHEN DONE\n' +
@@ -1972,11 +1975,6 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
 
             mutable_object_xy['xo'] = xo
             mutable_object_xy['yo'] = yo
-
-        if event.button == 3:
-            print('Hi')
-            plt.lines = []
-            plt.legend_ = None
             plt.draw()
 
     cursor = Cursor(plt.gca(), useblit=True, color='red', linewidth=2)
