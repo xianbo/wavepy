@@ -377,7 +377,8 @@ def extract_harmonic(img, harmonicPeriod,
 
         from matplotlib.patches import Rectangle
         plt.figure(figsize=(8, 7))
-        plt.imshow(np.log10(intensity), cmap='inferno')
+        plt.imshow(np.log10(intensity), cmap='inferno',
+                   extent=wpu.extent_func(intensity))
 
         plt.gca().add_patch(Rectangle((idxPeak_ij[1] - periodHor//2,
                                       idxPeak_ij[0] - periodVert//2),
@@ -649,7 +650,8 @@ def single_grating_harmonic_images(img, harmonicPeriod,
 
             # The vmin and vmax arguments specify the color limits
             im = ax.imshow(dat, cmap='inferno', vmin=np.min(intFFT00),
-                           vmax=np.max(intFFT00))
+                           vmax=np.max(intFFT00),
+                           extent=wpu.extent_func(dat))
 
             ax.set_title(textTitle)
 
