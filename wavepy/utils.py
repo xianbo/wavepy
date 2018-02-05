@@ -674,9 +674,9 @@ def get_delta(phenergy, choice_idx=-1,
         Options to be used in non-gui mode.
         Only used if ``gui_mode`` is `False`.
 
-        - 1 : 'Diamond, 3.525g/cm^3'\n
-        - 2 : 'Beryllium, 1.848 g/cm^3'
-        - 3 : 'Manual Input'
+        - 0 : 'Diamond, 3.525g/cm^3'\n
+        - 1 : 'Beryllium, 1.848 g/cm^3'
+        - 2 : 'Manual Input'
 
     material : string
         Material string as used by xraylib.
@@ -1535,11 +1535,11 @@ def dummy_images(imagetype=None, shape=(100, 100), **kwargs):
 
     elif imagetype == 'Stripes':
         if 'nLinesH' in kwargs:
-            nLinesH = kwargs['nLinesH']
+            nLinesH = int(kwargs['nLinesH'])
             return np.kron([[1, 0] * nLinesH],
                            np.ones((shape[0], shape[1]/2/nLinesH)))
         elif 'nLinesV':
-            nLinesV = kwargs['nLinesV']
+            nLinesV = int(kwargs['nLinesV'])
             return np.kron([[1], [0]] * nLinesV,
                            np.ones((shape[0]/2/nLinesV, shape[1])))
         else:
@@ -1548,13 +1548,13 @@ def dummy_images(imagetype=None, shape=(100, 100), **kwargs):
     elif imagetype == 'Checked':
 
         if 'nLinesH' in kwargs:
-            nLinesH = kwargs['nLinesH']
+            nLinesH = int(kwargs['nLinesH'])
 
         else:
             nLinesH = 1
 
         if 'nLinesV' in kwargs:
-            nLinesV = kwargs['nLinesV']
+            nLinesV = int(kwargs['nLinesV'])
         else:
             nLinesV = 1
 
@@ -2004,10 +2004,13 @@ def plot_slide_colorbar(zmatrix, title='',
     plt.subplots_adjust(left=0.25, bottom=0.25)
 
     surf = plt.imshow(zmatrix, cmap='viridis', **kwargs4imshow)
+    surf.cmap.set_over('#FF0000')  # Red
+    surf.cmap.set_under('#8B008B')  # Light Cyan
+
     plt.title(title, fontsize=14, weight='bold')
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    fig.colorbar(surf)
+    fig.colorbar(surf, extend='both')
 
     axcmin = plt.axes([0.25, 0.1, 0.65, 0.03])
     axcmax = plt.axes([0.25, 0.15, 0.65, 0.03])
@@ -2056,7 +2059,6 @@ def plot_slide_colorbar(zmatrix, title='',
             scmax.label.set_text('Min')
 
         surf.set_clim(cmax, cmin)
-
         fig.canvas.draw_idle()
 
     scmin.on_changed(update)
@@ -2071,6 +2073,8 @@ def plot_slide_colorbar(zmatrix, title='',
 
     def colorfunc(label):
         surf.set_cmap(label)
+        surf.cmap.set_over('#FF0000')  # Red
+        surf.cmap.set_under('#8B008B')  # Light Cyan
         fig.canvas.draw_idle()
     radio1.on_clicked(colorfunc)
 
@@ -2115,6 +2119,16 @@ def plot_slide_colorbar(zmatrix, title='',
     radio3.on_clicked(filter_sparks)
 
     plt.show(block=True)
+
+
+    for label in ['gray', 'gray_r', 'viridis',
+                  'viridis_r', 'inferno', 'rainbow']:
+
+        # reset over and under values in the colormaps
+        cmap = plt.cm.get_cmap(label)
+        cmap.set_over(cmap(1))
+        cmap.set_under(cmap(cmap.N - 1))
+
 
     return [[scmin.val, scmax.val], radio1.value_selected]
 
@@ -2369,7 +2383,7 @@ def choose_unit(array):
         unit = 'G'
     else:
         factor = 1.0
-        unit = ''
+        unit = ' '
 
     return factor, unit
 
