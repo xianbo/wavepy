@@ -1008,33 +1008,6 @@ def plot_integration(integrated, pixelsize,
     factor_x, unit_x = wpu.choose_unit(xxGrid)
     factor_y, unit_y = wpu.choose_unit(yyGrid)
 
-    if plotProfile:
-        wpu.plot_profile(xxGrid*factor_x, yyGrid*factor_y,   integrated[::-1, :],
-                         xlabel=r'$x [' + unit_x + ' m]$',
-                         ylabel=r'$y [' + unit_y + ' m]$',
-                         title=titleStr,
-                         xunit='\mu m', yunit='\mu m',
-                         arg4main={'cmap': 'viridis', 'lw': 3})
-        plt.show(block=False)
-
-    if saveFigFlag:
-
-        plt.figure(figsize=(10, 8))
-
-        plt.imshow(integrated[::-1, :], cmap='viridis',
-                   extent=wpu.extent_func(integrated, pixelsize)*factor_x,
-                   **kwarg4surf)
-
-        plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
-        plt.ylabel(r'$y [' + unit_x + ' m]$', fontsize=24)
-
-        plt.title(titleStr, fontsize=18, weight='bold')
-        cbar = plt.colorbar()
-        cbar.ax.set_title(ctitle, y=1.01)
-        wpu.save_figs_with_idx(saveFileSuf)
-        #        plt.show(block=False)
-        plt.close(plt.gcf())
-
     # Plot Integration 2
 
     if plot3dFlag:
@@ -1070,14 +1043,43 @@ def plot_integration(integrated, pixelsize,
         plt.tight_layout(rect=[0, 0, 1, 1])
 
         ax.text2D(0.05, 0.9, 'strides = {}, {}'.format(rstride, cstride),
-                  transform=ax.transAxes)
+                    transform=ax.transAxes)
 
         if saveFigFlag:
+            ax.view_init(elev=30, azim=60)
             wpu.save_figs_with_idx(saveFileSuf)
+            ax.view_init(elev=30, azim=-120)
+            wpu.save_figs_with_idx(saveFileSuf)
+            plt.pause(.5)
 
         plt.show(block=False)
 
-        return ax
+    if plotProfile:
+        wpu.plot_profile(xxGrid*factor_x, yyGrid*factor_y,
+                         integrated[::-1, :],
+                         xlabel=r'$x [' + unit_x + ' m]$',
+                         ylabel=r'$y [' + unit_y + ' m]$',
+                         title=titleStr,
+                         xunit='\mu m', yunit='\mu m',
+                         arg4main={'cmap': 'viridis', 'lw': 3})
 
-    return None
+    if saveFigFlag:
+
+        plt.figure(figsize=(10, 8))
+
+        plt.imshow(integrated[::-1, :], cmap='viridis',
+                   extent=wpu.extent_func(integrated, pixelsize)*factor_x,
+                   **kwarg4surf)
+
+        plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
+        plt.ylabel(r'$y [' + unit_x + ' m]$', fontsize=24)
+
+        plt.title(titleStr, fontsize=18, weight='bold')
+        cbar = plt.colorbar()
+        cbar.ax.set_title(ctitle, y=1.01)
+        wpu.save_figs_with_idx(saveFileSuf)
+        #        plt.show(block=False)
+        plt.close(plt.gcf())
+
+
 
