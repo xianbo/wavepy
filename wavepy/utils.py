@@ -577,7 +577,12 @@ def gui_load_data_ref_dark_filenames(directory='',
         os.chdir(fname1.rsplit('/', 1)[0])
 
         fname2 = easyqt.get_file_names("File name with Reference")[0]
-        fname3 = easyqt.get_file_names("File name with Dark Image")[0]
+        fname3 = easyqt.get_file_names("File name with Dark Image")
+
+        if len(fname3) == 0:
+            fname3 = None
+        else:
+            fname3 = fname3[0]
 
         fname3 = _check_empty_fname(fname3)
 
@@ -633,7 +638,12 @@ def gui_load_data_dark_filenames(directory='', title="File name with Data"):
 
         fname1 = fname1[0]  # convert list to string
         os.chdir(fname1.rsplit('/', 1)[0])
-        fname2 = easyqt.get_file_names("File name with Dark Image")[0]
+        fname2 = easyqt.get_file_names("File name with Dark Image")
+
+        if len(fname2) == 0:
+            fname2 = None
+        else:
+            fname2 = fname2[0]
 
     os.chdir(originalDir)
 
