@@ -79,6 +79,8 @@ import wavepy.utils as wpu
 import wavepy.surface_from_grad as wps
 from skimage.restoration import unwrap_phase
 
+from  pyfftw.interfaces.numpy_fft import fft2, ifft2
+
 
 __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016-2017, Argonne National Laboratory"
@@ -203,7 +205,7 @@ def exp_harm_period(img, harmonicPeriod,
     if isFFT:
         imgFFT = img
     else:
-        imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
+        imgFFT = np.fft.fftshift(fft2(img, norm='ortho'))
 
     del_i, del_j = _error_harmonic_peak(imgFFT, harV, harH,
                                         periodVert, periodHor,
@@ -341,7 +343,7 @@ def extract_harmonic(img, harmonicPeriod,
     if isFFT:
         imgFFT = img
     else:
-        imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
+        imgFFT = np.fft.fftshift(fft2(img, norm='ortho'))
 
     intensity = (np.abs(imgFFT))
 
@@ -424,7 +426,7 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     """
 
     if not isFFT:
-        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img),
+        imgFFT = np.fft.fftshift(fft2(np.fft.fftshift(img),
                                              norm='ortho'))
     else:
         imgFFT = img
@@ -512,7 +514,7 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
     """
 
     if not isFFT:
-        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img),
+        imgFFT = np.fft.fftshift(fft2(np.fft.fftshift(img),
                                              norm='ortho'))
     else:
         imgFFT = img
@@ -609,7 +611,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
 
     """
 
-    imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
+    imgFFT = np.fft.fftshift(fft2(img, norm='ortho'))
 
     if plotFlag:
         plot_harmonic_grid(imgFFT, harmonicPeriod=harmonicPeriod, isFFT=True)
@@ -666,16 +668,16 @@ def single_grating_harmonic_images(img, harmonicPeriod,
         plt.suptitle('FFT subsets - Intensity', fontsize=18, weight='bold')
         plt.show(block=False)
 
-    img00 = np.fft.ifft2(np.fft.ifftshift(imgFFT00), norm='ortho')
+    img00 = ifft2(np.fft.ifftshift(imgFFT00), norm='ortho')
 
     # non existing harmonics will return NAN, so here we check NAN
     if np.all(np.isfinite(imgFFT01)):
-        img01 = np.fft.ifft2(np.fft.ifftshift(imgFFT01), norm='ortho')
+        img01 = ifft2(np.fft.ifftshift(imgFFT01), norm='ortho')
     else:
         img01 = imgFFT01
 
     if np.all(np.isfinite(imgFFT10)):
-        img10 = np.fft.ifft2(np.fft.ifftshift(imgFFT10), norm='ortho')
+        img10 = ifft2(np.fft.ifftshift(imgFFT10), norm='ortho')
     else:
         img10 = imgFFT10
 
@@ -782,7 +784,7 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
 
     """
 
-    imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
+    imgFFT = np.fft.fftshift(fft2(img, norm='ortho'))
 
     _idxPeak_ij_exp00 = _idxPeak_ij_exp(imgFFT, 0, 0,
                                         harmonicPeriod[0], harmonicPeriod[1],
