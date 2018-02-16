@@ -86,7 +86,8 @@ __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'realcoordvec', 'realcoordmatrix_fromvec', 'realcoordmatrix',
            'reciprocalcoordvec', 'reciprocalcoordmatrix',
            'h5_list_of_groups',
-           'progress_bar4pmap', 'load_ini_file', 'rocking_3d_figure']
+           'progress_bar4pmap', 'load_ini_file', 'rocking_3d_figure',
+           'align_many_imgs', 'align_many_tif']
 
 
 hc = constants.value('inverse meter-electron volt relationship')  # hc
@@ -1201,7 +1202,18 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
 
 
 def align_many_imgs(samplefileName, idxROI=100, option='crop',
-                    padMarginVal = 0, displayPlots=True):
+                    padMarginVal=0, displayPlots=True):
+
+    '''
+    OUTDATED, use align_many_tif
+    '''
+    return align_many_tif(samplefileName, idxROI, option,
+                          padMarginVal, displayPlots)
+
+
+def align_many_tif(samplefileName, idxROI=100, option='crop',
+                   padMarginVal=0, displayPlots=True):
+
     '''
     How to use
     ----------
@@ -1213,6 +1225,10 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
         Folders with the aligned files will be created inside this same folder.
 
     TODO: This function can be upgraded to use multiprocessing
+
+    Note
+    ----
+    This only work for tif files
 
 
 
@@ -1283,18 +1299,23 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
         plt.ioff()
 
     data_dir = samplefileName.rsplit('/', 1)[0]
+    fextension = samplefileName.rsplit('.', 1)[1]
     os.chdir(data_dir)
 
-    os.makedirs('aligned_tiff', exist_ok=True)
-    os.makedirs('aligned_png', exist_ok=True)
-
-    print_blue('MESSAGE: Loading files ' +
-               samplefileName.rsplit('_', 1)[0] + '*.tif')
-
-    listOfDataFiles = glob.glob(data_dir + '/*.tif')
+    listOfDataFiles = glob.glob(data_dir + '/*.' + fextension)
     listOfDataFiles.sort()
 
-    img_ref = dxchange.read_tiff(samplefileName)
+    print_blue('MESSAGE: Loading files ' +
+               samplefileName.rsplit('_', 1)[0] + '*.' + fextension)
+
+    if 'tif' in fextension:
+        fextension = 'tiff'  # data exchange uses tiff instead of tif
+        img_ref = dxchange.read_tiff(samplefileName)
+    else:
+        raise Exception('align_many_tif: cannot open this file format.')
+
+    os.makedirs('aligned_' + fextension, exist_ok=True)
+    os.makedirs('aligned_png', exist_ok=True)
 
     # Loop over the files in the folder
 
@@ -1307,7 +1328,8 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
 
     for imgfname in listOfDataFiles:
 
-        img = dxchange.read_tiff(imgfname)
+        if 'tif' in fextension:
+            img = dxchange.read_tiff(imgfname)
 
         print_blue('MESSAGE: aligning ' + imgfname)
 
@@ -1328,24 +1350,21 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
             img_aligned, _ = align_two_images(img, img_ref,
                                               'crop', idxROI=idxROI)
 
-        #        if padMarginVal >= 0:
-        #            img_aligned = img_aligned[padMarginVal:-padMarginVal,
-        #                                      padMarginVal:-padMarginVal]
-
         # save files
-        outfname = 'aligned_tiff/' + \
+        outfname = 'aligned_' + fextension + "/" + \
                    imgfname.split('.')[0].rsplit('/', 1)[-1] + \
-                   '_aligned.tiff'
+                   '_aligned.' + fextension
+
+        if 'tif' in fextension:
+            dxchange.write_tiff(img_aligned, outfname)
 
         outFilesList.append(outfname)
-
-        dxchange.write_tiff(img_aligned, outfname)
         print_blue('MESSAGE: file ' + outfname + ' saved.')
 
         plt.figure(figsize=(8, 7))
         plt.imshow(img_aligned, cmap='viridis')
         plt.title('ALIGNED, ' + imgfname.split('/')[-1])
-        plt.savefig(outfname.replace('tiff', 'png'))
+        plt.savefig(outfname.replace(fextension, 'png'))
 
         if displayPlots:
             plt.show(block=False)
