@@ -324,7 +324,7 @@ class Mock(object):
 
 MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'matplotlib.widgets', 
                 'skimage', 'skimage.feature', 'skimage.restoration', 'tqdm', 'dxchange', 
-                'easygui_qt', 'pl_toolkits', 'pl_toolkits.mplot3d', 'configparser']
+                'easygui_qt', 'pl_toolkits', 'pl_toolkits.mplot3d', 'configparser', 'pyfftw']
 
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
