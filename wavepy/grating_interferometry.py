@@ -563,9 +563,14 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
 
     ax1.set_xlabel('Pixels')
     ax1.set_ylabel(r'$| FFT |$ ')
+    ax1.legend(loc=1, fontsize='xx-small')
+    ax1.title.set_text('Horz')
+
 
     ax2.set_xlabel('Pixels')
     ax2.set_ylabel(r'$| FFT |$ ')
+    ax2.legend(loc=1, fontsize='xx-small')
+    ax2.title.set_text('Vert')
     plt.show(block=False)
 
     if fname is not None:
