@@ -87,7 +87,7 @@ __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'reciprocalcoordvec', 'reciprocalcoordmatrix',
            'h5_list_of_groups',
            'progress_bar4pmap', 'load_ini_file', 'rocking_3d_figure',
-           'align_many_imgs', 'align_many_tif']
+           'align_many_imgs']
 
 
 hc = constants.value('inverse meter-electron volt relationship')  # hc
@@ -1050,8 +1050,9 @@ def gui_align_two_images(img1, img2, option='crop', verbosePlot=True):
         idxROI = 0
 
     [img1_aligned,
-     img2_aligned] = align_two_images(img1, img2, option=option,
-                                      idxROI=idxROI)
+     img2_aligned,
+     shifts] = align_two_images(img1, img2, option=option,
+                                idxROI=idxROI)
 
     if verbosePlot:
         plot_slide_colorbar(img1_aligned, title='Image 1',
@@ -1062,7 +1063,7 @@ def gui_align_two_images(img1, img2, option='crop', verbosePlot=True):
                             cmin_o=mean_plus_n_sigma(img1, n_sigma=-5),
                             cmax_o=mean_plus_n_sigma(img1, n_sigma=+5))
 
-    return img1_aligned, img2_aligned
+    return img1_aligned, img2_aligned, shifts
 
 
 def align_two_images(img1, img2, option='crop', idxROI=0):
@@ -1102,8 +1103,8 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
 
     Returns
     -------
-    ndarray, ndarray
-        aligned images
+    ndarray, ndarray, list
+        aligned images, list of shifts in x and y, in pixels
 
     Examples
     --------
@@ -1133,7 +1134,7 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
     >>> plt.imshow(foo2)
     >>> plt.show(block=True)
     >>>
-    >>> img1, img2 = wpu.align_two_images(foo1, foo2, 'crop', 100)
+    >>> img1, img2, [shift_x, shift_i] = wpu.align_two_images(foo1, foo2, 'crop', 100)
     >>>
     >>> plt.figure()
     >>> plt.imshow(img1)
@@ -1148,8 +1149,8 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
         [i_min, i_max, j_min, j_max] = idxROI
 
     elif isinstance(idxROI, int):
-        [i_min, i_max, j_min, j_max] = [idxROI, img1.shape[0] - idxROI,
-                                        idxROI, img1.shape[1] - idxROI]
+        [i_min, i_max, j_min, j_max] = [idxROI, img2.shape[0] - idxROI,
+                                        idxROI, img2.shape[1] - idxROI]
 
     #    print_red('[i_min, i_max, j_min, j_max]')
     #    print_red([i_min, i_max, j_min, j_max])
@@ -1162,57 +1163,47 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
 
     result = match_template(img1, img2[i_min:i_max, j_min:j_max])
     ij = np.unravel_index(np.argmax(result), result.shape)
-    pos_x, pos_y = ij[::-1]
-    print_blue('MESSAGE: pos_x, pos_y =' +
-               ' {}, {}'.format(pos_x, pos_y))
+    pos_i, pos_j = ij
+    print_blue('MESSAGE: pos_i, pos_j =' +
+               ' {}, {}'.format(pos_i, pos_j))
 
-    shift_x = pos_x - j_min
-    shift_y = pos_y - i_min
+    shift_j = pos_j - j_min
+    shift_i = pos_i - i_min
 
-    print_blue('MESSAGE: shift_x, shift_y =' +
-               ' {}, {}'.format(shift_x, shift_y))
+    print_blue('MESSAGE: shift i, shift j =' +
+               ' {}, {}'.format(shift_i, shift_j))
 
     if option == 'crop':
 
-        img1 = img1[pos_y:pos_y + iL,
-                    pos_x:pos_x + jL]
+        img1 = img1[pos_i:pos_i + iL,
+                    pos_j:pos_j + jL]
         img2 = img2[i_min:i_max, j_min:j_max]
 
     else:  # for option == 'pad' and fallback option
 
-        if shift_y > 0:
+        if shift_j > 0:
 
-            img2 = np.pad(img2[:-shift_y, :],
-                          ((shift_y, 0), (0, 0)), 'constant')
+            img2 = np.pad(img2[:, :-shift_j],
+                          ((0, 0), (shift_j, 0)), 'constant')
         else:
 
-            img2 = np.pad(img2[-shift_y:, :],
-                          ((0, -shift_y), (0, 0)), 'constant')
+            img2 = np.pad(img2[:, -shift_j:],
+                          ((0, 0), (0, -shift_j)), 'constant')
 
-        if shift_x > 0:
+        if shift_i > 0:
 
-            img2 = np.pad(img2[:, :-shift_x],
-                          ((0, 0), (shift_x, 0)), 'constant')
+            img2 = np.pad(img2[:-shift_i, :],
+                          ((shift_i, 0), (0, 0)), 'constant')
         else:
 
-            img2 = np.pad(img2[:, -shift_x:],
-                          ((0, 0), (0, -shift_x)), 'constant')
+            img2 = np.pad(img2[-shift_i:, :],
+                          ((0, -shift_i), (0, 0)), 'constant')
 
-    return img1, img2
+    return img1, img2, [shift_i, shift_j]
 
 
 def align_many_imgs(samplefileName, idxROI=100, option='crop',
-                    padMarginVal=0, displayPlots=True):
-
-    '''
-    OUTDATED, use align_many_tif
-    '''
-    return align_many_tif(samplefileName, idxROI, option,
-                          padMarginVal, displayPlots)
-
-
-def align_many_tif(samplefileName, idxROI=100, option='crop',
-                   padMarginVal=0, displayPlots=True):
+                    fixRef=True, displayPlots=True, totalShift=None):
 
     '''
     How to use
@@ -1228,7 +1219,7 @@ def align_many_tif(samplefileName, idxROI=100, option='crop',
 
     Note
     ----
-    This only work for tif files
+    So far this only work for tif files. Other formats can be easilly included
 
 
 
@@ -1254,6 +1245,13 @@ def align_many_tif(samplefileName, idxROI=100, option='crop',
 
     padMarginVal : int
         Value to pad ``img2`` when option is to pad.
+
+    fixRef : boolean
+        If ``True``, the file named ``samplefileName`` will be used as
+        reference to align all the images.
+
+        If ``False``, the reference for the file `N` will be the file `N-1`.
+        In this case, you must use `pad` options
 
     displayPlots : boolean
         Flag to display every aligned image (``displayPlots=True``) of
@@ -1292,17 +1290,21 @@ def align_many_tif(samplefileName, idxROI=100, option='crop',
 
 
     '''
+    import matplotlib.ticker as ticker
 
     if displayPlots:
         plt.ion()
     else:
         plt.ioff()
 
-    data_dir = samplefileName.rsplit('/', 1)[0]
     fextension = samplefileName.rsplit('.', 1)[1]
-    os.chdir(data_dir)
 
-    listOfDataFiles = glob.glob(data_dir + '/*.' + fextension)
+    if '/' in samplefileName:
+
+        data_dir = samplefileName.rsplit('/', 1)[0]
+        os.chdir(data_dir)
+
+    listOfDataFiles = glob.glob('*.' + fextension)
     listOfDataFiles.sort()
 
     print_blue('MESSAGE: Loading files ' +
@@ -1310,9 +1312,17 @@ def align_many_tif(samplefileName, idxROI=100, option='crop',
 
     if 'tif' in fextension:
         fextension = 'tiff'  # data exchange uses tiff instead of tif
-        img_ref = dxchange.read_tiff(samplefileName)
     else:
         raise Exception('align_many_tif: cannot open this file format.')
+
+    if fixRef:
+        img_ref = dxchange.read_tiff(samplefileName)
+    else:
+        img_ref = dxchange.read_tiff(listOfDataFiles[0])
+        #        if option != 'pad':
+        #            option = 'pad'
+        #            print_red("WARNING: to align an image with the previous" +
+        #                      " one you must use 'pad' option")
 
     os.makedirs('aligned_' + fextension, exist_ok=True)
     os.makedirs('aligned_png', exist_ok=True)
@@ -1320,11 +1330,7 @@ def align_many_tif(samplefileName, idxROI=100, option='crop',
     # Loop over the files in the folder
 
     outFilesList = []
-
-    if padMarginVal > 0:
-        img_ref = np.pad(img_ref, ((padMarginVal, padMarginVal),
-                                   (padMarginVal, padMarginVal)),
-                         'constant', constant_values=1)
+    allShifts = []
 
     for imgfname in listOfDataFiles:
 
@@ -1333,22 +1339,21 @@ def align_many_tif(samplefileName, idxROI=100, option='crop',
 
         print_blue('MESSAGE: aligning ' + imgfname)
 
-        if padMarginVal == 0:
-            img = np.pad(img, ((padMarginVal, padMarginVal),
-                               (padMarginVal, padMarginVal)),
-                         'constant', constant_values=1)
-
-        # note that these two cases are different, with different effects
+        # note that these two cases below are different, with different effects
         # depending if we want to crop or to pad
 
         if option == 'pad':
             print_blue("MESSAGE: function align_many_imgs: using 'pad' mode")
-            _, img_aligned = align_two_images(img_ref, img,
-                                              'pad', idxROI=idxROI)
+            _, img_aligned, shifts = align_two_images(img_ref, img,
+                                                      'pad', idxROI=idxROI)
+            shifts = [x * -1 for x in shifts]
+
         else:
             print_blue("MESSAGE: function align_many_imgs: using 'crop' mode")
-            img_aligned, _ = align_two_images(img, img_ref,
-                                              'crop', idxROI=idxROI)
+            img_aligned, _, shifts = align_two_images(img, img_ref,
+                                                      'crop', idxROI=idxROI)
+
+        allShifts.append(shifts)
 
         # save files
         outfname = 'aligned_' + fextension + "/" + \
@@ -1364,6 +1369,10 @@ def align_many_tif(samplefileName, idxROI=100, option='crop',
         plt.figure(figsize=(8, 7))
         plt.imshow(img_aligned, cmap='viridis')
         plt.title('ALIGNED, ' + imgfname.split('/')[-1])
+
+        plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        plt.gca().yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
         plt.savefig(outfname.replace(fextension, 'png'))
 
         if displayPlots:
@@ -1372,10 +1381,24 @@ def align_many_tif(samplefileName, idxROI=100, option='crop',
         else:
             plt.close()
 
-    if not displayPlots:
+        if not fixRef:  # use previous image as reference for alignment
+            img_ref = img_aligned.copy()
+            img_ref = img*0.0
+            img_ref[idxROI[0]:idxROI[0]+img_aligned.shape[0],
+                    idxROI[2]:idxROI[2]+img_aligned.shape[1]] = img_aligned
+                    #            if option == 'crop':
+                    #                idxROI = [0, -1, 0, -1]
+
+    allShifts = np.asarray(allShifts)
+
+    if displayPlots:
+        plt.show(block=False)
+        plt.pause(.1)
+    else:
+        plt.close()
         plt.ion()
 
-    return outFilesList
+    return outFilesList, allShifts
 
 
 def find_nearest_value(input_array, value):
@@ -1769,6 +1792,8 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
     surface = plt.imshow(zmatrix,  # origin='lower',
                          **kargs4graph)
 
+    surface.cmap.set_over('#FF0000')  # Red
+    surface.cmap.set_under('#8B008B')  # Light Cyan
     plt.xlabel('Pixels')
     plt.ylabel('Pixels')
     plt.title('CHOOSE ROI, CLOSE WHEN DONE\n'
