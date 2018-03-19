@@ -923,7 +923,7 @@ def plot_DPC(dpc01, dpc10,
 
     plt.figure(figsize=(12, 6))
     plt.subplot(121)
-    plt.imshow(dpc01_plot, cmap='RdGy',
+    plt.imshow(dpc01_plot, cmap='RdGy_r',
                vmin=-vlim01, vmax=vlim01,
                extent=wpu.extent_func(dpc01_plot, pixelsize)*factor)
 
@@ -933,7 +933,7 @@ def plot_DPC(dpc01, dpc10,
     plt.title('DPC - Horizontal', fontsize=18, weight='bold')  # 01
 
     plt.subplot(122)
-    plt.imshow(dpc10_plot, cmap='RdGy',
+    plt.imshow(dpc10_plot, cmap='RdGy_r',
                vmin=-vlim10, vmax=vlim10,
                extent=wpu.extent_func(dpc10_plot, pixelsize)*factor)
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
