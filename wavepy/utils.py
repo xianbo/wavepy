@@ -206,13 +206,25 @@ def extent_func(img, pixelsize=[1, 1]):
     pixelsize is a list of size 2 as [pixelsize_i, pixelsize_j]
 
     if pixelsize is a float, then pixelsize_i = pixelsize_j
+
+    Returns
+    -------
+    array
+        with coordinates (left, right, bottom, top)
+
+
+    See Also
+    --------
+    :py:func:`matplotlib.pyplot.imshow`
+
+
     '''
 
     if isinstance(pixelsize, float):
         pixelsize = [pixelsize, pixelsize]
 
-    return np.array((-img.shape[1] // 2 * pixelsize[1],
-                     (img.shape[1] - img.shape[1] // 2) * pixelsize[1],
+    return np.array(((img.shape[1] - img.shape[1] // 2) * pixelsize[1],
+                     -img.shape[1] // 2 * pixelsize[1],
                      -img.shape[0] // 2 * pixelsize[0],
                      (img.shape[0] - img.shape[0] // 2) * pixelsize[0]))
 
