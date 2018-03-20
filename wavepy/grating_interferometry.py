@@ -79,7 +79,11 @@ import wavepy.utils as wpu
 import wavepy.surface_from_grad as wps
 from skimage.restoration import unwrap_phase
 
-from  pyfftw.interfaces.numpy_fft import fft2, ifft2
+
+try:
+    from  pyfftw.interfaces.numpy_fft import fft2, ifft2
+except ImportError:
+    from  numpy.fft import fft2, ifft2
 
 
 __authors__ = "Walan Grizolli"
