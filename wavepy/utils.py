@@ -3061,9 +3061,8 @@ def set_at_ini_file(inifname, section, key, value):
     '''
 
     if not os.path.isfile(inifname):
-        raise Warning("File " + inifname + " doesn't exist. You must " +
-                      "create your init file first.")
-        return None, None
+        with open(inifname, "w") as text_file:
+            text_file.write('[Files]\n\n\n[Parameters]\n')
 
     config = configparser.ConfigParser()
     config.read(inifname)
