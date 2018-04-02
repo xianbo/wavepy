@@ -922,7 +922,8 @@ def nan_mask_threshold(input_matrix, threshold=0.0):
     Notes
     -----
         - Note that ``array[mask]`` will return only the values where ``mask == 1``.
-        - Also note that this is NOT the same as the `masked arrays <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in numpy.
+        - Also note that this is NOT the same as the
+          `masked arrays <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in numpy.
 
     """
 
@@ -1398,8 +1399,6 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
             img_ref = img*0.0
             img_ref[idxROI[0]:idxROI[0]+img_aligned.shape[0],
                     idxROI[2]:idxROI[2]+img_aligned.shape[1]] = img_aligned
-                    #            if option == 'crop':
-                    #                idxROI = [0, -1, 0, -1]
 
     allShifts = np.asarray(allShifts)
 
@@ -2186,7 +2185,6 @@ def plot_slide_colorbar(zmatrix, title='',
 
     plt.show(block=True)
 
-
     for label in ['gray', 'gray_r', 'viridis',
                   'viridis_r', 'inferno', 'rainbow']:
 
@@ -2194,7 +2192,6 @@ def plot_slide_colorbar(zmatrix, title='',
         cmap = plt.cm.get_cmap(label)
         cmap.set_over(cmap(1))
         cmap.set_under(cmap(cmap.N - 1))
-
 
     return [[scmin.val, scmax.val], radio1.value_selected]
 
@@ -2286,11 +2283,11 @@ def get_unique_filename(patternforname, extension='txt'):
     next(_Count_fname)
 
     fname = str('{:s}_{:02d}'.format(patternforname,
-                                      next(_Count_fname)) + extension)
+                                     next(_Count_fname)) + extension)
 
     while os.path.isfile(fname):
         fname = str('{:s}_{:02d}'.format(patternforname,
-                                          next(_Count_fname)) + extension)
+                                         next(_Count_fname)) + extension)
 
     return fname
 
@@ -2631,7 +2628,7 @@ def reciprocalcoordvec(npoints, delta):
     returns a vector of frequencies with values in the interval
 
 
-    .. math:: \\left[ \\frac{-1}{2 \\Delta x} : \\frac{1}{2 \\Delta x} - \\frac{1}{n \\Delta x} \\right],
+    .. math:: \\left[ \\frac{-1}{2 \\Delta x} : \\frac{1}{2 \\Delta x} - \\frac{1}{n \\Delta x} \\right], # nopep8
 
 
     with the same number of points.
@@ -3209,7 +3206,7 @@ def shift_subpixel_2d(array2d, frac_of_pixel):
                                                      1::frac_of_pixel]
 
 
-def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
+def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions={}):
     '''
 
     Edit and update *matplotlib rcParams*.
@@ -3264,6 +3261,7 @@ def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
                                                         '#e377c2', '#7f7f7f',
                                                         '#bcbd22', '#17becf'])
 
+
 def line_style_cycle(ls=['-', '--'], ms=['s', 'o', '^', 'd'],
                      ncurves=2, cmap_str='default'):
     '''
@@ -3283,13 +3281,11 @@ def line_style_cycle(ls=['-', '--'], ms=['s', 'o', '^', 'd'],
 
     '''
 
-
     import itertools
 
     list_ls = list(a[0] + a[1] for a in itertools.product(ls, ms))
 
     ls_cycle = itertools.cycle(list_ls[0:ncurves])
-
 
     if cmap_str == 'default':
         lc_list = ['#4C72B0', '#55A868', '#C44E52', '#8172B2',
@@ -3299,12 +3295,11 @@ def line_style_cycle(ls=['-', '--'], ms=['s', 'o', '^', 'd'],
 
     else:
         cmap = plt.get_cmap(cmap_str)
-        lc_list = [ cmap(x) for x in np.linspace(0, 1, ncurves) ]
+        lc_list = [cmap(x) for x in np.linspace(0, 1, ncurves)]
 
     lc_cycle = itertools.cycle(lc_list)
 
     return ls_cycle, lc_cycle
-
 
 
 def rocking_3d_figure(ax, outfname='out.ogv',
@@ -3469,7 +3464,7 @@ def rocking_3d_figure(ax, outfname='out.ogv',
     return 1
 
 
-def save_sdf_file(array, pixelsize=[1,1], fname='output.sdf', extraHeader={}):
+def save_sdf_file(array, pixelsize=[1, 1], fname='output.sdf', extraHeader={}):
     '''
     Save an 2D array in the `Surface Data File Format (SDF)
     <https://physics.nist.gov/VSC/jsp/DataFormat.jsp#a>`_ , which can be
@@ -3739,7 +3734,6 @@ def load_csv_file(fname):
 
         comments = []
         for line in input_file:
-
 
             if '#' in line:
                 comments.append(line[2:-1])
