@@ -171,7 +171,7 @@ def _fwhm_xy(xvalues, yvalues):
     -------
     list
         list of values x and y(x) at half maximum in the format
-        [[fwhm_x1, fwhm_x2],[fwhm_y1, fwhm_y2]]
+        [[fwhm_x1, fwhm_x2], [fwhm_y1, fwhm_y2]]
     """
 
     from scipy.interpolate import UnivariateSpline
@@ -196,7 +196,7 @@ def mean_plus_n_sigma(array, n_sigma=5):
     '''
     TODO: Write Docstring
     '''
-    return np.mean(array) + n_sigma*np.std(array)
+    return np.nanmean(array) + n_sigma*np.nanstd(array)
 
 
 def extent_func(img, pixelsize=[1, 1]):
@@ -223,8 +223,8 @@ def extent_func(img, pixelsize=[1, 1]):
     if isinstance(pixelsize, float):
         pixelsize = [pixelsize, pixelsize]
 
-    return np.array(((img.shape[1] - img.shape[1] // 2) * pixelsize[1],
-                     -img.shape[1] // 2 * pixelsize[1],
+    return np.array((-img.shape[1] // 2 * pixelsize[1],
+                     (img.shape[1] - img.shape[1] // 2) * pixelsize[1],
                      -img.shape[0] // 2 * pixelsize[0],
                      (img.shape[0] - img.shape[0] // 2) * pixelsize[0]))
 
