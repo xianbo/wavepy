@@ -381,13 +381,13 @@ def extract_harmonic(img, harmonicPeriod,
 
         from matplotlib.patches import Rectangle
         plt.figure(figsize=(8, 7))
-        plt.imshow(np.log10(intensity), cmap='inferno',
-                   extent=wpu.extent_func(intensity))
+        plt.imshow(np.log10(intensity), cmap='inferno', extent=wpu.extent_func(intensity))
 
-        wdt = idxPeak_ij[1] - periodHor//2 - nColumns//2
-        lgth = idxPeak_ij[0] - periodVert//2 - nRows//2
+        xo = idxPeak_ij[1] - nColumns//2 - periodHor//2
+        yo = nRows//2 - idxPeak_ij[0] - periodVert//2
+        # xo yo are the lower left position of the reangle
 
-        plt.gca().add_patch(Rectangle((wdt, lgth),
+        plt.gca().add_patch(Rectangle((xo, yo),
                                       periodHor, periodVert,
                                       lw=2, ls='--', color='red',
                                       fill=None, alpha=1))
@@ -483,7 +483,7 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
                      idxPeak_ij[0] - nRows//2,
                     'ko', mew=2, mfc="None", ms=15)
 
-            plt.annotate('{:d}{:d}'.format(harV, harH),
+            plt.annotate('{:d}{:d}'.format(-harV, harH),
                          (idxPeak_ij[1] - nColumns//2,
                           idxPeak_ij[0] - nRows//2,),
                          color='red', fontsize=20)
@@ -741,6 +741,10 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
         else:
             arg01 = np.angle(h_img[1])
             arg10 = np.angle(h_img[2])
+
+    if unwrapFlag is True:
+        arg01 -= int(np.round(np.mean(arg01/np.pi)))*np.pi
+        arg10 -= int(np.round(np.mean(arg10/np.pi)))*np.pi
 
     darkField01 = int01/int00
     darkField10 = int10/int00
@@ -1075,7 +1079,7 @@ def plot_integration(integrated, pixelsize,
                          arg4main={'cmap': 'viridis', 'lw': 3})
 
     if saveFigFlag:
-
+        plt.ioff()
         plt.figure(figsize=(10, 8))
 
         plt.imshow(integrated[::-1, :], cmap='viridis',
@@ -1089,8 +1093,8 @@ def plot_integration(integrated, pixelsize,
         cbar = plt.colorbar()
         cbar.ax.set_title(ctitle, y=1.01)
         wpu.save_figs_with_idx(saveFileSuf)
-        #        plt.show(block=False)
-        plt.close(plt.gcf())
+        plt.close()
+        plt.ion()
 
 
 
