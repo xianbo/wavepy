@@ -117,7 +117,7 @@ __docformat__ = "restructuredtext en"
 __all__ = ['frankotchellappa', 'error_integration']
 
 
-def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
+def frankotchellappa(delx_f, delx_y, reflec_pad=True):
     """
 
     The simplest method is the so-called Frankot-Chelappa method. The idea
@@ -183,7 +183,7 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
     Parameters
     ----------
 
-    del_f_del_x, del_f_del_y : ndarrays
+    delx_f, delx_y : ndarrays
         2 dimensional gradient data
 
     reflec_pad: bool
@@ -270,15 +270,15 @@ def frankotchellappa(del_f_del_x, del_f_del_y, reflec_pad=True):
     from numpy.fft import fft2, ifft2, fftfreq
 
     if reflec_pad:
-        del_f_del_x, del_f_del_y = _reflec_pad_grad_fields(del_f_del_x,
-                                                           del_f_del_y)
+        delx_f, delx_y = _reflec_pad_grad_fields(delx_f,
+                                                           delx_y)
 
-    NN, MM = del_f_del_x.shape
+    NN, MM = delx_f.shape
     wx, wy = np.meshgrid(fftfreq(MM) * 2 * np.pi,
                          fftfreq(NN) * 2 * np.pi, indexing='xy')
     # by using fftfreq there is no need to use fftshift
 
-    numerator = -1j * wx * fft2(del_f_del_x) - 1j * wy * fft2(del_f_del_y)
+    numerator = -1j * wx * fft2(delx_f) - 1j * wy * fft2(delx_y)
 
     denominator = (wx) ** 2 + (wy) ** 2 + np.finfo(float).eps
 
@@ -346,7 +346,7 @@ def _grad(func):
     return del_func_2d_x, del_func_2d_y
 
 
-def error_integration(del_f_del_x, del_f_del_y, func,
+def error_integration(delx_f, delx_y, func,
                       pixelsize, errors=False,
                       shifthalfpixel=False, plot_flag=True):
 
@@ -364,21 +364,21 @@ def error_integration(del_f_del_x, del_f_del_y, func,
 
     grad_x -= np.mean(grad_x)
     grad_y -= np.mean(grad_y)
-    del_f_del_x -= np.mean(del_f_del_x)
-    del_f_del_y -= np.mean(del_f_del_y)
+    delx_f -= np.mean(delx_f)
+    delx_y -= np.mean(delx_y)
 
-    amp_x = np.max(del_f_del_x) - np.min(del_f_del_x)
-    amp_y = np.max(del_f_del_y) - np.min(del_f_del_y)
+    amp_x = np.max(delx_f) - np.min(delx_f)
+    amp_y = np.max(delx_y) - np.min(delx_y)
 
-    error_x = np.abs(grad_x - del_f_del_x)/amp_x*100
-    error_y = np.abs(grad_y - del_f_del_y)/amp_y*100
+    error_x = np.abs(grad_x - delx_f)/amp_x*100
+    error_y = np.abs(grad_y - delx_y)/amp_y*100
 
     if plot_flag:
         plt.figure(figsize=(14, 10))
 
         ax1 = plt.subplot(221)
         ax1.ticklabel_format(style='sci', axis='both', scilimits=(0, 1))
-        ax1.plot(xx[midleX, :], del_f_del_x[midleX, :], '-kx',
+        ax1.plot(xx[midleX, :], delx_f[midleX, :], '-kx',
                  markersize=10, label='dx data')
         ax1.plot(xx[midleX, :], grad_x[midleX, :], '-r+',
                  markersize=10, label='dx reconstructed')
@@ -391,7 +391,7 @@ def error_integration(del_f_del_x, del_f_del_y, func,
         ax2.legend(loc=0)
 
         ax3 = plt.subplot(222, sharex=ax1, sharey=ax1)
-        ax3.plot(yy[:, midleY], del_f_del_y[:, midleY], '-kx',
+        ax3.plot(yy[:, midleY], delx_y[:, midleY], '-kx',
                  markersize=10, label='dy data')
         ax3.plot(yy[:, midleY], grad_y[:, midleY], '-r+',
                  markersize=10, label='dy reconstructed')
