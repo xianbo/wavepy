@@ -1,0 +1,1 @@
+/home/grizolli/workspace/pythonWorkspace/imaging/single_grating/singleCheckerboardGratingTalbot.py
