@@ -1000,8 +1000,8 @@ def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
                               phase, pixelsize, errors=False,
                               shifthalfpixel=shifthalfpixel, plot_flag=True)
 
-    if saveFileSuf is not None:
-        wpu.save_figs_with_idx(saveFileSuf)
+        if saveFileSuf is not None:
+            wpu.save_figs_with_idx(saveFileSuf)
 
     return phase, idx
 
