@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='wavepy',
-    author='Francesco De Carlo',
+    author='Walan Grizolli',
     packages=find_packages(),
     version=open('VERSION').read().strip(),
     description = 'X-ray interferometry.',
