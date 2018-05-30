@@ -178,16 +178,22 @@ phase = wps.frankotchellappa(diffPhase01*pixelsize[1],
 
 phase = np.real(phase)
 
+delta, _ = wpu.get_delta(phenergy, choice_idx=1, gui_mode=False)
 
-wpu.print_blue('MESSAGE: Plotting Phase in meters')
-wgi.plot_integration(-1/2/np.pi*phase*wavelength*1e9,
+wgi.plot_integration(-(phase - np.min(phase))/kwave/delta*1e6,
                      virtual_pixelsize,
-                     titleStr=r'-WF $[nm]$',
+                     titleStr=r'Thickness Beryllium $[\mu m]$,' +'\n frankotchellappa integration',
                      plot3dFlag=True,
-                     saveFigFlag=False,
+                     saveFigFlag=True,
                      saveFileSuf=saveFileSuf)
 
-wpu.print_blue('DONE')
+wps.error_integration(diffPhase01*pixelsize[1],
+                      diffPhase10*pixelsize[0],
+                      phase, pixelsize, errors=False,
+                      plot_flag=True)
+
+wpu.save_figs_with_idx(saveFileSuf)
+
 
 # %%
 
@@ -214,7 +220,6 @@ g2sHarker.octave.eval("addpath(genpath('/home/grizolli/workspace/PythonProjects/
 
 
 # %%
-#gx, gy = _grad(phase[0:118,:])
 
 gx = diffPhase01*pixelsize[1]
 gy = diffPhase10*pixelsize[0]
@@ -223,19 +228,20 @@ gx = _pad_2_make_square(gx)
 gy = _pad_2_make_square(gy)
 
 # %%
-res = g2sAgrawal.affineTransformation(gx, gy)
+#res = g2sAgrawal.M_estimator(gx, gy)
 
+res = g2sHarker.g2sTikhonovStd(gx, gy)
 
 # %%
-
-
-wpu.print_blue('MESSAGE: Plotting Phase in meters')
-wgi.plot_integration(-1/2/np.pi*res*wavelength*1e9,
+wgi.plot_integration(-(res - np.min(res))/kwave/delta*1e6,
                      virtual_pixelsize,
-                     titleStr=r'-WF $[nm]$',
+                     titleStr=r'Thickness Beryllium $[\mu m]$,' +'\n g2sTikhonovStd integration',
                      plot3dFlag=True,
-                     saveFigFlag=False,
+                     saveFigFlag=True,
                      saveFileSuf=saveFileSuf)
 
-wpu.print_blue('DONE')
+wps.error_integration(gx, gy, res, pixelsize, errors=False, plot_flag=True)
+
+wpu.save_figs_with_idx(saveFileSuf)
+
 
