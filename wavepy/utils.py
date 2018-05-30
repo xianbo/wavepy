@@ -1822,6 +1822,7 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
                                                             fill=True))
 
     fig.canvas.mpl_connect('key_press_event', toggle_selector)
+    plt.tight_layout(rect=[0, 0, 1, 1])
     plt.show(block=True)
 
     if verbose:
