@@ -69,6 +69,8 @@ deg2rad = np.deg2rad(1)
 NAN = float('Nan')  # not a number alias
 hc = constants.value('inverse meter-electron volt relationship')  # hc
 
+wpu._mpl_settings_4_nice_graphs()
+
 
 def _extent_func(img, pixelsize):
 
@@ -80,9 +82,8 @@ def _extent_func(img, pixelsize):
                     -img.shape[0]*pixelsize[0] / 2,
                     img.shape[0]*pixelsize[0] / 2))
 
+
 # %%
-
-
 def plot_chi2(xvec, c_matrix_data, a_matrix, chi2):
 
     axiscount = 0
@@ -278,12 +279,10 @@ def main_stepping_grating(img_stack, ref_stack, period_oscilation, stepSize):
                                                         period_oscilation,
                                                         stepSize,
                                                         plotFits=True)
-
     # fit ref stack
     a_matrix_ref, chi2_ref = fit_stepping_grating(ref_stack[:, :, :],
                                                   period_oscilation,
                                                   stepSize, plotFits=False)
-
     # Obtain physical proprerties and plot
     # Intensity
     intensity = a_matrix_sample[0]/a_matrix_ref[0]
@@ -300,8 +299,6 @@ def main_stepping_grating(img_stack, ref_stack, period_oscilation, stepSize):
     # DPC
     dpc_1d = np.arctan2(a_matrix_sample[2, :], a_matrix_sample[1, :]) - \
         np.arctan2(a_matrix_ref[2, :], a_matrix_ref[1, :])
-
-    dpc_1d = unwrap_phase(dpc_1d)
 
     return intensity, dk_field, dpc_1d, chi2_ref
 
@@ -355,14 +352,22 @@ if __name__ == '__main__':
     # ==========================================================================
 
     period_estimated = period_estimation_spline(ref_stack[:, nlines//4,
-                                                          nlines//4],
+                                                          ncolumns//4],
                                                 stepSize)
 
-    period_estimated += period_estimation_spline(ref_stack[:, 3*nlines//4,
-                                                           3*nlines//4],
+    period_estimated += period_estimation_spline(ref_stack[:, nlines//4,
+                                                           3*ncolumns//4],
                                                  stepSize)
 
-    period_estimated /= 2.0
+    period_estimated += period_estimation_spline(ref_stack[:, 3*nlines//4,
+                                                           ncolumns//4],
+                                                 stepSize)
+
+    period_estimated += period_estimation_spline(ref_stack[:, 3*nlines//4,
+                                                           3*ncolumns//4],
+                                                 stepSize)
+
+    period_estimated /= 4.0
 
     wpu.print_red('MESSAGE: Pattern Period from the ' +
                   'data: {:.4f}'.format(period_estimated*1e6))
@@ -377,46 +382,49 @@ if __name__ == '__main__':
      chi2) = main_stepping_grating(img_stack, ref_stack,
                                    period_estimated, stepSize)
 
-    # Intensity
+    # %% Intensity
 
     wpu.plot_slide_colorbar(intensity,
                             title='Intensity',
                             xlabel=r'x [$\mu m$]',
                             ylabel=r'y [$\mu m$]',
-                            cmin_o=wpu.mean_plus_n_sigma(intensity, -3),
-                            cmax_o=wpu.mean_plus_n_sigma(intensity, 3),
                             extent=wpu.extent_func(dpc_1d, pixelSize)*1e6)
 
-    # Dark Field
+    # %% Dark Field
 
     wpu.plot_slide_colorbar(dk_field, title='Dark Field',
                             xlabel=r'x [$\mu m$]',
                             ylabel=r'y [$\mu m$]',
                             extent=wpu.extent_func(dpc_1d, pixelSize)*1e6)
 
-    # DPC
+    # %% DPC
+
+    dpc_1d = unwrap_phase(dpc_1d)
     wpu.plot_slide_colorbar(dpc_1d/np.pi/2.0,
                             title=r'DPC [$\pi rad$]',
                             xlabel=r'x [$\mu m$]',
                             ylabel=r'y [$\mu m$]',
                             extent=wpu.extent_func(dpc_1d, pixelSize)*1e6)
 
+    # %%
+    xx, yy = wpu.realcoordmatrix(dpc_1d.shape[1], pixelSize,
+                                 dpc_1d.shape[0], pixelSize)
+    wpu.plot_profile(xx*1e3, yy*1e3, dpc_1d/np.pi/2.0,
+                     xlabel='[mm]', ylabel='[mm]')
+
     # %% chi2
 
     plt.figure()
-    hist = plt.hist(chi2[np.where(chi2<10*np.std(chi2))], 100, log=False)
+    hist = plt.hist(chi2[np.where(chi2 < 10*np.std(chi2))], 100, log=False)
     plt.title(r'$\chi^2$', fontsize=14, weight='bold')
     plt.show(block=False)
 
     chi2_copy = np.copy(chi2)
 
-
-
     wpu.plot_slide_colorbar(chi2_copy, title=r'$\chi^2$ sample',
                             xlabel=r'x [$\mu m$ ]',
                             ylabel=r'y [$\mu m$ ]',
                             extent=wpu.extent_func(chi2, pixelSize)*1e6)
-
 
     # %% mask by chi2
 
@@ -424,10 +432,9 @@ if __name__ == '__main__':
 
     masked_plot = dpc_1d*1.0
 
+    masked_plot[np.where(chi2 > 50)] = 0.0
 
-    masked_plot[np.where(chi2>50)] = 0.0
-
-    wpu.plot_slide_colorbar(masked_plot, title='DPC',
+    wpu.plot_slide_colorbar(masked_plot, title='DPC masked',
                             xlabel=r'x [$\mu m$ ]',
                             ylabel=r'y [$\mu m$ ]',
                             extent=wpu.extent_func(masked_plot, pixelSize)*1e6)
