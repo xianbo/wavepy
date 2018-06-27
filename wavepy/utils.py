@@ -679,7 +679,7 @@ def gui_load_data_dark_files(directory='', title="File name with Data"):
 
 def get_delta(phenergy, choice_idx=-1,
               material=None, density=None,
-              gui_mode=True):
+              gui_mode=False, verbose=False):
     """
     Get value of delta (refractive index `n = 1 - delta + i*beta`) for few
     common materials. It also wors as an interface to `xraylib`, using the same
