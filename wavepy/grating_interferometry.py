@@ -383,6 +383,9 @@ def extract_harmonic(img, harmonicPeriod,
         plt.figure(figsize=(8, 7))
         plt.imshow(np.log10(intensity), cmap='inferno', extent=wpu.extent_func(intensity))
 
+        plt.xlabel('Pixels')
+        plt.ylabel('Pixels')
+
         xo = idxPeak_ij[1] - nColumns//2 - periodHor//2
         yo = nRows//2 - idxPeak_ij[0] - periodVert//2
         # xo yo are the lower left position of the reangle
@@ -450,6 +453,9 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     plt.figure(figsize=(8, 7))
     plt.imshow(np.log10(np.abs(imgFFT)), cmap='inferno',
                extent=wpu.extent_func(imgFFT))
+
+    plt.xlabel('Pixels')
+    plt.ylabel('Pixels')
 
     harV_min = -(nRows + 1) // 2 // periodVert
     harV_max = (nRows + 1) // 2 // periodVert
@@ -670,6 +676,10 @@ def single_grating_harmonic_images(img, harmonicPeriod,
                            extent=wpu.extent_func(dat))
 
             ax.set_title(textTitle)
+            if textTitle == 'FFT 00':
+                ax.set_ylabel('Pixels')
+
+            ax.set_xlabel('Pixels')
 
         # Make an axis for the colorbar on the right side
         cax = fig.add_axes([0.92, 0.1, 0.03, 0.8])
@@ -959,7 +969,7 @@ def plot_DPC(dpc01, dpc10,
     plt.show(block=False)
 
 
-def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
+def dpc_integration(dpc01, dpc10, pixelsize, idx4crop=[0, -1, 0, -1],
                     plotErrorIntegration=False,
                     saveFileSuf=None,
                     shifthalfpixel=False, method='FC'):
@@ -1003,7 +1013,7 @@ def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
         if saveFileSuf is not None:
             wpu.save_figs_with_idx(saveFileSuf)
 
-    return phase, idx
+    return phase
 
 # %%
 def plot_integration(integrated, pixelsize,
