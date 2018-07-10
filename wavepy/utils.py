@@ -755,8 +755,6 @@ def get_delta(phenergy, choice_idx=-1,
     else:
         choice = choices[choice_idx]
 
-    print_blue('MESSAGE: Getting value of delta for: ' + choice)
-
     if choice == choices[0]:
         # delta Diamond, density from wikipedia:
         # delta at 8KeV: 1.146095341e-05
@@ -799,6 +797,8 @@ def get_delta(phenergy, choice_idx=-1,
 
     else:
         print_red('ERROR: unknown option')
+
+    print_blue('MESSAGE: Getting value of delta for: ' + material)
 
     return delta, material
 
