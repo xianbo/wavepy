@@ -81,13 +81,13 @@ gratingPeriod = 4.8e-6  # in meters
 # patternPeriod = gratingPeriod/np.sqrt(2.0)  # if half Pi grating
 patternPeriod = gratingPeriod/2.0  # if Pi grating
 
-#img = dxchange.read_tiff('Simulated/AstSphWave30p00x_25p00y/img_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-#imgRef = dxchange.read_tiff('Simulated/AstSphWave30p00x_25p00y/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-#darkImg = dxchange.read_tiff('Simulated/AstSphWave30p00x_25p00y/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+#img = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/img_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+#imgRef = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+#darkImg = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
 
-img = dxchange.read_tiff('Simulated/PlaneWave/image_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-imgRef = dxchange.read_tiff('Simulated/PlaneWave/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-darkImg = dxchange.read_tiff('Simulated/PlaneWave/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+img = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/image_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+imgRef = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+darkImg = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
 
 img = img - darkImg
 imgRef = imgRef - darkImg
@@ -173,27 +173,25 @@ diffPhase10 = wpu.crop_matrix_at_indexes(diffPhase10, idx4crop)
 
 # %%
 
-phase = wps.frankotchellappa(diffPhase01*pixelsize[1],
-                             diffPhase10*pixelsize[0])
+phase = wgi.dpc_integration(diffPhase01, diffPhase10, virtual_pixelsize)
 
-phase = np.real(phase)
+#phase = np.real(phase)
 
 delta, _ = wpu.get_delta(phenergy, choice_idx=1, gui_mode=False)
 
 wgi.plot_integration(-(phase - np.min(phase))/kwave/delta*1e6,
                      virtual_pixelsize,
-                     titleStr=r'Thickness Beryllium $[\mu m]$,' +'\n frankotchellappa integration',
+                     titleStr=r'Thickness Beryllium $[\mu m]$,' +'\n Frankot Chellappa integration',
                      plot3dFlag=True,
                      saveFigFlag=True,
                      saveFileSuf=saveFileSuf)
 
-wps.error_integration(diffPhase01*pixelsize[1],
-                      diffPhase10*pixelsize[0],
-                      phase, pixelsize, errors=False,
+wps.error_integration(diffPhase01*virtual_pixelsize[1],
+                      diffPhase10*virtual_pixelsize[0],
+                      phase, virtual_pixelsize, errors=False,
                       plot_flag=True)
 
 wpu.save_figs_with_idx(saveFileSuf)
-
 
 # %%
 
@@ -221,8 +219,8 @@ g2sHarker.octave.eval("addpath(genpath('/home/grizolli/workspace/PythonProjects/
 
 # %%
 
-gx = diffPhase01*pixelsize[1]
-gy = diffPhase10*pixelsize[0]
+gx = diffPhase01*virtual_pixelsize[1]
+gy = diffPhase10*virtual_pixelsize[0]
 
 gx = _pad_2_make_square(gx)
 gy = _pad_2_make_square(gy)
@@ -240,7 +238,7 @@ wgi.plot_integration(-(res - np.min(res))/kwave/delta*1e6,
                      saveFigFlag=True,
                      saveFileSuf=saveFileSuf)
 
-wps.error_integration(gx, gy, res, pixelsize, errors=False, plot_flag=True)
+wps.error_integration(gx, gy, res, virtual_pixelsize, errors=False, plot_flag=True)
 
 wpu.save_figs_with_idx(saveFileSuf)
 

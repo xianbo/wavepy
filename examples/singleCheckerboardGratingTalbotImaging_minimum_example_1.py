@@ -76,13 +76,14 @@ wavelength = wpu.hc/phenergy  # wpu has an alias for hc
 gratingPeriod = 4.8e-6  # in meters
 patternPeriod = gratingPeriod/2.0  # for Pi grating
 
-#img = dxchange.read_tiff('Simulated/AstSphWave30p00x_25p00y/img_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-#imgRef = dxchange.read_tiff('Simulated/AstSphWave30p00x_25p00y/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-#darkImg = dxchange.read_tiff('Simulated/AstSphWave30p00x_25p00y/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
 
-img = dxchange.read_tiff('Simulated/PlaneWave/image_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-imgRef = dxchange.read_tiff('Simulated/PlaneWave/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-darkImg = dxchange.read_tiff('Simulated/PlaneWave/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+#img = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/img_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+#imgRef = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+#darkImg = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+
+img = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/image_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+imgRef = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+darkImg = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
 
 img = img - darkImg
 imgRef = imgRef - darkImg

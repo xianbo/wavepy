@@ -93,7 +93,7 @@ def main_single_gr_Talbot(img, imgRef,
     if imgRef is not None:
         imgRef = wpu.crop_matrix_at_indexes(imgRef, idx4crop)
 
-    # I dont know in the past I had these lines: (WG 20180406)
+    # I dont know why in the past I had these lines: (WG 20180406)
     #    if imgRef is None:
     #        img, idx4crop = crop_dialog(img, saveFigFlag=saveFigFlag)
     #    else:
@@ -113,7 +113,7 @@ def main_single_gr_Talbot(img, imgRef,
      period_harm_Hor) = wgi.exp_harm_period(imgRef, [period_harm_Vert_o,
                                             period_harm_Hor_o],
                                             harmonic_ij=['0', '1'],
-                                            searchRegion=20,
+                                            searchRegion=40,
                                             isFFT=False, verbose=True)
 
     wpu.print_blue('MESSAGE: Obtain harmonic 10 exprimentally')
@@ -122,7 +122,7 @@ def main_single_gr_Talbot(img, imgRef,
      _) = wgi.exp_harm_period(imgRef, [period_harm_Vert_o,
                               period_harm_Hor_o],
                               harmonic_ij=['1', '0'],
-                              searchRegion=20,
+                              searchRegion=40,
                               isFFT=False, verbose=True)
 
     harmPeriod = [period_harm_Vert, period_harm_Hor]
@@ -185,6 +185,7 @@ def crop_dialog(img, saveFigFlag=False):
 
     if saveFigFlag and not newCrop:
         wpu.save_figs_with_idx(saveFileSuf)
+
     plt.close(plt.gcf())
 
     if newCrop:
@@ -624,21 +625,6 @@ def correct_zero_from_unwrap(angleArray):
 
 
 # %%
-def _plot_profile(data, pixelsize, title, arg4main=None):
-
-    if 'cmap' not in arg4main:
-        arg4main['cmap'] = 'viridis'
-
-    xxGrid, yyGrid = wpu.grid_coord(data, pixelsize)
-
-    wpu.plot_profile(xxGrid*1e6, yyGrid*1e6, data[::-1, :],
-                     xlabel=r'$x [\mu m]$', ylabel=r'$y [\mu m]$',
-                     title=title,
-                     xunit='\mu m', yunit='\mu m',
-                     arg4main=arg4main)
-
-
-# %%
 def _default_plot_for_pickle(data, pixelsize, patternforpickle='graph',
                              title='', xlabel=r'$x$', ylabel=r'$y$', ctitle='',
                              removeSpark=True, cmap='viridis'):
@@ -729,7 +715,7 @@ def correct_zero_DPC(dpc01, dpc10,
         if (gui_mode and easyqt.get_yes_or_no('Subtract pi jump of DPC?') or
            correct_pi_jump):
 
-            plt.close('all')
+            #plt.close('all')
 
             angle[0] -= pi_jump[0]*np.pi
             angle[1] -= pi_jump[1]*np.pi
@@ -763,7 +749,7 @@ def correct_zero_DPC(dpc01, dpc10,
 
         wpu.log_this('%%% COMMENT: Subtrated mean value of DPC',
                      saveFileSuf)
-        plt.close('all')
+        #plt.close('all')
 
         angle[0] -= np.mean(angle[0])
         angle[1] -= np.mean(angle[1])
@@ -804,7 +790,7 @@ def correct_zero_DPC(dpc01, dpc10,
         wpu.log_this('%%% COMMENT: DCP center is corrected',
                      saveFileSuf)
 
-        plt.close('all')
+        #plt.close('all')
 
         for i in [0, 1]:
 
@@ -845,11 +831,11 @@ def correct_zero_DPC(dpc01, dpc10,
                 plt.pause(.1)
 
                 iamhappy = easyqt.get_yes_or_no('Happy?')
-                plt.close('all')
+                #plt.close('all')
 
             dpc[i] = angle[i]*pixelsize[i]/factor
 
-    plt.close('all')
+    #plt.close('all')
 
     return dpc
 
@@ -865,12 +851,11 @@ def doIntegration(diffPhase01, diffPhase10,
     else:
         idx4cropIntegration = [0, -1, 0, -1]
 
-    (phase,
-     idx4cropIntegration) = wgi.dpc_integration(diffPhase01, diffPhase10,
-                                                virtual_pixelsize,
-                                                idx4crop=idx4cropIntegration,
-                                                saveFileSuf=saveFileSuf,
-                                                plotErrorIntegration=True)
+    phase = wgi.dpc_integration(diffPhase01, diffPhase10,
+                                virtual_pixelsize,
+                                idx4crop=idx4cropIntegration,
+                                saveFileSuf=saveFileSuf,
+                                plotErrorIntegration=True)
 
     phase -= np.min(phase)
 
@@ -1175,8 +1160,8 @@ if __name__ == '__main__':
 
     # %% Fit DPC
 
-    fit_radius_dpc(diffPhase01, diffPhase10, virtual_pixelsize, kwave,
-                   saveFigFlag=saveFigFlag, str4title='')
+    #    fit_radius_dpc(diffPhase01, diffPhase10, virtual_pixelsize, kwave,
+    #                   saveFigFlag=saveFigFlag, str4title='')
     # ==========================================================================
     # %% Integration
     # ==========================================================================
@@ -1224,6 +1209,7 @@ if __name__ == '__main__':
                               {'Title': 'WF Phase', 'Zunit': 'meters'})
 
         if (gui_mode and easyqt.get_yes_or_no('Convert to thickness?') or
+
            calc_thickness):
 
             wpu.print_blue('MESSAGE: Ploting Thickness')
@@ -1313,64 +1299,79 @@ if __name__ == '__main__':
     # %% sandbox to play
     # =============================================================================
 
-    if (do_integration and gui_mode and
-       easyqt.get_yes_or_no('Remove 2nd order polynomial from integrated Phase?') or
-       remove_2nd_order):
-
-        if 'thickness' in locals():
-
-            thickness_2nd_order_lsq, popt = _lsq_fit_parabola(thickness, virtual_pixelsize)
-
-            _, popt = _lsq_fit_parabola(thickness, virtual_pixelsize)
-
-            wpu.print_blue('Thickness Radius of WF x: {:.3g} m'.format(popt[0]))
-            wpu.print_blue('Thickness Radius of WF y: {:.3g} m'.format(popt[1]))
-
-            err = -(thickness - thickness_2nd_order_lsq)  # [rad]
-            err -= np.min(err)
-
-            wgi.plot_integration(err*1e6, virtual_pixelsize,
-                                 titleStr=r'Thickness $[\mu m ]$' + '\n' +
-                                          r'Rx = {:.3f} $\mu m$, '.format(popt[0]*1e6) +
-                                          r'Ry = {:.3f} $\mu m$'.format(popt[1]*1e6),
-                                 plotProfile=gui_mode,
-                                 plot3dFlag=True,
-                                 saveFigFlag=saveFigFlag, saveFileSuf=saveFileSuf)
-
-            plt.show(block=False)
-
-            if saveFigFlag:
-                wpu.save_sdf_file(err, virtual_pixelsize,
-                                  wpu.get_unique_filename(saveFileSuf + '_thickness_residual', 'sdf'),
-                                  {'Title': 'WF Phase', 'Zunit': 'meters'})
+    #    xxGrid, yyGrid = wpu.grid_coord(thickness, pixelsize)
+    #
+    #    wpu.plot_profile(xxGrid*1e6, yyGrid*1e6, thickness[::-1, :]*1e6,
+    #                     xlabel=r'$x [\mu m]$', ylabel=r'$y [\mu m]$',
+    #                     title=r'Thickness $[\mu m]$',
+    #                     xunit='\mu m', yunit='\mu m',
+    #                     xo=0.0, yo=0.0)
+    #
+    #    plt.show(block=True)
 
 
-        phase_2nd_order_lsq, popt = _lsq_fit_parabola(phase, virtual_pixelsize)
-
-        _, popt = _lsq_fit_parabola(1/2/np.pi*phase*wavelength, virtual_pixelsize)
-
-        wpu.print_blue('Curvature Radius of WF x: {:.3g} m'.format(popt[0]))
-        wpu.print_blue('Curvature Radius of WF y: {:.3g} m'.format(popt[1]))
-
-        err = -(phase - phase_2nd_order_lsq)  # [rad]
-        err -= np.min(err)
-
-        wgi.plot_integration(err/2/np.pi*wavelength*1e9, virtual_pixelsize,
-                             titleStr=r'WF $[nm ]$' +
-                                      '\nRx = {:.3f} m, Ry = {:.3f} m'.format(popt[0], popt[1]),
-                             plotProfile=gui_mode,
-                             plot3dFlag=True,
-                             saveFigFlag=saveFigFlag, saveFileSuf=saveFileSuf)
-
-        plt.show(block=False)
-
-        if saveFigFlag:
-            wpu.save_sdf_file(err/2/np.pi*wavelength, virtual_pixelsize,
-                              wpu.get_unique_filename(saveFileSuf + '_phase_residual', 'sdf'),
-                              {'Title': 'WF Phase', 'Zunit': 'meters'})
+    # %%
 
 
-        wpu.print_blue('DONE')
+#
+#    if (do_integration and gui_mode and
+#       easyqt.get_yes_or_no('Remove 2nd order polynomial from integrated Phase?') or
+#       remove_2nd_order):
+#
+#        if 'thickness' in locals():
+#
+#            thickness_2nd_order_lsq, popt = _lsq_fit_parabola(thickness, virtual_pixelsize)
+#
+#            _, popt = _lsq_fit_parabola(thickness, virtual_pixelsize)
+#
+#            wpu.print_blue('Thickness Radius of WF x: {:.3g} m'.format(popt[0]))
+#            wpu.print_blue('Thickness Radius of WF y: {:.3g} m'.format(popt[1]))
+#
+#            err = -(thickness - thickness_2nd_order_lsq)  # [rad]
+#            err -= np.min(err)
+#
+#            wgi.plot_integration(err*1e6, virtual_pixelsize,
+#                                 titleStr=r'Thickness $[\mu m ]$' + '\n' +
+#                                          r'Rx = {:.3f} $\mu m$, '.format(popt[0]*1e6) +
+#                                          r'Ry = {:.3f} $\mu m$'.format(popt[1]*1e6),
+#                                 plotProfile=gui_mode,
+#                                 plot3dFlag=True,
+#                                 saveFigFlag=saveFigFlag, saveFileSuf=saveFileSuf)
+#
+#            plt.show(block=False)
+#
+#            if saveFigFlag:
+#                wpu.save_sdf_file(err, virtual_pixelsize,
+#                                  wpu.get_unique_filename(saveFileSuf + '_thickness_residual', 'sdf'),
+#                                  {'Title': 'WF Phase', 'Zunit': 'meters'})
+#
+#
+#        phase_2nd_order_lsq, popt = _lsq_fit_parabola(phase, virtual_pixelsize)
+#
+#        _, popt = _lsq_fit_parabola(1/2/np.pi*phase*wavelength, virtual_pixelsize)
+#
+#        wpu.print_blue('Curvature Radius of WF x: {:.3g} m'.format(popt[0]))
+#        wpu.print_blue('Curvature Radius of WF y: {:.3g} m'.format(popt[1]))
+#
+#        err = -(phase - phase_2nd_order_lsq)  # [rad]
+#        err -= np.min(err)
+#
+#        wgi.plot_integration(err/2/np.pi*wavelength*1e9, virtual_pixelsize,
+#                             titleStr=r'WF $[nm ]$' +
+#                                      '\nRx = {:.3f} m, Ry = {:.3f} m'.format(popt[0], popt[1]),
+#                             plotProfile=gui_mode,
+#                             plot3dFlag=True,
+#                             saveFigFlag=saveFigFlag, saveFileSuf=saveFileSuf)
+#
+#        plt.show(block=False)
+#
+#        if saveFigFlag:
+#            wpu.save_sdf_file(err/2/np.pi*wavelength, virtual_pixelsize,
+#                              wpu.get_unique_filename(saveFileSuf + '_phase_residual', 'sdf'),
+#                              {'Title': 'WF Phase', 'Zunit': 'meters'})
+#
+#
+#        wpu.print_blue('DONE')
 
 # %%
 
