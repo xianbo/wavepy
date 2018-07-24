@@ -66,8 +66,8 @@ import wavepy.surface_from_grad as wps
 # %% Experimental values
 
 
-pixelsize = [0.4e-6, 0.4e-6]  # vertical and horizontal pixel sizes in meters
-distDet2sample = 0.093  # in meters
+pixelsize = [0.65e-6, 0.65e-6]  # vertical and horizontal pixel sizes in meters
+distDet2sample = 0.18600  # in meters
 sourceDistance = 100.0  # in meters, for divergence correction. to ignore it, use a big number >100
 
 phenergy = 8e3  # in eV
@@ -78,16 +78,12 @@ kwave = 2*np.pi/wavelength
 # Phase grating paremeters
 gratingPeriod = 4.8e-6  # in meters
 # uncomment proper pattern period:
-# patternPeriod = gratingPeriod/np.sqrt(2.0)  # if half Pi grating
-patternPeriod = gratingPeriod/2.0  # if Pi grating
+patternPeriod = gratingPeriod/np.sqrt(2.0)  # if half Pi grating
+#patternPeriod = gratingPeriod/2.0  # if Pi grating
 
-#img = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/img_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-#imgRef = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-#darkImg = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-
-img = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/image_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-imgRef = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-darkImg = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+img = dxchange.read_tiff('data_example_for_single_grating/cb4p8um_halfPi_8KeV_10s_img.tif')
+imgRef = dxchange.read_tiff('data_example_for_single_grating/cb4p8um_halfPi_8KeV_10s_ref.tif')
+darkImg = dxchange.read_tiff('data_example_for_single_grating/10s_dark.tif')
 
 img = img - darkImg
 imgRef = imgRef - darkImg
@@ -204,42 +200,5 @@ def _pad_2_make_square(array, mode='edge'):
 
     elif diff_shape < 1:
         return np.pad(array, ((0, -diff_shape), (0, 0)), mode=mode)
-
-# %%
-
-import g2sAgrawal
-
-
-import g2sHarker
-
-g2sAgrawal.octave.eval("addpath(genpath('/home/grizolli/workspace/PythonProjects/surface_from_gradient/g2sAgrawal/AgrawalECCV06CodeMFiles/'));")
-g2sHarker.octave.eval("addpath(genpath('/home/grizolli/workspace/PythonProjects/surface_from_gradient/g2sHarker/grad2Surf/'));")
-g2sHarker.octave.eval("addpath(genpath('/home/grizolli/workspace/PythonProjects/surface_from_gradient/g2sHarker/DOPBox/'));")
-
-
-# %%
-
-gx = diffPhase01*virtual_pixelsize[1]
-gy = diffPhase10*virtual_pixelsize[0]
-
-gx = _pad_2_make_square(gx)
-gy = _pad_2_make_square(gy)
-
-# %%
-#res = g2sAgrawal.M_estimator(gx, gy)
-
-res = g2sHarker.g2sTikhonovStd(gx, gy)
-
-# %%
-wgi.plot_integration(-(res - np.min(res))/kwave/delta*1e6,
-                     virtual_pixelsize,
-                     titleStr=r'Thickness Beryllium $[\mu m]$,' +'\n g2sTikhonovStd integration',
-                     plot3dFlag=True,
-                     saveFigFlag=True,
-                     saveFileSuf=saveFileSuf)
-
-wps.error_integration(gx, gy, res, virtual_pixelsize, errors=False, plot_flag=True)
-
-wpu.save_figs_with_idx(saveFileSuf)
 
 

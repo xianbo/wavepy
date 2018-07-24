@@ -69,7 +69,7 @@ deg2rad = np.deg2rad(1)
 NAN = float('Nan')  # not a number alias
 hc = constants.value('inverse meter-electron volt relationship')  # hc
 
-wpu._mpl_settings_4_nice_graphs()
+#wpu._mpl_settings_4_nice_graphs()
 
 
 def _extent_func(img, pixelsize):
