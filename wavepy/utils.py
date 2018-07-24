@@ -64,9 +64,8 @@ import pickle as pl
 
 import easygui_qt as easyqt
 import os
-
+import xraylib
 import dxchange
-
 import configparser
 import shutil
 
@@ -87,7 +86,8 @@ __all__ = ['print_color', 'print_red', 'print_blue', 'plot_profile',
            'realcoordvec', 'realcoordmatrix_fromvec', 'realcoordmatrix',
            'reciprocalcoordvec', 'reciprocalcoordmatrix',
            'h5_list_of_groups',
-           'progress_bar4pmap', 'load_ini_file', 'rocking_3d_figure']
+           'progress_bar4pmap', 'load_ini_file', 'rocking_3d_figure',
+           'align_many_imgs']
 
 
 hc = constants.value('inverse meter-electron volt relationship')  # hc
@@ -171,7 +171,7 @@ def _fwhm_xy(xvalues, yvalues):
     -------
     list
         list of values x and y(x) at half maximum in the format
-        [[fwhm_x1, fwhm_x2],[fwhm_y1, fwhm_y2]]
+        [[fwhm_x1, fwhm_x2], [fwhm_y1, fwhm_y2]]
     """
 
     from scipy.interpolate import UnivariateSpline
@@ -196,24 +196,37 @@ def mean_plus_n_sigma(array, n_sigma=5):
     '''
     TODO: Write Docstring
     '''
-    return np.mean(array) + n_sigma*np.std(array)
+    return np.nanmean(array) + n_sigma*np.nanstd(array)
 
 
-def extent_func(img, pixelsize):
+def extent_func(img, pixelsize=[1, 1]):
     '''
     TODO: Write Docstring
+
     pixelsize is a list of size 2 as [pixelsize_i, pixelsize_j]
 
     if pixelsize is a float, then pixelsize_i = pixelsize_j
+
+    Returns
+    -------
+    array
+        with coordinates (left, right, bottom, top)
+
+
+    See Also
+    --------
+    :py:func:`matplotlib.pyplot.imshow`
+
+
     '''
 
     if isinstance(pixelsize, float):
         pixelsize = [pixelsize, pixelsize]
 
-    return np.array((-img.shape[1]*pixelsize[1] / 2,
-                     img.shape[1]*pixelsize[1] / 2,
-                     -img.shape[0]*pixelsize[0] / 2,
-                     img.shape[0]*pixelsize[0] / 2))
+    return np.array((-img.shape[1] // 2 * pixelsize[1],
+                     (img.shape[1] - img.shape[1] // 2) * pixelsize[1],
+                     -img.shape[0] // 2 * pixelsize[0],
+                     (img.shape[0] - img.shape[0] // 2) * pixelsize[0]))
 
 
 def plot_profile(xmatrix, ymatrix, zmatrix,
@@ -523,7 +536,8 @@ def select_dir(message_to_print=None, pattern='**/'):
     Parameters
     ----------
 
-    message_to_print:str, optional
+    message_to_print : str
+        optional
 
     Returns
     -------
@@ -576,7 +590,12 @@ def gui_load_data_ref_dark_filenames(directory='',
         os.chdir(fname1.rsplit('/', 1)[0])
 
         fname2 = easyqt.get_file_names("File name with Reference")[0]
-        fname3 = easyqt.get_file_names("File name with Dark Image")[0]
+        fname3 = easyqt.get_file_names("File name with Dark Image")
+
+        if len(fname3) == 0:
+            fname3 = None
+        else:
+            fname3 = fname3[0]
 
         fname3 = _check_empty_fname(fname3)
 
@@ -632,7 +651,12 @@ def gui_load_data_dark_filenames(directory='', title="File name with Data"):
 
         fname1 = fname1[0]  # convert list to string
         os.chdir(fname1.rsplit('/', 1)[0])
-        fname2 = easyqt.get_file_names("File name with Dark Image")[0]
+        fname2 = easyqt.get_file_names("File name with Dark Image")
+
+        if len(fname2) == 0:
+            fname2 = None
+        else:
+            fname2 = fname2[0]
 
     os.chdir(originalDir)
 
@@ -651,6 +675,132 @@ def gui_load_data_dark_files(directory='', title="File name with Data"):
     print_blue('MESSAGE: Loading ' + fname2)
 
     return (dxchange.read_tiff(fname1), dxchange.read_tiff(fname2))
+
+
+def get_delta(phenergy, choice_idx=-1,
+              material=None, density=None,
+              gui_mode=False, verbose=False):
+    """
+    Get value of delta (refractive index `n = 1 - delta + i*beta`) for few
+    common materials. It also wors as an interface to `xraylib`, using the same
+    syntax for materials names.
+    This function can be expanded by including more materials
+    to the (internal) list.
+
+
+    Parameters
+    ----------
+    phenergy : float
+        Photon energy in eV to obtain delta
+
+    choice_idx : int
+        Options to be used in non-gui mode.
+        Only used if ``gui_mode`` is `False`.
+
+        - 0 : 'Diamond, 3.525g/cm^3'\n
+        - 1 : 'Beryllium, 1.848 g/cm^3'
+        - 2 : 'Manual Input'
+
+    material : string
+        Material string as used by xraylib.
+        Only used if ``gui_mode`` is `False`.
+
+    density : float
+        Material density. Only used if ``gui_mode`` is `False`.
+
+    gui_mode : Boolean
+        If `True`, it uses dialogs pop-ups to get input values.
+
+
+    Returns
+    -------
+    float, str
+        delta value and material string
+
+
+    Example
+    -------
+
+
+
+        >>> get_delta(8000)
+
+        will start the dialogs to input the required paremeters.
+
+        Alternativally
+
+        >>> get_delta(8000, material='Be', gui_mode=False)
+        >>> MESSAGE: Getting value of delta for: Manual Input
+        >>> MESSAGE: Using default value of density: 1.848 [g/cm^3]
+        >>> (5.3276849026895334e-06, 'Be')
+
+        returns the value of delta with default density.
+
+    """
+
+    choices = ['Diamond, 3.525g/cm^3',
+               'Beryllium, 1.848 g/cm^3',
+               'Manual Input']
+
+    menu_choices = [choices[0], choices[1], choices[2]]  # Change order here!
+
+    if gui_mode:
+        # this ovwerride the choice_idx option
+        choice = easyqt.get_choice(message='Select Sample Material',
+                                   title='Title',
+                                   choices=menu_choices)
+        if choice is None:
+                choice = menu_choices[0]
+
+    else:
+        choice = choices[choice_idx]
+
+    if choice == choices[0]:
+        # delta Diamond, density from wikipedia:
+        # delta at 8KeV: 1.146095341e-05
+        delta = 1 - xraylib.Refractive_Index_Re("C", phenergy/1e3, 3.525)
+        material = 'Diamond'
+
+    elif choice == choices[1]:
+        # delta at 8KeV = 5.3265E-06
+        delta = 1 - xraylib.Refractive_Index_Re("Be", phenergy/1e3,
+                                                xraylib.ElementDensity(4))
+        material = 'Beryllium'
+
+    elif choice == choices[-1]:
+
+        if gui_mode:
+            # Use gui to ask for the values
+            material = easyqt.get_string('Enter symbol of material ' +
+                                         '(if compounds, you need to' +
+                                         ' provide the density):',
+                                         title='Thickness Calculation',
+                                         default_response='C')
+
+            elementZnumber = xraylib.SymbolToAtomicNumber(material)
+            density = xraylib.ElementDensity(elementZnumber)
+
+            density = easyqt.get_float('Density [g/cm^3] ' +
+                                       '(Enter for default value)',
+                                       title='Thickness Calculation',
+                                       default_value=density)
+
+        elif density is None:
+
+            elementZnumber = xraylib.SymbolToAtomicNumber(material)
+            density = xraylib.ElementDensity(elementZnumber)
+            print_blue('MESSAGE: Using default value of ' +
+                       'density: {} [g/cm^3] '.format(density))
+
+        delta = 1 - xraylib.Refractive_Index_Re(material,
+                                                phenergy/1e3, density)
+
+    else:
+        print_red('ERROR: unknown option')
+
+    print_blue('MESSAGE: Getting value of delta for: ' + material)
+
+    return delta, material
 
 
 def load_files_scan(samplefileName, split_char='_', suffix='.tif'):
@@ -772,7 +922,8 @@ def nan_mask_threshold(input_matrix, threshold=0.0):
     Notes
     -----
         - Note that ``array[mask]`` will return only the values where ``mask == 1``.
-        - Also note that this is NOT the same as the `masked arrays <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in numpy.
+        - Also note that this is NOT the same as the
+          `masked arrays <http://docs.scipy.org/doc/numpy/reference/maskedarray.html>`_ in numpy.
 
     """
 
@@ -912,8 +1063,9 @@ def gui_align_two_images(img1, img2, option='crop', verbosePlot=True):
         idxROI = 0
 
     [img1_aligned,
-     img2_aligned] = align_two_images(img1, img2, option=option,
-                                      idxROI=idxROI)
+     img2_aligned,
+     shifts] = align_two_images(img1, img2, option=option,
+                                idxROI=idxROI)
 
     if verbosePlot:
         plot_slide_colorbar(img1_aligned, title='Image 1',
@@ -924,7 +1076,7 @@ def gui_align_two_images(img1, img2, option='crop', verbosePlot=True):
                             cmin_o=mean_plus_n_sigma(img1, n_sigma=-5),
                             cmax_o=mean_plus_n_sigma(img1, n_sigma=+5))
 
-    return img1_aligned, img2_aligned
+    return img1_aligned, img2_aligned, shifts
 
 
 def align_two_images(img1, img2, option='crop', idxROI=0):
@@ -964,8 +1116,8 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
 
     Returns
     -------
-    ndarray, ndarray
-        aligned images
+    ndarray, ndarray, list
+        aligned images, list of shifts in x and y, in pixels
 
     Examples
     --------
@@ -995,7 +1147,7 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
     >>> plt.imshow(foo2)
     >>> plt.show(block=True)
     >>>
-    >>> img1, img2 = wpu.align_two_images(foo1, foo2, 'crop', 100)
+    >>> img1, img2, [shift_x, shift_i] = wpu.align_two_images(foo1, foo2, 'crop', 100)
     >>>
     >>> plt.figure()
     >>> plt.imshow(img1)
@@ -1010,8 +1162,8 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
         [i_min, i_max, j_min, j_max] = idxROI
 
     elif isinstance(idxROI, int):
-        [i_min, i_max, j_min, j_max] = [idxROI, img1.shape[0] - idxROI,
-                                        idxROI, img1.shape[1] - idxROI]
+        [i_min, i_max, j_min, j_max] = [idxROI, img2.shape[0] - idxROI,
+                                        idxROI, img2.shape[1] - idxROI]
 
     #    print_red('[i_min, i_max, j_min, j_max]')
     #    print_red([i_min, i_max, j_min, j_max])
@@ -1024,47 +1176,48 @@ def align_two_images(img1, img2, option='crop', idxROI=0):
 
     result = match_template(img1, img2[i_min:i_max, j_min:j_max])
     ij = np.unravel_index(np.argmax(result), result.shape)
-    pos_x, pos_y = ij[::-1]
-    print_blue('MESSAGE: pos_x, pos_y =' +
-               ' {}, {}'.format(pos_x, pos_y))
+    pos_i, pos_j = ij
+    print_blue('MESSAGE: pos_i, pos_j =' +
+               ' {}, {}'.format(pos_i, pos_j))
 
-    shift_x = pos_x - j_min
-    shift_y = pos_y - i_min
+    shift_j = pos_j - j_min
+    shift_i = pos_i - i_min
 
-    print_blue('MESSAGE: shift_x, shift_y =' +
-               ' {}, {}'.format(shift_x, shift_y))
+    print_blue('MESSAGE: shift i, shift j =' +
+               ' {}, {}'.format(shift_i, shift_j))
 
     if option == 'crop':
 
-        img1 = img1[pos_y:pos_y + iL,
-                    pos_x:pos_x + jL]
+        img1 = img1[pos_i:pos_i + iL,
+                    pos_j:pos_j + jL]
         img2 = img2[i_min:i_max, j_min:j_max]
 
     else:  # for option == 'pad' and fallback option
 
-        if shift_y > 0:
+        if shift_j > 0:
 
-            img2 = np.pad(img2[:-shift_y, :],
-                          ((shift_y, 0), (0, 0)), 'constant')
+            img2 = np.pad(img2[:, :-shift_j],
+                          ((0, 0), (shift_j, 0)), 'constant')
         else:
 
-            img2 = np.pad(img2[-shift_y:, :],
-                          ((0, -shift_y), (0, 0)), 'constant')
+            img2 = np.pad(img2[:, -shift_j:],
+                          ((0, 0), (0, -shift_j)), 'constant')
 
-        if shift_x > 0:
+        if shift_i > 0:
 
-            img2 = np.pad(img2[:, :-shift_x],
-                          ((0, 0), (shift_x, 0)), 'constant')
+            img2 = np.pad(img2[:-shift_i, :],
+                          ((shift_i, 0), (0, 0)), 'constant')
         else:
 
-            img2 = np.pad(img2[:, -shift_x:],
-                          ((0, 0), (0, -shift_x)), 'constant')
+            img2 = np.pad(img2[-shift_i:, :],
+                          ((0, -shift_i), (0, 0)), 'constant')
 
-    return img1, img2
+    return img1, img2, [shift_i, shift_j]
 
 
 def align_many_imgs(samplefileName, idxROI=100, option='crop',
-                    padMarginVal = 0, displayPlots=True):
+                    fixRef=True, displayPlots=True, totalShift=None):
+
     '''
     How to use
     ----------
@@ -1076,6 +1229,10 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
         Folders with the aligned files will be created inside this same folder.
 
     TODO: This function can be upgraded to use multiprocessing
+
+    Note
+    ----
+    So far this only work for tif files. Other formats can be easilly included
 
 
 
@@ -1101,6 +1258,13 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
 
     padMarginVal : int
         Value to pad ``img2`` when option is to pad.
+
+    fixRef : boolean
+        If ``True``, the file named ``samplefileName`` will be used as
+        reference to align all the images.
+
+        If ``False``, the reference for the file `N` will be the file `N-1`.
+        In this case, you must use `pad` options
 
     displayPlots : boolean
         Flag to display every aligned image (``displayPlots=True``) of
@@ -1139,76 +1303,90 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
 
 
     '''
+    import matplotlib.ticker as ticker
 
     if displayPlots:
         plt.ion()
     else:
         plt.ioff()
 
-    data_dir = samplefileName.rsplit('/', 1)[0]
-    os.chdir(data_dir)
+    fextension = samplefileName.rsplit('.', 1)[1]
 
-    os.makedirs('aligned_tiff', exist_ok=True)
-    os.makedirs('aligned_png', exist_ok=True)
+    if '/' in samplefileName:
 
-    print_blue('MESSAGE: Loading files ' +
-               samplefileName.rsplit('_', 1)[0] + '*.tif')
+        data_dir = samplefileName.rsplit('/', 1)[0]
+        os.chdir(data_dir)
 
-    listOfDataFiles = glob.glob(data_dir + '/*.tif')
+    listOfDataFiles = glob.glob('*.' + fextension)
     listOfDataFiles.sort()
 
-    img_ref = dxchange.read_tiff(samplefileName)
+    print_blue('MESSAGE: Loading files ' +
+               samplefileName.rsplit('_', 1)[0] + '*.' + fextension)
+
+    if 'tif' in fextension:
+        fextension = 'tiff'  # data exchange uses tiff instead of tif
+    else:
+        raise Exception('align_many_tif: cannot open this file format.')
+
+    if fixRef:
+        img_ref = dxchange.read_tiff(samplefileName)
+    else:
+        img_ref = dxchange.read_tiff(listOfDataFiles[0])
+        #        if option != 'pad':
+        #            option = 'pad'
+        #            print_red("WARNING: to align an image with the previous" +
+        #                      " one you must use 'pad' option")
+
+    os.makedirs('aligned_' + fextension, exist_ok=True)
+    os.makedirs('aligned_png', exist_ok=True)
 
     # Loop over the files in the folder
 
     outFilesList = []
-
-    if padMarginVal > 0:
-        img_ref = np.pad(img_ref, ((padMarginVal, padMarginVal),
-                                   (padMarginVal, padMarginVal)),
-                         'constant', constant_values=1)
+    allShifts = []
 
     for imgfname in listOfDataFiles:
 
-        img = dxchange.read_tiff(imgfname)
+        if 'tif' in fextension:
+            img = dxchange.read_tiff(imgfname)
 
         print_blue('MESSAGE: aligning ' + imgfname)
 
-        if padMarginVal == 0:
-            img = np.pad(img, ((padMarginVal, padMarginVal),
-                               (padMarginVal, padMarginVal)),
-                         'constant', constant_values=1)
-
-        # note that these two cases are different, with different effects
+        # note that these two cases below are different, with different effects
         # depending if we want to crop or to pad
 
         if option == 'pad':
             print_blue("MESSAGE: function align_many_imgs: using 'pad' mode")
-            _, img_aligned = align_two_images(img_ref, img,
-                                              'pad', idxROI=idxROI)
+            _, img_aligned, shifts = align_two_images(img_ref, img,
+                                                      'pad', idxROI=idxROI)
+            shifts = [x * -1 for x in shifts]
+
         else:
             print_blue("MESSAGE: function align_many_imgs: using 'crop' mode")
-            img_aligned, _ = align_two_images(img, img_ref,
-                                              'crop', idxROI=idxROI)
+            img_aligned, _, shifts = align_two_images(img, img_ref,
+                                                      'crop', idxROI=idxROI)
 
-        #        if padMarginVal >= 0:
-        #            img_aligned = img_aligned[padMarginVal:-padMarginVal,
-        #                                      padMarginVal:-padMarginVal]
+        allShifts.append(shifts)
 
         # save files
-        outfname = 'aligned_tiff/' + \
+        outfname = 'aligned_' + fextension + "/" + \
                    imgfname.split('.')[0].rsplit('/', 1)[-1] + \
-                   '_aligned.tiff'
+                   '_aligned.' + fextension
+
+        if 'tif' in fextension:
+            dxchange.write_tiff(img_aligned, outfname)
 
         outFilesList.append(outfname)
-
-        dxchange.write_tiff(img_aligned, outfname)
         print_blue('MESSAGE: file ' + outfname + ' saved.')
 
         plt.figure(figsize=(8, 7))
         plt.imshow(img_aligned, cmap='viridis')
         plt.title('ALIGNED, ' + imgfname.split('/')[-1])
-        plt.savefig(outfname.replace('tiff', 'png'))
+
+        plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        plt.gca().yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
+        plt.savefig(outfname.replace(fextension, 'png'))
 
         if displayPlots:
             plt.show(block=False)
@@ -1216,10 +1394,22 @@ def align_many_imgs(samplefileName, idxROI=100, option='crop',
         else:
             plt.close()
 
-    if not displayPlots:
+        if not fixRef:  # use previous image as reference for alignment
+            img_ref = img_aligned.copy()
+            img_ref = img*0.0
+            img_ref[idxROI[0]:idxROI[0]+img_aligned.shape[0],
+                    idxROI[2]:idxROI[2]+img_aligned.shape[1]] = img_aligned
+
+    allShifts = np.asarray(allShifts)
+
+    if displayPlots:
+        plt.show(block=False)
+        plt.pause(.1)
+    else:
+        plt.close()
         plt.ion()
 
-    return outFilesList
+    return outFilesList, allShifts
 
 
 def find_nearest_value(input_array, value):
@@ -1408,11 +1598,11 @@ def dummy_images(imagetype=None, shape=(100, 100), **kwargs):
 
     elif imagetype == 'Stripes':
         if 'nLinesH' in kwargs:
-            nLinesH = kwargs['nLinesH']
+            nLinesH = int(kwargs['nLinesH'])
             return np.kron([[1, 0] * nLinesH],
                            np.ones((shape[0], shape[1]/2/nLinesH)))
         elif 'nLinesV':
-            nLinesV = kwargs['nLinesV']
+            nLinesV = int(kwargs['nLinesV'])
             return np.kron([[1], [0]] * nLinesV,
                            np.ones((shape[0]/2/nLinesV, shape[1])))
         else:
@@ -1421,13 +1611,13 @@ def dummy_images(imagetype=None, shape=(100, 100), **kwargs):
     elif imagetype == 'Checked':
 
         if 'nLinesH' in kwargs:
-            nLinesH = kwargs['nLinesH']
+            nLinesH = int(kwargs['nLinesH'])
 
         else:
             nLinesH = 1
 
         if 'nLinesV' in kwargs:
-            nLinesV = kwargs['nLinesV']
+            nLinesV = int(kwargs['nLinesV'])
         else:
             nLinesV = 1
 
@@ -1613,6 +1803,8 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
     surface = plt.imshow(zmatrix,  # origin='lower',
                          **kargs4graph)
 
+    surface.cmap.set_over('#FF0000')  # Red
+    surface.cmap.set_under('#8B008B')  # Light Cyan
     plt.xlabel('Pixels')
     plt.ylabel('Pixels')
     plt.title('CHOOSE ROI, CLOSE WHEN DONE\n'
@@ -1630,6 +1822,7 @@ def graphical_roi_idx(zmatrix, verbose=False, kargs4graph={}):
                                                             fill=True))
 
     fig.canvas.mpl_connect('key_press_event', toggle_selector)
+    plt.tight_layout(rect=[0, 0, 1, 1])
     plt.show(block=True)
 
     if verbose:
@@ -1833,6 +2026,9 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
         if event.button == 2:
             xo, yo = event.xdata, event.ydata
 
+            print_blue('Middle Click: Select point:\t' +
+                       'x: {:.0f}, y: {:.0f}'.format(xo, yo))
+
             ax1.set_xdata(xo)
             ax1.set_ydata(yo)
             plt.title('SELECT ROI, CLOSE WHEN DONE\n' +
@@ -1845,11 +2041,6 @@ def graphical_select_point_idx(zmatrix, verbose=False, kargs4graph={}):
 
             mutable_object_xy['xo'] = xo
             mutable_object_xy['yo'] = yo
-
-        if event.button == 3:
-            print('Hi')
-            plt.lines = []
-            plt.legend_ = None
             plt.draw()
 
     cursor = Cursor(plt.gca(), useblit=True, color='red', linewidth=2)
@@ -1879,10 +2070,13 @@ def plot_slide_colorbar(zmatrix, title='',
     plt.subplots_adjust(left=0.25, bottom=0.25)
 
     surf = plt.imshow(zmatrix, cmap='viridis', **kwargs4imshow)
+    surf.cmap.set_over('#FF0000')  # Red
+    surf.cmap.set_under('#8B008B')  # Light Cyan
+
     plt.title(title, fontsize=14, weight='bold')
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    fig.colorbar(surf)
+    fig.colorbar(surf, extend='both')
 
     axcmin = plt.axes([0.25, 0.1, 0.65, 0.03])
     axcmax = plt.axes([0.25, 0.15, 0.65, 0.03])
@@ -1931,7 +2125,6 @@ def plot_slide_colorbar(zmatrix, title='',
             scmax.label.set_text('Min')
 
         surf.set_clim(cmax, cmin)
-
         fig.canvas.draw_idle()
 
     scmin.on_changed(update)
@@ -1946,6 +2139,8 @@ def plot_slide_colorbar(zmatrix, title='',
 
     def colorfunc(label):
         surf.set_cmap(label)
+        surf.cmap.set_over('#FF0000')  # Red
+        surf.cmap.set_under('#8B008B')  # Light Cyan
         fig.canvas.draw_idle()
     radio1.on_clicked(colorfunc)
 
@@ -1991,10 +2186,18 @@ def plot_slide_colorbar(zmatrix, title='',
 
     plt.show(block=True)
 
+    for label in ['gray', 'gray_r', 'viridis',
+                  'viridis_r', 'inferno', 'rainbow']:
+
+        # reset over and under values in the colormaps
+        cmap = plt.cm.get_cmap(label)
+        cmap.set_over(cmap(1))
+        cmap.set_under(cmap(cmap.N - 1))
+
     return [[scmin.val, scmax.val], radio1.value_selected]
 
 
-def save_figs_with_idx(patternforname='graph', extension='png'):
+def save_figs_with_idx(patternforname='graph', extension='png',  **kwargs):
     '''
     Use a counter to save the figures with suffix 1, 2, 3, ..., etc
 
@@ -2012,7 +2215,7 @@ def save_figs_with_idx(patternforname='graph', extension='png'):
     '''
 
     figname = get_unique_filename(patternforname, extension)
-    plt.savefig(figname)
+    plt.savefig(figname, **kwargs)
     print('MESSAGE: ' + figname + ' SAVED')
 
 
@@ -2081,11 +2284,11 @@ def get_unique_filename(patternforname, extension='txt'):
     next(_Count_fname)
 
     fname = str('{:s}_{:02d}'.format(patternforname,
-                                      next(_Count_fname)) + extension)
+                                     next(_Count_fname)) + extension)
 
     while os.path.isfile(fname):
         fname = str('{:s}_{:02d}'.format(patternforname,
-                                          next(_Count_fname)) + extension)
+                                         next(_Count_fname)) + extension)
 
     return fname
 
@@ -2171,6 +2374,8 @@ def choose_unit(array):
     +============+======================+========================+
     |     0      |    1.0               |   ``''`` empty string  |
     +------------+----------------------+------------------------+
+    |     -12     |    10^-12           |        ``p``           |
+    +------------+----------------------+------------------------+
     |     -9     |    10^-9             |        ``n``           |
     +------------+----------------------+------------------------+
     |     -6     |    10^-6             |     ``r'\mu'``         |
@@ -2219,6 +2424,9 @@ def choose_unit(array):
     if 2e0 < max_abs <= 2e3:
         factor = 1.0
         unit = ''
+    elif 2e-12 < max_abs <= 2e-9:
+        factor = 1.0e12
+        unit = 'p'
     elif 2e-9 < max_abs <= 2e-6:
         factor = 1.0e9
         unit = 'n'
@@ -2239,7 +2447,7 @@ def choose_unit(array):
         unit = 'G'
     else:
         factor = 1.0
-        unit = ''
+        unit = ' '
 
     return factor, unit
 
@@ -2421,7 +2629,7 @@ def reciprocalcoordvec(npoints, delta):
     returns a vector of frequencies with values in the interval
 
 
-    .. math:: \\left[ \\frac{-1}{2 \\Delta x} : \\frac{1}{2 \\Delta x} - \\frac{1}{n \\Delta x} \\right],
+    .. math:: \\left[ \\frac{-1}{2 \\Delta x} : \\frac{1}{2 \\Delta x} - \\frac{1}{n \\Delta x} \\right], # nopep8
 
 
     with the same number of points.
@@ -2496,14 +2704,14 @@ def reciprocalcoordmatrix(npointsx, deltax, npointsy, deltay):
 
 def fouriercoordvec(npoints, delta):
     '''
-    For back compability
+    For back compability. Use :py:func:`wavepy.utils.reciprocalcoordvec`
     '''
     return reciprocalcoordvec(npoints, delta)
 
 
 def fouriercoordmatrix(npointsx, deltax, npointsy, deltay):
     '''
-    For back compability
+    For back compability. Use :py:func:`wavepy.utils.reciprocalcoordmatrix`
     '''
     return reciprocalcoordmatrix(npointsx, deltax, npointsy, deltay)
 
@@ -2851,9 +3059,8 @@ def set_at_ini_file(inifname, section, key, value):
     '''
 
     if not os.path.isfile(inifname):
-        raise Warning("File " + inifname + " doesn't exist. You must " +
-                      "create your init file first.")
-        return None, None
+        with open(inifname, "w") as text_file:
+            text_file.write('[Files]\n\n\n[Parameters]\n')
 
     config = configparser.ConfigParser()
     config.read(inifname)
@@ -2872,6 +3079,10 @@ def log_this(text='', preffname='', inifname=''):
     ----------
     text: str
         text to be appended to the log file
+
+    preffname: str
+        prefix for log file name. If empty, a default name will be
+        chosen (recommended)
 
     inifname: str
         (Optional) name of the inifile to be attached to the log.
@@ -2996,7 +3207,7 @@ def shift_subpixel_2d(array2d, frac_of_pixel):
                                                      1::frac_of_pixel]
 
 
-def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
+def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions={}):
     '''
 
     Edit and update *matplotlib rcParams*.
@@ -3044,12 +3255,13 @@ def _mpl_settings_4_nice_graphs(fs=16, fontfamily='Utopia', otheroptions = {}):
     plt.rcParams.update(params)
     plt.rcParams['axes.prop_cycle'] = plt.cycler(color=['#4C72B0', '#55A868',
                                                         '#C44E52', '#8172B2',
-                                                        '#CCB974', '#64B5CD'
+                                                        '#CCB974', '#64B5CD',
                                                         '#1f77b4', '#ff7f0e',
                                                         '#2ca02c', '#d62728',
                                                         '#9467bd', '#8c564b',
                                                         '#e377c2', '#7f7f7f',
                                                         '#bcbd22', '#17becf'])
+
 
 def line_style_cycle(ls=['-', '--'], ms=['s', 'o', '^', 'd'],
                      ncurves=2, cmap_str='default'):
@@ -3070,13 +3282,11 @@ def line_style_cycle(ls=['-', '--'], ms=['s', 'o', '^', 'd'],
 
     '''
 
-
     import itertools
 
     list_ls = list(a[0] + a[1] for a in itertools.product(ls, ms))
 
     ls_cycle = itertools.cycle(list_ls[0:ncurves])
-
 
     if cmap_str == 'default':
         lc_list = ['#4C72B0', '#55A868', '#C44E52', '#8172B2',
@@ -3086,12 +3296,11 @@ def line_style_cycle(ls=['-', '--'], ms=['s', 'o', '^', 'd'],
 
     else:
         cmap = plt.get_cmap(cmap_str)
-        lc_list = [ cmap(x) for x in np.linspace(0, 1, ncurves) ]
+        lc_list = [cmap(x) for x in np.linspace(0, 1, ncurves)]
 
     lc_cycle = itertools.cycle(lc_list)
 
     return ls_cycle, lc_cycle
-
 
 
 def rocking_3d_figure(ax, outfname='out.ogv',
@@ -3256,7 +3465,7 @@ def rocking_3d_figure(ax, outfname='out.ogv',
     return 1
 
 
-def save_sdf_file(array, pixelsize, fname='output.sdf', extraHeader={}):
+def save_sdf_file(array, pixelsize=[1, 1], fname='output.sdf', extraHeader={}):
     '''
     Save an 2D array in the `Surface Data File Format (SDF)
     <https://physics.nist.gov/VSC/jsp/DataFormat.jsp#a>`_ , which can be
@@ -3333,7 +3542,7 @@ def save_sdf_file(array, pixelsize, fname='output.sdf', extraHeader={}):
     print_blue('MESSAGE: ' + fname + ' saved!')
 
 
-def load_sdf_file(fname):
+def load_sdf_file(fname, printHeader=False):
     '''
     Load an 2D array in the `Surface Data File Format (SDF)
     <https://physics.nist.gov/VSC/jsp/DataFormat.jsp#a>`_ . The SDF format
@@ -3376,11 +3585,14 @@ def load_sdf_file(fname):
     with open(fname) as input_file:
         nline = 0
         header = ''
-        print('########## HEADER from ' + fname)
+        if printHeader:
+            print('########## HEADER from ' + fname)
 
         for line in input_file:
             nline += 1
-            print(line, end='')
+
+            if printHeader:
+                print(line, end='')
 
             if 'NumPoints' in line:
                 xpoints = int(line.split('=')[-1])
@@ -3402,7 +3614,8 @@ def load_sdf_file(fname):
             else:
                 header += line
 
-    print('########## END HEADER from ' + fname)
+    if printHeader:
+        print('########## END HEADER from ' + fname)
 
     # Load data as numpy array
     data = np.loadtxt(fname, skiprows=nline)
@@ -3421,7 +3634,8 @@ def load_sdf_file(fname):
     return data, [yscale, xscale], headerdic
 
 
-def save_csv_file(arrayList, fname='output.sdf', headerList=[]):
+def save_csv_file(arrayList, fname='output.csv', headerList=[],
+                  comments=''):
     '''
     Save an 2D array as a *comma separeted values* file. This is appropriated
     to save several 1D curves. For 2D data use :py:func:`wavepy.utils.save_sdf`
@@ -3447,11 +3661,14 @@ def save_csv_file(arrayList, fname='output.sdf', headerList=[]):
 
     header = ''
 
-    for item in headerList:
+    if headerList != []:
+        for item in headerList:
+            header += item + ', '
 
-        header += item + ', '
+        header = header[:-2]  # remove last comma
 
-    header = header[:-2]  # remove last comma
+    if comments != '':
+        header = comments + '\n' + header
 
     if isinstance(arrayList, list):
 
@@ -3496,7 +3713,10 @@ def load_csv_file(fname):
         data loaded from the ``csv`` file
 
     headerdic
-        dictionary with the header
+        list with the header
+
+    comments
+        list with the comments, each line as list element
 
     Example
     -------
@@ -3513,9 +3733,11 @@ def load_csv_file(fname):
 
     with open(fname) as input_file:
 
+        comments = []
         for line in input_file:
 
             if '#' in line:
+                comments.append(line[2:-1])
                 header = line[2:-1]  # remove # and \n
             else:
                 break
@@ -3529,4 +3751,4 @@ def load_csv_file(fname):
     for item in header.split(', '):
         headerlist.append(item)
 
-    return data, headerlist
+    return data, headerlist, comments

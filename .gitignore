@@ -126,3 +126,9 @@ workingOn/
 _ignoreme*
 _*
 
+# ignore changes in the tiff files. Avoid increasing size of final library
+##########################################################################
+.tif
+
+
+

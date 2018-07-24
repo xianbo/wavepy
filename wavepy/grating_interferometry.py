@@ -80,6 +80,12 @@ import wavepy.surface_from_grad as wps
 from skimage.restoration import unwrap_phase
 
 
+try:
+    from  pyfftw.interfaces.numpy_fft import fft2, ifft2
+except ImportError:
+    from  numpy.fft import fft2, ifft2
+
+
 __authors__ = "Walan Grizolli"
 __copyright__ = "Copyright (c) 2016-2017, Argonne National Laboratory"
 __version__ = "0.1.0"
@@ -156,8 +162,6 @@ def _error_harmonic_peak(imgFFT, harV, harH,
     the provided theoretical value
     """
 
-    (nRows, nColumns) = imgFFT.shape
-
     #  Estimate harmonic positions
 
     idxPeak_ij = _idxPeak_ij(harV, harH, imgFFT.shape[0], imgFFT.shape[1],
@@ -205,7 +209,7 @@ def exp_harm_period(img, harmonicPeriod,
     if isFFT:
         imgFFT = img
     else:
-        imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
+        imgFFT = np.fft.fftshift(fft2(img, norm='ortho'))
 
     del_i, del_j = _error_harmonic_peak(imgFFT, harV, harH,
                                         periodVert, periodHor,
@@ -343,7 +347,7 @@ def extract_harmonic(img, harmonicPeriod,
     if isFFT:
         imgFFT = img
     else:
-        imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
+        imgFFT = np.fft.fftshift(fft2(img, norm='ortho'))
 
     intensity = (np.abs(imgFFT))
 
@@ -377,10 +381,16 @@ def extract_harmonic(img, harmonicPeriod,
 
         from matplotlib.patches import Rectangle
         plt.figure(figsize=(8, 7))
-        plt.imshow(np.log10(intensity), cmap='inferno')
+        plt.imshow(np.log10(intensity), cmap='inferno', extent=wpu.extent_func(intensity))
 
-        plt.gca().add_patch(Rectangle((idxPeak_ij[1] - periodHor//2,
-                                      idxPeak_ij[0] - periodVert//2),
+        plt.xlabel('Pixels')
+        plt.ylabel('Pixels')
+
+        xo = idxPeak_ij[1] - nColumns//2 - periodHor//2
+        yo = nRows//2 - idxPeak_ij[0] - periodVert//2
+        # xo yo are the lower left position of the reangle
+
+        plt.gca().add_patch(Rectangle((xo, yo),
                                       periodHor, periodVert,
                                       lw=2, ls='--', color='red',
                                       fill=None, alpha=1))
@@ -423,12 +433,12 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
     """
 
     if not isFFT:
-        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img),
+        imgFFT = np.fft.fftshift(fft2(np.fft.fftshift(img),
                                              norm='ortho'))
     else:
         imgFFT = img
 
-    (nRows, nColumns) = img.shape
+    (nRows, nColumns) = imgFFT.shape
 
     periodVert = harmonicPeriod[0]
     periodHor = harmonicPeriod[1]
@@ -441,7 +451,11 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
         periodHor = nColumns
 
     plt.figure(figsize=(8, 7))
-    plt.imshow(np.log10(np.abs(imgFFT)), cmap='inferno')
+    plt.imshow(np.log10(np.abs(imgFFT)), cmap='inferno',
+               extent=wpu.extent_func(imgFFT))
+
+    plt.xlabel('Pixels')
+    plt.ylabel('Pixels')
 
     harV_min = -(nRows + 1) // 2 // periodVert
     harV_max = (nRows + 1) // 2 // periodVert
@@ -454,13 +468,15 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
         idxPeak_ij = _idxPeak_ij(harV, 0, nRows, nColumns,
                                  periodVert, periodHor)
 
-        plt.axhline(idxPeak_ij[0] - periodVert//2, lw=2, color='r')
+        plt.axhline(idxPeak_ij[0] - periodVert//2 - nRows//2,
+                    lw=2, color='r')
 
     for harH in range(harH_min + 1, harH_max + 2):
 
         idxPeak_ij = _idxPeak_ij(0, harH, nRows, nColumns,
                                  periodVert, periodHor)
-        plt.axvline(idxPeak_ij[1] - periodHor // 2, lw=2, color='r')
+        plt.axvline(idxPeak_ij[1] - periodHor // 2 - nColumns//2,
+                    lw=2, color='r')
 
     for harV in range(harV_min, harV_max + 1):
         for harH in range(harH_min, harH_max + 1):
@@ -469,15 +485,17 @@ def plot_harmonic_grid(img, harmonicPeriod=None, isFFT=False):
                                      nRows, nColumns,
                                      periodVert, periodHor)
 
-            plt.plot(idxPeak_ij[1], idxPeak_ij[0],
-                     'ko', mew=2, mfc="None", ms=15)
+            plt.plot(idxPeak_ij[1] - nColumns//2,
+                     idxPeak_ij[0] - nRows//2,
+                    'ko', mew=2, mfc="None", ms=15)
 
-            plt.annotate('{:d}{:d}'.format(harV, harH),
-                         (idxPeak_ij[1], idxPeak_ij[0]),
+            plt.annotate('{:d}{:d}'.format(-harV, harH),
+                         (idxPeak_ij[1] - nColumns//2,
+                          idxPeak_ij[0] - nRows//2,),
                          color='red', fontsize=20)
 
-    plt.xlim(0, nColumns)
-    plt.ylim(nRows, 0)
+    plt.xlim(-nColumns//2, nColumns - nColumns//2)
+    plt.ylim(-nRows//2, nRows - nRows//2)
     plt.title('log scale FFT magnitude, Hamonics Subsets and Indexes',
               fontsize=16, weight='bold')
 
@@ -506,7 +524,7 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
     """
 
     if not isFFT:
-        imgFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(img),
+        imgFFT = np.fft.fftshift(fft2(np.fft.fftshift(img),
                                              norm='ortho'))
     else:
         imgFFT = img
@@ -555,13 +573,18 @@ def plot_harmonic_peak(img, harmonicPeriod=None, isFFT=False, fname=None):
 
     ax1.set_xlabel('Pixels')
     ax1.set_ylabel(r'$| FFT |$ ')
+    ax1.legend(loc=1, fontsize='xx-small')
+    ax1.title.set_text('Horz')
+
 
     ax2.set_xlabel('Pixels')
     ax2.set_ylabel(r'$| FFT |$ ')
+    ax2.legend(loc=1, fontsize='xx-small')
+    ax2.title.set_text('Vert')
     plt.show(block=False)
 
     if fname is not None:
-        plt.savefig(fname)
+        plt.savefig(fname, transparent=True)
 
 
 def single_grating_harmonic_images(img, harmonicPeriod,
@@ -603,7 +626,7 @@ def single_grating_harmonic_images(img, harmonicPeriod,
 
     """
 
-    imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
+    imgFFT = np.fft.fftshift(fft2(img, norm='ortho'))
 
     if plotFlag:
         plot_harmonic_grid(imgFFT, harmonicPeriod=harmonicPeriod, isFFT=True)
@@ -649,26 +672,31 @@ def single_grating_harmonic_images(img, harmonicPeriod,
 
             # The vmin and vmax arguments specify the color limits
             im = ax.imshow(dat, cmap='inferno', vmin=np.min(intFFT00),
-                           vmax=np.max(intFFT00))
+                           vmax=np.max(intFFT00),
+                           extent=wpu.extent_func(dat))
 
             ax.set_title(textTitle)
+            if textTitle == 'FFT 00':
+                ax.set_ylabel('Pixels')
+
+            ax.set_xlabel('Pixels')
 
         # Make an axis for the colorbar on the right side
         cax = fig.add_axes([0.92, 0.1, 0.03, 0.8])
         fig.colorbar(im, cax=cax)
         plt.suptitle('FFT subsets - Intensity', fontsize=18, weight='bold')
-        plt.show(block=True)
+        plt.show(block=False)
 
-    img00 = np.fft.ifft2(np.fft.ifftshift(imgFFT00), norm='ortho')
+    img00 = ifft2(np.fft.ifftshift(imgFFT00), norm='ortho')
 
     # non existing harmonics will return NAN, so here we check NAN
     if np.all(np.isfinite(imgFFT01)):
-        img01 = np.fft.ifft2(np.fft.ifftshift(imgFFT01), norm='ortho')
+        img01 = ifft2(np.fft.ifftshift(imgFFT01), norm='ortho')
     else:
         img01 = imgFFT01
 
     if np.all(np.isfinite(imgFFT10)):
-        img10 = np.fft.ifft2(np.fft.ifftshift(imgFFT10), norm='ortho')
+        img10 = ifft2(np.fft.ifftshift(imgFFT10), norm='ortho')
     else:
         img10 = imgFFT10
 
@@ -724,6 +752,10 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
             arg01 = np.angle(h_img[1])
             arg10 = np.angle(h_img[2])
 
+    if unwrapFlag is True:
+        arg01 -= int(np.round(np.mean(arg01/np.pi)))*np.pi
+        arg10 -= int(np.round(np.mean(arg10/np.pi)))*np.pi
+
     darkField01 = int01/int00
     darkField10 = int10/int00
 
@@ -775,7 +807,7 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
 
     """
 
-    imgFFT = np.fft.fftshift(np.fft.fft2(img, norm='ortho'))
+    imgFFT = np.fft.fftshift(fft2(img, norm='ortho'))
 
     _idxPeak_ij_exp00 = _idxPeak_ij_exp(imgFFT, 0, 0,
                                         harmonicPeriod[0], harmonicPeriod[1],
@@ -838,10 +870,10 @@ def plot_intensities_harms(int00, int01, int10,
     plt.suptitle('Absorption obtained from the Harmonics' + titleStr,
                  fontsize=18, weight='bold')
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 1])
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf)
-    plt.show(block=True)
+    plt.show(block=False)
 
 
 def plot_dark_field(darkField01, darkField10,
@@ -881,10 +913,10 @@ def plot_dark_field(darkField01, darkField10,
 
     plt.suptitle('Dark Field', fontsize=18, weight='bold')
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 1])
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf)
-    plt.show(block=True)
+    plt.show(block=False)
 
 
 def plot_DPC(dpc01, dpc10,
@@ -909,7 +941,7 @@ def plot_DPC(dpc01, dpc10,
 
     plt.figure(figsize=(12, 6))
     plt.subplot(121)
-    plt.imshow(dpc01_plot, cmap='RdGy',
+    plt.imshow(dpc01_plot, cmap='RdGy_r',
                vmin=-vlim01, vmax=vlim01,
                extent=wpu.extent_func(dpc01_plot, pixelsize)*factor)
 
@@ -919,7 +951,7 @@ def plot_DPC(dpc01, dpc10,
     plt.title('DPC - Horizontal', fontsize=18, weight='bold')  # 01
 
     plt.subplot(122)
-    plt.imshow(dpc10_plot, cmap='RdGy',
+    plt.imshow(dpc10_plot, cmap='RdGy_r',
                vmin=-vlim10, vmax=vlim10,
                extent=wpu.extent_func(dpc10_plot, pixelsize)*factor)
     plt.xlabel(r'$[{0} m]$'.format(unit_xy))
@@ -931,13 +963,13 @@ def plot_DPC(dpc01, dpc10,
     plt.suptitle('Differential Phase ' + r'[$\pi$ rad]' + titleStr,
                  fontsize=18, weight='bold')
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 1])
     if saveFigFlag:
         wpu.save_figs_with_idx(saveFileSuf)
     plt.show(block=False)
 
 
-def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
+def dpc_integration(dpc01, dpc10, pixelsize, idx4crop=[0, -1, 0, -1],
                     plotErrorIntegration=False,
                     saveFileSuf=None,
                     shifthalfpixel=False, method='FC'):
@@ -978,10 +1010,10 @@ def dpc_integration(dpc01, dpc10, pixelsize, idx4crop='',
                               phase, pixelsize, errors=False,
                               shifthalfpixel=shifthalfpixel, plot_flag=True)
 
-    if saveFileSuf is not None:
-        wpu.save_figs_with_idx(saveFileSuf)
+        if saveFileSuf is not None:
+            wpu.save_figs_with_idx(saveFileSuf)
 
-    return phase, idx
+    return phase
 
 # %%
 def plot_integration(integrated, pixelsize,
@@ -1000,33 +1032,6 @@ def plot_integration(integrated, pixelsize,
 
     factor_x, unit_x = wpu.choose_unit(xxGrid)
     factor_y, unit_y = wpu.choose_unit(yyGrid)
-
-    if plotProfile:
-        wpu.plot_profile(xxGrid*factor_x, yyGrid*factor_y,   integrated[::-1, :],
-                         xlabel=r'$x [' + unit_x + ' m]$',
-                         ylabel=r'$y [' + unit_y + ' m]$',
-                         title=titleStr,
-                         xunit='\mu m', yunit='\mu m',
-                         arg4main={'cmap': 'viridis', 'lw': 3})
-        plt.show(block=True)
-
-    if saveFigFlag:
-
-        plt.figure(figsize=(10, 8))
-
-        plt.imshow(integrated[::-1, :], cmap='viridis',
-                   extent=wpu.extent_func(integrated, pixelsize)*factor_x,
-                   **kwarg4surf)
-
-        plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
-        plt.ylabel(r'$y [' + unit_x + ' m]$', fontsize=24)
-
-        plt.title(titleStr, fontsize=18, weight='bold')
-        cbar = plt.colorbar()
-        cbar.ax.set_title(ctitle, y=1.01)
-        wpu.save_figs_with_idx(saveFileSuf)
-        #        plt.show(block=False)
-        plt.close(plt.gcf())
 
     # Plot Integration 2
 
@@ -1060,19 +1065,46 @@ def plot_integration(integrated, pixelsize,
         cbar = plt.colorbar(surf, shrink=.8, aspect=20)
         cbar.ax.set_title(ctitle, y=1.01)
 
-        fig.tight_layout()
-
-        plt.tight_layout()
+        plt.tight_layout(rect=[0, 0, 1, 1])
 
         ax.text2D(0.05, 0.9, 'strides = {}, {}'.format(rstride, cstride),
-                  transform=ax.transAxes)
+                    transform=ax.transAxes)
 
         if saveFigFlag:
+            ax.view_init(elev=30, azim=60)
             wpu.save_figs_with_idx(saveFileSuf)
+            ax.view_init(elev=30, azim=-120)
+            wpu.save_figs_with_idx(saveFileSuf)
+            plt.pause(.5)
 
         plt.show(block=False)
 
-        return ax
+    if plotProfile:
+        wpu.plot_profile(xxGrid*factor_x, yyGrid*factor_y,
+                         integrated[::-1, :],
+                         xlabel=r'$x [' + unit_x + ' m]$',
+                         ylabel=r'$y [' + unit_y + ' m]$',
+                         title=titleStr,
+                         xunit='\mu m', yunit='\mu m',
+                         arg4main={'cmap': 'viridis', 'lw': 3})
 
-    return None
+    if saveFigFlag:
+        plt.ioff()
+        plt.figure(figsize=(10, 8))
+
+        plt.imshow(integrated[::-1, :], cmap='viridis',
+                   extent=wpu.extent_func(integrated, pixelsize)*factor_x,
+                   **kwarg4surf)
+
+        plt.xlabel(r'$x [' + unit_x + ' m]$', fontsize=24)
+        plt.ylabel(r'$y [' + unit_x + ' m]$', fontsize=24)
+
+        plt.title(titleStr, fontsize=18, weight='bold')
+        cbar = plt.colorbar()
+        cbar.ax.set_title(ctitle, y=1.01)
+        wpu.save_figs_with_idx(saveFileSuf)
+        plt.close()
+        plt.ion()
+
+
 
