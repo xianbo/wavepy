@@ -66,24 +66,25 @@ import wavepy.surface_from_grad as wps
 # %% Experimental values
 
 
-pixelsize = [0.4e-6, 0.4e-6]  # vertical and horizontal pixel sizes in meters
-distDet2sample = 0.093  # in meters
+pixelsize = [0.65e-6, 0.65e-6]  # vertical and horizontal pixel sizes in meters
+distDet2sample = 0.18600  # in meters
+sourceDistance = 100.0  # in meters, for divergence correction. to ignore it, use a big number >100
 
 phenergy = 8e3  # in eV
 wavelength = wpu.hc/phenergy  # wpu has an alias for hc
+kwave = 2*np.pi/wavelength
+
+
 
 # Phase grating paremeters
 gratingPeriod = 4.8e-6  # in meters
-patternPeriod = gratingPeriod/2.0  # for Pi grating
+# uncomment proper pattern period:
+patternPeriod = gratingPeriod/np.sqrt(2.0)  # if half Pi grating
+#patternPeriod = gratingPeriod/2.0  # if Pi grating
 
-
-#img = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/img_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-#imgRef = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-#darkImg = dxchange.read_tiff('Simulated/Imaging_BeLens/AstSphWave30p00x_25p00y/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-
-img = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/image_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-imgRef = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/ref_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
-darkImg = dxchange.read_tiff('Simulated/Imaging_BeLens/PlaneWave/dark_8000eV_d_93p0mm_pixel_0p400um_grPeriod_4p8um.tif')
+img = dxchange.read_tiff('data_example_for_single_grating/cb4p8um_halfPi_8KeV_10s_img.tif')
+imgRef = dxchange.read_tiff('data_example_for_single_grating/cb4p8um_halfPi_8KeV_10s_ref.tif')
+darkImg = dxchange.read_tiff('data_example_for_single_grating/10s_dark.tif')
 
 img = img - darkImg
 imgRef = imgRef - darkImg
