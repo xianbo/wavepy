@@ -37,43 +37,41 @@ Installation
 
 
 
----------------------
-**Syncing with git**
----------------------
+Syncing with git
+----------------
 
 .. NOTE:: You need to have ``git`` installed
 
 
-**Clone**
-----------
+Clone
+-----
 
 >>> git clone https://github.com/wavepy/wavepy
 
 
 
-**Update your local installation**
-----------------------------------
+Update your local installation
+------------------------------
 
 >>> git pull
 
 
-**To make git to store your credentials**
------------------------------------------
+To make git to store your credentials
+-------------------------------------
 
 >>> git config credential.helper store
 
 
 
 
------------------------------------
-**Solving dependencies with conda**
------------------------------------
+Solving dependencies with conda
+-------------------------------
 
 .. NOTE:: You need to have ``anaconda`` or ``miniconda`` installed
 
 
-**Creating conda enviroment**
-------------------------------
+Creating conda enviroment
+-------------------------
 
 >>> conda create -n ENV_NAME python=3.5 numpy=1.11  scipy=0.17 matplotlib=1.5 spyder=2.3.9 --yes
 
@@ -81,8 +79,8 @@ Installation
 
 
 
-**Solving dependencies**
-------------------------------
+Solving dependencies
+--------------------
 
 
 Activate the enviroment:
@@ -106,22 +104,22 @@ Activate the enviroment:
 
 
 
-**Adding Recomended packages**
-------------------------------
+Adding Recomended packages
+--------------------------
 
 >>> conda install -c dgursoy xraylib
 
 
 
 
-**Additional Settings**
------------------------
+Additional Settings
+-------------------
 
 ``easygui_qt`` conflicts with the Qt backend of
 ``matplotlib``. The workaround 
 is to change the backend to TkAgg. This can be in the *matplotlibrc* file 
 (instructions
 `here <http://matplotlib.org/users/customizing.html#customizing-matplotlib>`_).
-In Spyder this is done in **Tools->Preferences->Console->External Modules**,
-where we set **GUI backend** to
-**TkAgg**
+In Spyder this is done in Tools->Preferences->Console->External Modules,
+where we set GUI backend to
+TkAgg
