@@ -54,13 +54,15 @@ Author: Walan Grizolli
 import sys
 import os
 
-if len(sys.argv) != 1:
+if len(sys.argv) != 1: # if command line, dont show the plots
     import matplotlib
     matplotlib.use('Agg')
 
 import numpy as np
 
 import matplotlib.pyplot as plt
+
+plt.rcParams.update({'figure.max_open_warning': 0})
 from mpl_toolkits.mplot3d import Axes3D
 import dxchange
 
@@ -99,7 +101,6 @@ def main_single_gr_Talbot(img, imgRef,
     #    else:
     #        imgRef, idx4crop = crop_dialog(imgRef, saveFigFlag=saveFigFlag)
     #        img = wpu.crop_matrix_at_indexes(img, idx4crop)
-
     # calculate harmonic position after crop
 
     period_harm_Vert_o = int(period_harm[0]*img.shape[0]/img_size_o[0]) + 1
@@ -113,7 +114,7 @@ def main_single_gr_Talbot(img, imgRef,
      period_harm_Hor) = wgi.exp_harm_period(imgRef, [period_harm_Vert_o,
                                             period_harm_Hor_o],
                                             harmonic_ij=['0', '1'],
-                                            searchRegion=40,
+                                            searchRegion=60,
                                             isFFT=False, verbose=True)
 
     wpu.print_blue('MESSAGE: Obtain harmonic 10 exprimentally')
@@ -122,7 +123,7 @@ def main_single_gr_Talbot(img, imgRef,
      _) = wgi.exp_harm_period(imgRef, [period_harm_Vert_o,
                               period_harm_Hor_o],
                               harmonic_ij=['1', '0'],
-                              searchRegion=40,
+                              searchRegion=60,
                               isFFT=False, verbose=True)
 
     harmPeriod = [period_harm_Vert, period_harm_Hor]
@@ -1045,13 +1046,16 @@ if __name__ == '__main__':
         diffPhase01 = wpu.crop_matrix_at_indexes(diffPhase01, idx2ndCrop)
         diffPhase10 = wpu.crop_matrix_at_indexes(diffPhase10, idx2ndCrop)
 
+        #        factor_i = img.shape[0]//int00.shape[0]
+        #        factor_j = img.shape[1]//int00.shape[1]
+        #
         #        idx4crop = list(map(int, (wpu.get_from_ini_file(inifname, 'Parameters',
         #                                                        'Crop').split(','))))
         #        wpu.set_at_ini_file(inifname, 'Parameters', 'Crop',
-        #                            '{}, {}, {}, {}'.format(idx4crop[0] + idx2ndCrop[0],
-        #                                                    idx4crop[1] - idx2ndCrop[1],
-        #                                                    idx4crop[2] + idx2ndCrop[2],
-        #                                                    idx4crop[3] - idx2ndCrop[3]))
+        #                            '{}, {}, {}, {}'.format(idx4crop[0] + idx2ndCrop[0]*factor_i,
+        #                                                    idx4crop[1] - idx2ndCrop[1]*factor_i,
+        #                                                    idx4crop[2] + idx2ndCrop[2]*factor_j,
+        #                                                    idx4crop[3] - idx2ndCrop[3]*factor_j))
 
     # %% plot Intensities and dark field
 
@@ -1096,7 +1100,8 @@ if __name__ == '__main__':
         wpu.log_this('%%% COMMENT: Removed Linear Component from DPC',
                      saveFileSuf)
 
-        if gui_mode and easyqt.get_yes_or_no('New Linear Fit?'):
+        #        if gui_mode and easyqt.get_yes_or_no('New Linear Fit?'):
+        if True:
             linfitDPC01, cH = _fit_lin_surfaceH(diffPhase01, virtual_pixelsize)
             linfitDPC10, cV = _fit_lin_surfaceV(diffPhase10, virtual_pixelsize)
 
@@ -1138,30 +1143,44 @@ if __name__ == '__main__':
 
     # %%
 
-    if saveFigFlag:
+    if True:
 
-        fnameH = wpu.get_unique_filename(saveFileSuf + '_dpc_Y', 'sdf')
-        fnameV = wpu.get_unique_filename(saveFileSuf + '_dpc_X', 'sdf')
+        if linfitDPC01 is None:
+            diffPhase01_2save = diffPhase01
+            diffPhase10_2save = diffPhase10
+        else:
+            diffPhase01_2save = diffPhase01 - linfitDPC01
+            diffPhase10_2save = diffPhase10 - linfitDPC10
 
-        wpu.save_sdf_file(diffPhase01, virtual_pixelsize,
+        fnameH = wpu.get_unique_filename(saveFileSuf + '_dpc_X', 'sdf')
+        fnameV = wpu.get_unique_filename(saveFileSuf + '_dpc_Y', 'sdf')
+
+        wpu.save_sdf_file(diffPhase01_2save, virtual_pixelsize,
                           fnameH, {'Title': 'DPC 01', 'Zunit': 'rad'})
 
-        wpu.save_sdf_file(diffPhase10, virtual_pixelsize,
+        wpu.save_sdf_file(diffPhase10_2save, virtual_pixelsize,
                           fnameV, {'Title': 'DPC 10', 'Zunit': 'rad'})
 
-    #        from dpc_profile_analysis import dpc_profile_analysis  #TODO:
-    #
-    #        projectionFromDiv = .685
-    #        wpu.log_this('projectionFromDiv : ' + str('{:.4f}'.format(projectionFromDiv)))
-    #        dpc_profile_analysis(None, fnameV,
-    #                             phenergy, grazing_angle=0,
-    #                             projectionFromDiv=projectionFromDiv,
-    #                             nprofiles=5, filter_width=10)
+        from dpc_profile_analysis import dpc_profile_analysis  #TODO:
+
+        projectionFromDiv = 1.0
+        wpu.log_this('projectionFromDiv : ' + str('{:.4f}'.format(projectionFromDiv)))
+        dpc_profile_analysis(None, fnameV,
+                             phenergy, grazing_angle=0,
+                             projectionFromDiv=projectionFromDiv,
+                             nprofiles=1, filter_width=50)
+
+#        from dpc_profile_analysis_remove_best_fit import dpc_profile_analysis_remove_best_fit
+#        dpc_profile_analysis_remove_best_fit(fnameH, None,
+#                                             phenergy, grazing_angle=0,
+#                                             projectionFromDiv=projectionFromDiv,
+#                                             nprofiles=1, filter_width=50)
 
     # %% Fit DPC
 
-    #    fit_radius_dpc(diffPhase01, diffPhase10, virtual_pixelsize, kwave,
-    #                   saveFigFlag=saveFigFlag, str4title='')
+    if True:
+        fit_radius_dpc(diffPhase01, diffPhase10, virtual_pixelsize, kwave,
+                       saveFigFlag=saveFigFlag, str4title='')
     # ==========================================================================
     # %% Integration
     # ==========================================================================
@@ -1202,11 +1221,13 @@ if __name__ == '__main__':
 
         plt.show(block=True)
         wpu.print_blue('DONE')
+        plt.close('all')
 
         if saveFigFlag:
             wpu.save_sdf_file(-1/2/np.pi*phase*wavelength, virtual_pixelsize,
                               wpu.get_unique_filename(saveFileSuf + '_phase', 'sdf'),
                               {'Title': 'WF Phase', 'Zunit': 'meters'})
+
 
         if (gui_mode and easyqt.get_yes_or_no('Convert to thickness?') or
 
@@ -1254,14 +1275,14 @@ if __name__ == '__main__':
                                   wpu.get_unique_filename(saveFileSuf + '_thickness', 'sdf'),
                                   {'Title': 'Thickness', 'Zunit': 'meters'})
 
-            d2T_dx2 = np.diff(thickness, 2, 1)/virtual_pixelsize[1]**2
-            d2T_dy2 = np.diff(thickness, 2, 0)/virtual_pixelsize[0]**2
-
-            Rx = 1/d2T_dx2
-            Ry = 1/d2T_dx2
-
-            print('Rx: {:.4g}m, sdv: {:.4g}'.format(np.nanmean(Rx), np.nanstd(Rx)))
-            print('Ry: {:.4g}m, sdv: {:.4g}'.format(np.nanmean(Ry), np.nanstd(Ry)))
+            #            d2T_dx2 = np.diff(thickness, 2, 1)/virtual_pixelsize[1]**2
+            #            d2T_dy2 = np.diff(thickness, 2, 0)/virtual_pixelsize[0]**2
+            #
+            #            Rx = 1/d2T_dx2
+            #            Ry = 1/d2T_dx2
+            #
+            #            print('Rx: {:.4g}m, sdv: {:.4g}'.format(np.nanmean(Rx), np.nanstd(Rx)))
+            #            print('Ry: {:.4g}m, sdv: {:.4g}'.format(np.nanmean(Ry), np.nanstd(Ry)))
 
         # % 2nd order component of phase
 
