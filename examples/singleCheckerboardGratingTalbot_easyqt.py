@@ -1165,9 +1165,12 @@ if __name__ == '__main__':
 
         projectionFromDiv = 1.0
         wpu.log_this('projectionFromDiv : ' + str('{:.4f}'.format(projectionFromDiv)))
+# %%
+        remove2ndOrder = False #easyqt.get_yes_or_no('Remove 2nd Order for Profile?')
         dpc_profile_analysis(None, fnameV,
                              phenergy, grazing_angle=0,
                              projectionFromDiv=projectionFromDiv,
+                             remove2ndOrder=remove2ndOrder,
                              nprofiles=1, filter_width=50)
 
 #        from dpc_profile_analysis_remove_best_fit import dpc_profile_analysis_remove_best_fit
