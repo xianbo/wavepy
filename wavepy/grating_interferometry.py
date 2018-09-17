@@ -764,7 +764,8 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
             arg01, arg10]
 
 
-def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
+def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20,
+                        unFilterSize=1, verbose=False):
     """
     This function obtain the visibility in a grating imaging experiment by the
     ratio of the amplitudes of the first and zero harmonics. See
@@ -821,9 +822,17 @@ def visib_1st_harmonics(img, harmonicPeriod, searchRegion=20, verbose=False):
                                         harmonicPeriod[0], harmonicPeriod[1],
                                         searchRegion)
 
-    peak00 = np.abs(imgFFT[_idxPeak_ij_exp00[0], _idxPeak_ij_exp00[1]])
-    peak10 = np.abs(imgFFT[_idxPeak_ij_exp10[0], _idxPeak_ij_exp10[1]])
-    peak01 = np.abs(imgFFT[_idxPeak_ij_exp01[0], _idxPeak_ij_exp01[1]])
+
+    from scipy.ndimage.filters import uniform_filter
+
+    arg_imgFFT = np.abs(imgFFT)
+
+    if unFilterSize > 1:
+        arg_imgFFT = uniform_filter(arg_imgFFT, unFilterSize)
+
+    peak00 = arg_imgFFT[_idxPeak_ij_exp00[0], _idxPeak_ij_exp00[1]]
+    peak10 = arg_imgFFT[_idxPeak_ij_exp10[0], _idxPeak_ij_exp10[1]]
+    peak01 = arg_imgFFT[_idxPeak_ij_exp01[0], _idxPeak_ij_exp01[1]]
 
     return (2*peak10/peak00, 2*peak01/peak00, _idxPeak_ij_exp00, _idxPeak_ij_exp10, _idxPeak_ij_exp01)
 
