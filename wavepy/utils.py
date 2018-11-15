@@ -2103,7 +2103,7 @@ def plot_slide_colorbar(zmatrix, title='',
     cmapax = plt.axes([0.025, 0.2, 0.15, 0.25])
     radio1 = RadioButtons(cmapax, ('gray', 'gray_r',
                                    'viridis', 'viridis_r',
-                                   'inferno', 'rainbow'), active=2)
+                                   'inferno', 'rainbow', 'RdGy_r'), active=2)
 
     powax = plt.axes([0.025, 0.7, 0.15, 0.15])
     radio2 = RadioButtons(powax, ('lin', 'pow 1/7', 'pow 1/3',
@@ -2254,7 +2254,7 @@ def save_figs_with_idx_pickle(figObj='', patternforname='graph'):
     print('MESSAGE: ' + figname + ' SAVED')
 
 
-def get_unique_filename(patternforname, extension='txt'):
+def get_unique_filename(patternforname, extension='txt', width=2, isFolder=False):
     '''
     Produce a string in the format `patternforname_XX.extension`, where XX is
     the smalest number in order that the string is a unique filename.
@@ -2276,19 +2276,25 @@ def get_unique_filename(patternforname, extension='txt'):
 
     '''
 
-    if '.' not in extension:
-        extension = '.' + extension
+    if isFolder:
+        extension = '/'
+        if '/' in patternforname[-1]:
+            patternforname = patternforname[:-1]
+    else:
+        if '.' not in extension:
+            extension = '.' + extension
 
     from itertools import count
     _Count_fname = count()
     next(_Count_fname)
 
-    fname = str('{:s}_{:02d}'.format(patternforname,
-                                     next(_Count_fname)) + extension)
+    tmp_str = '{:s}_{:0' + str(width) + 'd}'
+    fname = str(tmp_str.format(patternforname,
+                               next(_Count_fname)) + extension)
 
-    while os.path.isfile(fname):
-        fname = str('{:s}_{:02d}'.format(patternforname,
-                                         next(_Count_fname)) + extension)
+    while os.path.isfile(fname) or os.path.isdir(fname):
+        fname = str(tmp_str.format(patternforname,
+                                   next(_Count_fname)) + extension)
 
     return fname
 
@@ -2786,8 +2792,9 @@ def progress_bar4pmap(res, sleep_time=1.0):
             old_res_n_left = res._number_left
         time.sleep(sleep_time)
 
+    print('\n')
     pbar.close()
-    print('')
+    print('\n')
 
 
 def load_ini_file_terminal_dialog(inifname):
