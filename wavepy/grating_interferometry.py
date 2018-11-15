@@ -752,7 +752,7 @@ def single_2Dgrating_analyses(img, img_ref=None, harmonicPeriod=None,
             arg01 = np.angle(h_img[1])
             arg10 = np.angle(h_img[2])
 
-    if unwrapFlag is True:
+    if unwrapFlag is True:  # remove pi jump
         arg01 -= int(np.round(np.mean(arg01/np.pi)))*np.pi
         arg10 -= int(np.round(np.mean(arg10/np.pi)))*np.pi
 
