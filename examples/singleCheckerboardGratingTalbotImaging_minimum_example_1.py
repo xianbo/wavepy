@@ -1,4 +1,3 @@
-15:24
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # #########################################################################
@@ -46,69 +45,113 @@
 # POSSIBILITY OF SUCH DAMAGE.                                             #
 # #########################################################################
 
-"""
-Module for describing .....
-"""
-
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import numpy
-
-__authors__ = "First Name Last Name"
-__copyright__ = "Copyright (c) 2016, Affiliation"
-__version__ = "0.1.0"
-__docformat__ = "restructuredtext en"
-__all__ = ['function_01',
-           'function_02']
-
-def function_01(parameter_01, parameter_02, parameter_03):
-    """
-    Function description.
-
-    Parameters
-    ----------
-    parameter_01 : type
-        Description.
-
-    parameter_02 : type
-        Description.
-
-    parameter_03 : type
-        Description.
-
-    Returns
-    -------
-    return_01
-        Description.
-    """
-
-    return_01 = parameter_01 + parameter_02 + parameter_03
-    
-    return return_01
+'''
+Author: Walan Grizolli
 
 
-def function_02(parameter_01, parameter_02, parameter_03):
-    """
-    Function description.
+'''
 
-    Parameters
-    ----------
-    parameter_01 : type
-        Description.
+# %%% imports cell
+import numpy as np
+import matplotlib.pyplot as plt
 
-    parameter_02 : type
-        Description.
+import dxchange
 
-    parameter_03 : type
-        Description.
 
-    Returns
-    -------
-    return_01
-        Description.
-    """
+import wavepy.utils as wpu
+import wavepy.grating_interferometry as wgi
+import wavepy.surface_from_grad as wps
 
-    return_01 = parameter_01 + parameter_02 + parameter_03
-    
-    return return_01
 
+# %% Experimental values
+
+
+pixelsize = [0.65e-6, 0.65e-6]  # vertical and horizontal pixel sizes in meters
+distDet2sample = 0.18600  # in meters
+sourceDistance = 100.0  # in meters, for divergence correction. to ignore it, use a big number >100
+
+phenergy = 8e3  # in eV
+wavelength = wpu.hc/phenergy  # wpu has an alias for hc
+kwave = 2*np.pi/wavelength
+
+
+
+# Phase grating paremeters
+gratingPeriod = 4.8e-6  # in meters
+# uncomment proper pattern period:
+patternPeriod = gratingPeriod/np.sqrt(2.0)  # if half Pi grating
+#patternPeriod = gratingPeriod/2.0  # if Pi grating
+
+img = dxchange.read_tiff('data_example_for_single_grating/cb4p8um_halfPi_8KeV_10s_img.tif')
+imgRef = dxchange.read_tiff('data_example_for_single_grating/cb4p8um_halfPi_8KeV_10s_ref.tif')
+darkImg = dxchange.read_tiff('data_example_for_single_grating/10s_dark.tif')
+
+img = img - darkImg
+imgRef = imgRef - darkImg
+
+
+
+# %% Find harmonic in the Fourier images
+
+# calculate the theoretical position of the hamonics
+period_harm_Vert_o = np.int(pixelsize[0]/patternPeriod*img.shape[0])
+period_harm_Hor_o = np.int(pixelsize[1]/patternPeriod*img.shape[1])
+
+harmPeriod = [period_harm_Vert_o, period_harm_Hor_o]
+
+# %% Obtain DPC and Dark Field image
+
+[int00, int01, int10,
+ darkField01, darkField10,
+ alpha_x,
+ alpha_y] = wgi.single_2Dgrating_analyses(img, img_ref=imgRef,
+                                          harmonicPeriod=harmPeriod,
+                                          plotFlag=True,
+                                          unwrapFlag=True,
+                                          verbose=True)
+
+# the spatial resolution is the grating period, what we call the virtual pixel size
+virtual_pixelsize = [pixelsize[0]*img.shape[0]/int00.shape[0],
+                     pixelsize[1]*img.shape[1]/int00.shape[1]]
+
+# covert phaseFFT to physical quantities, ie, differential phase
+diffPhase01 = -alpha_x*virtual_pixelsize[1]/distDet2sample/wavelength
+diffPhase10 = -alpha_y*virtual_pixelsize[0]/distDet2sample/wavelength
+
+
+
+phase = wps.frankotchellappa(diffPhase01*pixelsize[1],
+                             diffPhase10*pixelsize[0])
+
+phase = np.real(phase)
+
+# %% Plots
+
+saveFigFlag = True
+saveFileSuf = 'results'
+
+wgi.plot_intensities_harms(int00, int01, int10,
+                           virtual_pixelsize, saveFigFlag=saveFigFlag,
+                           titleStr='Intensity',
+                           saveFileSuf=saveFileSuf)
+
+wgi.plot_dark_field(darkField01, darkField10,
+                    virtual_pixelsize, saveFigFlag=saveFigFlag,
+                    saveFileSuf=saveFileSuf)
+
+wgi.plot_DPC(diffPhase01, diffPhase10,
+             virtual_pixelsize, saveFigFlag=saveFigFlag,
+             saveFileSuf=saveFileSuf)
+
+plt.show(block=True)
+
+# %%
+
+wgi.plot_integration(-1/2/np.pi*phase*wavelength*1e9,
+                     virtual_pixelsize,
+                     titleStr=r'-WF $[nm]$',
+                     plot3dFlag=True,
+                     saveFigFlag=False,
+                     saveFileSuf=saveFileSuf)
+
+wpu.print_blue('DONE')

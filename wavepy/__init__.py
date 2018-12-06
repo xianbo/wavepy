@@ -46,13 +46,19 @@
 # POSSIBILITY OF SUCH DAMAGE.                                             #
 # #########################################################################
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-from wavepy.module_01 import *
-from wavepy.module_02 import *
+
+from wavepy.utils import *
+from wavepy.speckletracking import *
+from wavepy.surface_from_grad import *
 
 try:
     import pkg_resources
     __version__ = pkg_resources.working_set.require("wavepy")[0].version
 except:
     pass
+
+
+
+
+
+

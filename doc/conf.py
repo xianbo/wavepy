@@ -67,7 +67,7 @@ master_doc = 'index'
 # General information about the project.
 Affiliation = u'Argonne National Laboratory'
 project = u'wavePy'
-copyright = u'2016, ' + Affiliation
+copyright = u'2016-2017, ' + Affiliation
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -322,7 +322,9 @@ class Mock(object):
     def __radd__(self, other):
         return Mock()
 
-MOCK_MODULES = ['numpy']
+MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'matplotlib.widgets', 
+                'skimage', 'skimage.feature', 'skimage.restoration', 'tqdm', 'dxchange', 
+                'easygui_qt', 'pl_toolkits', 'pl_toolkits.mplot3d', 'configparser', 'pyfftw']
 
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
